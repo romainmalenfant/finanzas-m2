@@ -2432,6 +2432,7 @@ async function importarBBVAMultiple(input){
       });
     }
     var movs=parseBBVAPositional(allItems);
+    console.log('BBVA parsed movimientos:',movs.length, movs.slice(0,3));
     movs.forEach(function(m){
       var fechaD=new Date(m.fecha+'T12:00');
       var safeKey=(m.descripcion||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,8);
@@ -2572,7 +2573,7 @@ function mostrarPreviewSAT(emitidas,recibidas){
       html+='<div style="font-size:11px;color:#3B6D11;margin-bottom:4px;">Ventas ('+m.emitidas.length+')</div>';
       html+=m.emitidas.slice(0,5).map(function(f){
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'+
-          '<span>'+esc((f.contraparte||f.rfc_contraparte||'').slice(0,40))+'</span>'+
+          '<span>'+esc((f.nombre_receptor||f.rfc_receptor||'').slice(0,40))+'</span>'+
           '<span style="color:#3B6D11;font-weight:500;">'+fmt(f.total)+'</span></div>';
       }).join('');
       if(m.emitidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.emitidas.length-5)+' más</div>';
@@ -2581,7 +2582,7 @@ function mostrarPreviewSAT(emitidas,recibidas){
       html+='<div style="font-size:11px;color:#A32D2D;margin:8px 0 4px;">Compras ('+m.recibidas.length+')</div>';
       html+=m.recibidas.slice(0,5).map(function(f){
         return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'+
-          '<span>'+esc((f.contraparte||f.rfc_contraparte||'').slice(0,40))+'</span>'+
+          '<span>'+esc((f.nombre_emisor||f.rfc_emisor||'').slice(0,40))+'</span>'+
           '<span style="color:#A32D2D;font-weight:500;">'+fmt(f.total)+'</span></div>';
       }).join('');
       if(m.recibidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.recibidas.length-5)+' más</div>';
@@ -2705,8 +2706,7 @@ async function importarBBVA(input){
     }
 
     var movimientos=parseBBVAPositional(allItems);
-
-    if(!movimientos.length){
+    console.log('BBVA single parsed:',movimientos.length, movimientos.slice(0,3));
       showError('No se detectaron movimientos. Verifica que sea el estado de cuenta BBVA Maestra PyME.');
       document.getElementById('status-msg').textContent='';
       return;
@@ -2744,7 +2744,6 @@ async function importarBBVA(input){
 }
 
 function parseBBVAPositional(items){
-  // Reconstruir texto por página agrupando items por línea (y±3px)
   var MESES={ENE:1,FEB:2,MAR:3,ABR:4,MAY:5,JUN:6,JUL:7,AGO:8,SEP:9,OCT:10,NOV:11,DIC:12};
   var movimientos=[];
 
@@ -2755,47 +2754,46 @@ function parseBBVAPositional(items){
     if(m){var y=parseInt(m[1]||m[2]||m[3]);if(y>2000&&y<2100)año=y;}
   });
 
-  // Agrupar items en líneas por página+y
-  var pageLines={};
+  // Agrupar en líneas por página+y (tolerancia ±4px)
+  var lineMap={};
   items.forEach(function(it){
-    var key=it.page+'_'+Math.round(it.y/3)*3;
-    if(!pageLines[key])pageLines[key]=[];
-    pageLines[key].push(it);
+    var key=it.page+'|'+Math.round(it.y/4)*4;
+    if(!lineMap[key])lineMap[key]=[];
+    lineMap[key].push(it);
   });
 
-  // Ordenar líneas: página asc, y desc (PDF coords bottom-up)
-  var sortedKeys=Object.keys(pageLines).sort(function(a,b){
+  // Ordenar cada línea por x
+  Object.values(lineMap).forEach(function(l){l.sort(function(a,b){return a.x-b.x;});});
+
+  // Ordenar líneas: página asc, y desc (PDF coords van de abajo a arriba)
+  var sortedKeys=Object.keys(lineMap).sort(function(a,b){
     var pa=parseInt(a),pb=parseInt(b);
     if(pa!==pb)return pa-pb;
-    return parseFloat(b.split('_')[1])-parseFloat(a.split('_')[1]);
+    var ya=parseInt(a.split('|')[1]),yb=parseInt(b.split('|')[1]);
+    return yb-ya; // y descendente = orden visual top→bottom
   });
 
-  // Para cada página, detectar la posición X de las columnas CARGOS y ABONOS
-  // usando el header de la tabla de movimientos
-  var xCargo={}, xAbono={};
-  sortedKeys.forEach(function(key){
-    var pg=parseInt(key);
-    var line=pageLines[key];
+  // Detectar posición X de columnas CARGOS y ABONOS por página
+  var xCargoByPage={}, xAbonoByPage={};
+  sortedKeys.forEach(function(k){
+    var pg=parseInt(k);
+    var line=lineMap[k];
     var texts=line.map(function(i){return i.str;});
-    var ci=texts.indexOf('CARGOS'), ai=texts.indexOf('ABONOS');
-    if(ci>=0&&ai>=0){
-      xCargo[pg]=line[ci].x;
-      xAbono[pg]=line[ai].x;
+    // Buscar headers CARGOS y ABONOS
+    for(var i=0;i<texts.length;i++){
+      if(texts[i]==='CARGOS'&&!xCargoByPage[pg])xCargoByPage[pg]=line[i].x;
+      if(texts[i]==='ABONOS'&&!xAbonoByPage[pg])xAbonoByPage[pg]=line[i].x;
     }
   });
 
-  // Procesar líneas buscando transacciones
-  // Formato BBVA: "DD/MES DD/MES COD DESCRIPCION" en la misma línea o en líneas consecutivas
-  // Los montos están en columnas específicas (CARGOS o ABONOS)
-  var prevFecha=null;
-  sortedKeys.forEach(function(key){
-    var pg=parseInt(key);
-    var line=pageLines[key].sort(function(a,b){return a.x-b.x;});
-    var texts=line.map(function(i){return i.str;});
-    var lineStr=texts.join(' ');
+  // Procesar líneas buscando fechas DD/MES
+  sortedKeys.forEach(function(k){
+    var pg=parseInt(k);
+    var line=lineMap[k];
+    var lineStr=line.map(function(i){return i.str;}).join(' ');
 
-    // Detectar fecha DD/MES al inicio
-    var fm=lineStr.match(/^(\d{1,2})\/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)\b/i);
+    // Detectar fecha al inicio: 19/FEB o 19/FEB 19/FEB
+    var fm=lineStr.match(/^(\d{1,2})\/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)/i);
     if(!fm)return;
 
     var dia=parseInt(fm[1]);
@@ -2803,64 +2801,59 @@ function parseBBVAPositional(items){
     if(!mesNum)return;
     var fechaISO=año+'-'+String(mesNum).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
 
-    // Buscar números en esta línea
-    // Si tenemos coordenadas de columnas para esta página, usarlas
+    // Buscar montos por posición X (columna CARGOS vs ABONOS)
     var cargo=0, abono=0;
-    var xC=xCargo[pg]||null, xA=xAbono[pg]||null;
-    var tol=60; // tolerancia en px
+    var xC=xCargoByPage[pg], xA=xAbonoByPage[pg];
+    var tol=55; // tolerancia en px
 
     line.forEach(function(it){
+      // Limpiar número: quitar comas
       var n=parseFloat(it.str.replace(/,/g,''));
-      if(isNaN(n)||n<=0||n>50000000)return;
+      if(isNaN(n)||n<1||n>50000000)return;
       if(xC&&xA){
         if(Math.abs(it.x-xC)<tol)cargo=n;
         else if(Math.abs(it.x-xA)<tol)abono=n;
       }
     });
 
-    // Si no encontramos por posición, usar keywords de descripción
+    // Fallback por keywords si no encontramos por posición
     if(!cargo&&!abono){
-      var esCargo=lineStr.match(/\bSAT\b|N06\s+PAGO|PAGO\s+CTA|PAGO\s+CUENTA/i)&&!lineStr.match(/SPEI\s*RECIB|DEP\.?CHEQUE/i);
-      var esAbono=lineStr.match(/SPEI\s*RECIB|DEP\.?CHEQUES?|T20\s+SPEI\s*RECIB|C07\s+DEP/i);
-      var nums=lineStr.match(/\b\d{1,3}(?:,\d{3})+(?:\.\d{2})?\b|\b\d{4,}(?:\.\d{2})?\b/g)||[];
-      var importes=nums.map(function(n){return parseFloat(n.replace(/,/g,''));})
-                       .filter(function(n){return n>10&&n<50000000;})
-                       .sort(function(a,b){return b-a;}); // mayor primero (más probable que sea el movimiento, no el saldo)
-      if(importes.length){
-        // El monto del movimiento suele ser el más pequeño cuando hay saldo después
-        // Pero en este PDF el saldo aparece en otra columna — tomamos el primero que encontremos
-        if(esAbono)abono=importes[0];
-        else if(esCargo)cargo=importes[0];
-        else{
-          // Sin keyword clara — mirar si hay dos números (movimiento + saldo acumulado)
-          // El movimiento generalmente es menor que el saldo
-          if(importes.length>=2)cargo=Math.min(importes[0],importes[1]);
-          else cargo=importes[0];
-        }
+      var isAbono=lineStr.match(/SPEI\s*RECIB|DEP\.?\s*CHE|T20\s+SPEI|C07\s+DEP/i);
+      var isCargo=lineStr.match(/SAT|N06\s+PAGO|PAGO\s+CTA|P14\s+SAT/i);
+      // Todos los números en la línea
+      var nums=(lineStr.match(/\d{1,3}(?:,\d{3})+(?:\.\d{2})?|\d{4,}(?:\.\d{2})?/g)||[])
+        .map(function(n){return parseFloat(n.replace(/,/g,''));})
+        .filter(function(n){return n>=1&&n<50000000;})
+        .sort(function(a,b){return a-b;}); // menor primero (movimiento antes que saldo)
+      if(nums.length){
+        if(isAbono)abono=nums[0];
+        else if(isCargo)cargo=nums[0];
+        else cargo=nums[0]; // default cargo
       }
     }
 
     if(!cargo&&!abono)return;
 
-    // Descripción: todo texto después de la segunda fecha y código
+    // Descripción limpia
     var desc=lineStr
-      .replace(/^\d{1,2}\/[A-Z]{3}\s+/i,'')
-      .replace(/^\d{1,2}\/[A-Z]{3}\s+/i,'')
+      .replace(/^\d{1,2}\/[A-Z]{3}\s*/i,'')
+      .replace(/^\d{1,2}\/[A-Z]{3}\s*/i,'')
       .replace(/^[A-Z]\d{2}\s+/,'')
-      .replace(/\b\d{1,3}(?:,\d{3})+(?:\.\d{2})?\b/g,'')
-      .replace(/\b\d{5,}(?:\.\d{2})?\b/g,'')
-      .replace(/\s+/g,' ').trim().slice(0,60);
+      .replace(/\d{1,3}(?:,\d{3})+(?:\.\d{2})?/g,'')
+      .replace(/\d{5,}(?:\.\d{2})?/g,'')
+      .replace(/\s+/g,' ').trim().slice(0,60)||'Movimiento';
 
-    movimientos.push({fecha:fechaISO,descripcion:desc||lineStr.slice(0,60),referencia:'',cargo:cargo,abono:abono});
+    movimientos.push({fecha:fechaISO,descripcion:desc,referencia:'',cargo:cargo,abono:abono});
   });
 
-  // Dedup
+  // Dedup por fecha+importe
   var seen={};
   return movimientos.filter(function(m){
     var k=m.fecha+'_'+(m.cargo||m.abono);
-    if(seen[k])return false; seen[k]=true; return true;
+    if(seen[k])return false;seen[k]=true;return true;
   });
 }
+
 
 // ── Conciliación automática ──────────────────────────────
 async function conciliarMes(){

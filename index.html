@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -101,6 +102,17 @@ textarea:focus{outline:none;border-color:#888780;}
 .cliente-info{flex:1;min-width:0;}
 .cliente-nombre{font-size:14px;font-weight:500;}
 .cliente-meta{font-size:12px;color:#73726c;margin-top:2px;}
+.import-card{background:#fff;border:.5px solid #d3d1c7;border-radius:12px;padding:1.25rem;text-align:center;}
+.import-icon{font-size:28px;margin-bottom:8px;}
+.import-title{font-size:14px;font-weight:500;margin-bottom:4px;}
+.import-desc{font-size:12px;color:#73726c;line-height:1.5;}
+.sat-row{display:grid;grid-template-columns:1fr 140px 80px 80px;gap:8px;padding:10px 1.25rem;border-bottom:.5px solid #eeecea;font-size:12px;align-items:center;}
+.sat-row:last-child{border-bottom:none;}
+.sat-row-hdr{background:#F5F4F0;font-weight:500;font-size:11px;color:#73726c;}
+.pill-verde{background:#EAF3DE;color:#3B6D11;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap;}
+.pill-rojo{background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap;}
+.pill-gris{background:#F1EFE8;color:#5f5e5a;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap;}
+.pill-azul{background:#E6F1FB;color:#185FA5;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap;}
 .c-green{color:#3B6D11;}.c-blue{color:#185FA5;}.c-red{color:#A32D2D;}.c-amber{color:#854F0B;}
 .c-util-pos{color:#3B6D11;}.c-util-neg{color:#A32D2D;}
 .chart-card{background:#fff;border:.5px solid #d3d1c7;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;}
@@ -393,6 +405,7 @@ textarea:focus{outline:none;border-color:#888780;}
     <button class="tab active" onclick="switchTab('finanzas',this)">Finanzas</button>
     <button class="tab" onclick="switchTab('proyectos',this)">Proyectos</button>
     <button class="tab" onclick="switchTab('clientes',this)">Clientes</button>
+    <button class="tab" onclick="switchTab('sat',this)">SAT &amp; Banco</button>
   </div>
 
   <!-- Tab Finanzas -->
@@ -438,6 +451,100 @@ textarea:focus{outline:none;border-color:#888780;}
       <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nuevo cliente</button>
     </div>
     <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
+  </div>
+
+  <!-- Tab SAT & Banco -->
+  <div id="tab-sat" style="display:none;">
+
+    <!-- Importar -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;">
+      <div class="import-card">
+        <div class="import-icon">📊</div>
+        <div class="import-title">Reporte SAT</div>
+        <div class="import-desc">Excel del portal del SAT con CFDIs emitidos y recibidos</div>
+        <label class="btn-primary" for="sat-file-input" style="cursor:pointer;display:inline-block;margin-top:10px;">Subir Excel SAT</label>
+        <input type="file" id="sat-file-input" accept=".xlsx,.xls" style="display:none" onchange="importarSAT(this)">
+      </div>
+      <div class="import-card">
+        <div class="import-icon">🏦</div>
+        <div class="import-title">Estado de cuenta BBVA</div>
+        <div class="import-desc">PDF del estado de cuenta mensual de BBVA</div>
+        <label class="btn-primary" for="bbva-file-input" style="cursor:pointer;display:inline-block;margin-top:10px;">Subir PDF BBVA</label>
+        <input type="file" id="bbva-file-input" accept=".pdf" style="display:none" onchange="importarBBVA(this)">
+      </div>
+    </div>
+
+    <!-- Resumen SAT del período seleccionado -->
+    <div class="input-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div class="sec-title" style="margin-bottom:0;">Resumen SAT · <span id="sat-periodo">Marzo 2026</span></div>
+        <div style="display:flex;gap:8px;">
+          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:.5px solid #d3d1c7;border-radius:6px;font-size:12px;font-family:inherit;background:#F5F4F0;"></select>
+          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:.5px solid #d3d1c7;border-radius:6px;font-size:12px;font-family:inherit;background:#F5F4F0;"></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="sat-metrics">
+        <div class="mcard"><div class="mlabel">Facturado (emitido)</div><div class="mvalue c-green" id="sat-emitido">$0</div></div>
+        <div class="mcard"><div class="mlabel">Cobrado (banco)</div><div class="mvalue c-blue" id="sat-cobrado">$0</div></div>
+        <div class="mcard"><div class="mlabel">Compras (recibido)</div><div class="mvalue c-red" id="sat-recibido">$0</div></div>
+        <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="sat-por-cobrar">$0</div></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar automáticamente</button>
+      </div>
+    </div>
+
+    <!-- Antigüedad de cartera -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-card">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · facturas sin cobrar</div>
+        <span class="mvmt-count" id="cartera-count">—</span>
+      </div>
+      <div id="cartera-list"><div class="empty-state">Sin facturas pendientes</div></div>
+    </div>
+
+    <!-- Facturas emitidas -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
+        <span class="mvmt-count" id="emit-count">0 facturas</span>
+      </div>
+      <div id="emit-list"><div class="empty-state">Sin facturas importadas</div></div>
+    </div>
+
+    <!-- Movimientos banco -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
+        <span class="mvmt-count" id="banco-count">0 movimientos</span>
+      </div>
+      <div id="banco-list"><div class="empty-state">Sin movimientos importados</div></div>
+    </div>
+
+    <!-- Facturas recibidas -->
+    <div class="mvmts-card" style="margin-bottom:2rem;">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
+        <span class="mvmt-count" id="recib-count">0 facturas</span>
+      </div>
+      <div id="recib-list"><div class="empty-state">Sin facturas importadas</div></div>
+    </div>
+
+  </div>
+
+  <!-- Modal preview importación SAT -->
+  <div class="modal-overlay" id="sat-preview-modal">
+    <div class="modal-box" style="max-width:680px;">
+      <div class="modal-hdr">
+        <div class="modal-title" id="sat-preview-title">Previa — Importar SAT</div>
+        <button class="modal-close" onclick="cerrarSATPreview()">×</button>
+      </div>
+      <div class="modal-body" id="sat-preview-body" style="max-height:65vh;overflow-y:auto;"></div>
+      <div class="modal-footer">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarSATPreview()">Cancelar</button>
+        <button class="btn-primary" id="btn-confirmar-sat" onclick="confirmarImportSAT()">Importar</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal nuevo/editar proyecto -->
@@ -1387,8 +1494,10 @@ function switchTab(tab, btn){
   document.getElementById('tab-finanzas').style.display=tab==='finanzas'?'block':'none';
   document.getElementById('tab-proyectos').style.display=tab==='proyectos'?'block':'none';
   document.getElementById('tab-clientes').style.display=tab==='clientes'?'block':'none';
+  document.getElementById('tab-sat').style.display=tab==='sat'?'block':'none';
   if(tab==='proyectos')loadProyectos();
   if(tab==='clientes')loadClientes();
+  if(tab==='sat')initSATTab();
 }
 
 // ── Proyectos UI ─────────────────────────────────────────
@@ -1975,6 +2084,608 @@ async function guardarFormMovimiento(){
   }finally{
     btn.disabled=false; btn.textContent='Guardar';
   }
+}
+
+// ── SAT & Banco Module ───────────────────────────────────
+var satPendingEmitidas=[], satPendingRecibidas=[];
+
+function initSATTab(){
+  // Populate year/month selectors
+  var mesEl=document.getElementById('sat-mes-sel');
+  var añoEl=document.getElementById('sat-año-sel');
+  if(!mesEl.options.length){
+    MONTHS.forEach(function(m,i){
+      var o=document.createElement('option');
+      o.value=i+1; o.textContent=m;
+      if(i===curMonth)o.selected=true;
+      mesEl.appendChild(o);
+    });
+    for(var y=curYear-2;y<=curYear+1;y++){
+      var o=document.createElement('option');
+      o.value=y; o.textContent=y;
+      if(y===curYear)o.selected=true;
+      añoEl.appendChild(o);
+    }
+  }
+  loadSATData();
+}
+
+async function loadSATData(){
+  var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
+  var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
+  document.getElementById('sat-periodo').textContent=MONTHS[mes-1]+' '+año;
+
+  try{
+    var [{data:emitidas},{data:recibidas},{data:banco}]=await Promise.all([
+      sb.from('facturas_emitidas').select('*').eq('year',año).eq('month',mes).order('fecha_emision',{ascending:false}),
+      sb.from('facturas_recibidas').select('*').eq('year',año).eq('month',mes).order('fecha_emision',{ascending:false}),
+      sb.from('movimientos_banco').select('*').eq('year',año).eq('month',mes).order('fecha',{ascending:false})
+    ]);
+    emitidas=emitidas||[]; recibidas=recibidas||[]; banco=banco||[];
+
+    // Metrics
+    var totalEmitido=emitidas.filter(function(f){return f.estado==='Vigente'&&f.efecto==='Ingreso';}).reduce(function(a,f){return a+Number(f.total);},0);
+    var totalRecibido=recibidas.filter(function(f){return f.estado==='Vigente'&&f.efecto==='Ingreso';}).reduce(function(a,f){return a+Number(f.total);},0);
+    var totalAbonos=banco.filter(function(m){return m.tipo==='abono';}).reduce(function(a,m){return a+Number(m.abono);},0);
+    var porCobrar=emitidas.filter(function(f){return f.estado==='Vigente'&&f.efecto==='Ingreso'&&!f.conciliada;}).reduce(function(a,f){return a+Number(f.total);},0);
+
+    document.getElementById('sat-emitido').textContent=fmt(totalEmitido);
+    document.getElementById('sat-cobrado').textContent=fmt(totalAbonos);
+    document.getElementById('sat-recibido').textContent=fmt(totalRecibido);
+    document.getElementById('sat-por-cobrar').textContent=fmt(porCobrar);
+
+    renderFacturasEmitidas(emitidas);
+    renderMovsBanco(banco);
+    renderFacturasRecibidas(recibidas);
+    loadCartera();
+  }catch(e){showError('Error cargando datos SAT: '+e.message);}
+}
+
+function renderFacturasEmitidas(list){
+  var el=document.getElementById('emit-list');
+  var ct=document.getElementById('emit-count');
+  ct.textContent=list.length+' factura'+(list.length!==1?'s':'');
+  if(!list.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
+  el.innerHTML='<div class="sat-row sat-row-hdr"><span>Cliente</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+    list.map(function(f){
+      var pill=f.conciliada?'<span class="pill-azul">Cobrada</span>':(f.estado==='Vigente'?'<span class="pill-verde">Vigente</span>':'<span class="pill-rojo">Cancelada</span>');
+      return '<div class="sat-row">'+
+        '<div><div style="font-weight:500;font-size:12px;">'+esc(f.nombre_receptor||f.rfc_receptor||'-')+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+esc(f.uuid.slice(0,8))+'...</div></div>'+
+        '<div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(f.total))+'</div>'+
+        '<div style="color:#73726c;">'+fmtDate(f.fecha_emision)+'</div>'+
+        '<div>'+pill+'</div>'+
+      '</div>';
+    }).join('');
+}
+
+function renderMovsBanco(list){
+  var el=document.getElementById('banco-list');
+  var ct=document.getElementById('banco-count');
+  ct.textContent=list.length+' movimiento'+(list.length!==1?'s':'');
+  if(!list.length){el.innerHTML='<div class="empty-state">Sin movimientos bancarios importados</div>';return;}
+  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:80px 1fr 100px 80px;"><span>Fecha</span><span>Descripción</span><span style="text-align:right">Importe</span><span>Tipo</span></div>'+
+    list.map(function(m){
+      var esAbono=m.tipo==='abono';
+      var importe=esAbono?Number(m.abono):Number(m.cargo);
+      return '<div class="sat-row" style="grid-template-columns:80px 1fr 100px 80px;">'+
+        '<div style="color:#73726c;">'+fmtDate(m.fecha)+'</div>'+
+        '<div style="font-size:12px;">'+esc((m.descripcion||'').slice(0,50))+'</div>'+
+        '<div style="text-align:right;font-weight:500;color:'+(esAbono?'#3B6D11':'#A32D2D')+';">'+(esAbono?'+':'-')+fmt(importe)+'</div>'+
+        '<div><span class="'+(esAbono?'pill-verde':'pill-rojo')+'">'+(esAbono?'Abono':'Cargo')+'</span></div>'+
+      '</div>';
+    }).join('');
+}
+
+function renderFacturasRecibidas(list){
+  var el=document.getElementById('recib-list');
+  var ct=document.getElementById('recib-count');
+  ct.textContent=list.length+' factura'+(list.length!==1?'s':'');
+  if(!list.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
+  el.innerHTML='<div class="sat-row sat-row-hdr"><span>Proveedor</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+    list.map(function(f){
+      var pill=f.conciliada?'<span class="pill-azul">Pagada</span>':(f.estado==='Vigente'?'<span class="pill-verde">Vigente</span>':'<span class="pill-rojo">Cancelada</span>');
+      return '<div class="sat-row">'+
+        '<div><div style="font-weight:500;font-size:12px;">'+esc((f.nombre_emisor||f.rfc_emisor||'-').slice(0,35))+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+esc(f.uuid.slice(0,8))+'...</div></div>'+
+        '<div style="text-align:right;font-weight:500;color:#A32D2D;">'+fmt(Number(f.total))+'</div>'+
+        '<div style="color:#73726c;">'+fmtDate(f.fecha_emision)+'</div>'+
+        '<div>'+pill+'</div>'+
+      '</div>';
+    }).join('');
+}
+
+// ── SAT Excel Import ─────────────────────────────────────
+function importarSAT(input){
+  var file=input.files[0];
+  if(!file)return;
+  input.value='';
+  showStatus('Leyendo Excel SAT...',0);
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var emitidas=[], recibidas=[];
+
+      // Hoja2 = Emitidas (facturas que TÚ emitiste = ventas)
+      if(wb.SheetNames.includes('Hoja2')){
+        var ws=wb.Sheets['Hoja2'];
+        var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        // Header en fila 2 (índice 1), datos desde fila 3 (índice 2)
+        var headerRow=rows[1]||[];
+        var colUUID=headerRow.indexOf('Folio Fiscal');
+        var colRFC=headerRow.indexOf('RFC Receptor');
+        var colNombre=headerRow.indexOf('Nombre o Razón Social del Receptor');
+        var colFecha=headerRow.indexOf('Fecha de Emisión');
+        var colTotal=headerRow.indexOf('Total');
+        var colEfecto=headerRow.indexOf('Efecto del Comprobante');
+        var colEstado=headerRow.indexOf('Estado del Comprobante');
+
+        for(var i=2;i<rows.length;i++){
+          var r=rows[i];
+          var uuid=r[colUUID];
+          if(!uuid||uuid==='Folio Fiscal')continue;
+          var total=parseFloat(r[colTotal])||0;
+          if(total<=0)continue; // Skip pagos y complementos
+          var fecha=r[colFecha]?String(r[colFecha]).split('T')[0]:'';
+          if(!fecha)continue;
+          var fechaD=new Date(fecha+'T12:00');
+          emitidas.push({
+            uuid:String(uuid),
+            rfc_receptor:String(r[colRFC]||''),
+            nombre_receptor:String(r[colNombre]||''),
+            fecha_emision:fecha,
+            total:total,
+            efecto:String(r[colEfecto]||'Ingreso'),
+            estado:String(r[colEstado]||'Vigente'),
+            year:fechaD.getFullYear(),
+            month:fechaD.getMonth()+1,
+            conciliada:false
+          });
+        }
+      }
+
+      // RECIBIDAD = Recibidas (facturas que TE emitieron = compras)
+      var hRecib=wb.SheetNames.find(function(s){return s.toUpperCase().includes('RECIB');});
+      if(hRecib){
+        var ws2=wb.Sheets[hRecib];
+        var rows2=XLSX.utils.sheet_to_json(ws2,{header:1,defval:''});
+        // Header en fila 2 (índice 1)
+        var h2=rows2[1]||[];
+        var c2UUID=h2.indexOf('Folio Fiscal');
+        var c2RFCEm=h2.indexOf('RFC Emisor');
+        var c2NomEm=h2.indexOf('Nombre o Razón Social del Emisor');
+        var c2Fecha=h2.indexOf('Fecha de Emisión');
+        var c2Total=h2.indexOf('Total');
+        var c2Efecto=h2.indexOf('Efecto del Comprobante');
+        var c2Estado=h2.indexOf('Estado del Comprobante');
+
+        for(var j=2;j<rows2.length;j++){
+          var r2=rows2[j];
+          var uuid2=r2[c2UUID];
+          if(!uuid2||uuid2==='Folio Fiscal')continue;
+          var total2=parseFloat(r2[c2Total])||0;
+          if(total2<=0)continue;
+          var fecha2=r2[c2Fecha]?String(r2[c2Fecha]).split('T')[0]:'';
+          if(!fecha2)continue;
+          var fechaD2=new Date(fecha2+'T12:00');
+          recibidas.push({
+            uuid:String(uuid2),
+            rfc_emisor:String(r2[c2RFCEm]||''),
+            nombre_emisor:String(r2[c2NomEm]||''),
+            fecha_emision:fecha2,
+            total:total2,
+            efecto:String(r2[c2Efecto]||'Ingreso'),
+            estado:String(r2[c2Estado]||'Vigente'),
+            year:fechaD2.getFullYear(),
+            month:fechaD2.getMonth()+1,
+            conciliada:false
+          });
+        }
+      }
+
+      if(!emitidas.length&&!recibidas.length){
+        showError('No se encontraron facturas en el archivo. Verifica que sea el reporte SAT correcto.');
+        return;
+      }
+
+      satPendingEmitidas=emitidas;
+      satPendingRecibidas=recibidas;
+      mostrarPreviewSAT(emitidas,recibidas);
+      document.getElementById('status-msg').textContent='';
+    }catch(err){
+      console.error(err);
+      showError('Error al leer el Excel: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function mostrarPreviewSAT(emitidas,recibidas){
+  // Group by month
+  var meses={};
+  emitidas.forEach(function(f){
+    var k=f.year+'-'+String(f.month).padStart(2,'0');
+    if(!meses[k])meses[k]={año:f.year,mes:f.month,emitidas:[],recibidas:[]};
+    meses[k].emitidas.push(f);
+  });
+  recibidas.forEach(function(f){
+    var k=f.year+'-'+String(f.month).padStart(2,'0');
+    if(!meses[k])meses[k]={año:f.year,mes:f.month,emitidas:[],recibidas:[]};
+    meses[k].recibidas.push(f);
+  });
+
+  var totalE=emitidas.reduce(function(a,f){return a+f.total;},0);
+  var totalR=recibidas.reduce(function(a,f){return a+f.total;},0);
+
+  document.getElementById('sat-preview-title').textContent='Previa — '+emitidas.length+' ventas, '+recibidas.length+' compras';
+  var html='<div style="margin-bottom:14px;padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;">'+
+    '<b>'+emitidas.length+'</b> facturas emitidas · Total: <b style="color:#3B6D11">'+fmt(totalE)+'</b><br>'+
+    '<b>'+recibidas.length+'</b> facturas recibidas · Total: <b style="color:#A32D2D">'+fmt(totalR)+'</b><br>'+
+    '<span style="color:#73726c;font-size:11px;">Los UUIDs ya existentes se omitirán automáticamente.</span>'+
+  '</div>';
+
+  Object.keys(meses).sort().forEach(function(k){
+    var m=meses[k];
+    html+='<div style="font-weight:500;font-size:13px;margin:12px 0 6px;">'+MONTHS[m.mes-1]+' '+m.año+'</div>';
+    if(m.emitidas.length){
+      html+='<div style="font-size:11px;color:#3B6D11;margin-bottom:4px;">Ventas ('+m.emitidas.length+')</div>';
+      html+=m.emitidas.slice(0,5).map(function(f){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'+
+          '<span>'+esc((f.nombre_receptor||f.rfc_receptor).slice(0,40))+'</span>'+
+          '<span style="color:#3B6D11;font-weight:500;">'+fmt(f.total)+'</span></div>';
+      }).join('');
+      if(m.emitidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.emitidas.length-5)+' más</div>';
+    }
+    if(m.recibidas.length){
+      html+='<div style="font-size:11px;color:#A32D2D;margin:8px 0 4px;">Compras ('+m.recibidas.length+')</div>';
+      html+=m.recibidas.slice(0,5).map(function(f){
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'+
+          '<span>'+esc((f.nombre_emisor||f.rfc_emisor).slice(0,40))+'</span>'+
+          '<span style="color:#A32D2D;font-weight:500;">'+fmt(f.total)+'</span></div>';
+      }).join('');
+      if(m.recibidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.recibidas.length-5)+' más</div>';
+    }
+  });
+
+  document.getElementById('sat-preview-body').innerHTML=html;
+  document.getElementById('sat-preview-modal').style.display='block';
+}
+
+function cerrarSATPreview(){
+  document.getElementById('sat-preview-modal').style.display='none';
+  satPendingEmitidas=[]; satPendingRecibidas=[];
+}
+
+async function confirmarImportSAT(){
+  var btn=document.getElementById('btn-confirmar-sat');
+  btn.disabled=true; btn.textContent='Importando...';
+
+  var nuevasE=0, nuevasR=0, duplicadas=0;
+  try{
+    // Insert emitidas usando upsert (uuid es PK, duplicados se ignoran)
+    if(satPendingEmitidas.length){
+      var {error:e1}=await sb.from('facturas_emitidas').upsert(satPendingEmitidas,{onConflict:'uuid',ignoreDuplicates:true});
+      if(e1)throw e1;
+      nuevasE=satPendingEmitidas.length;
+    }
+    if(satPendingRecibidas.length){
+      var {error:e2}=await sb.from('facturas_recibidas').upsert(satPendingRecibidas,{onConflict:'uuid',ignoreDuplicates:true});
+      if(e2)throw e2;
+      nuevasR=satPendingRecibidas.length;
+    }
+    cerrarSATPreview();
+    showStatus('✓ Importado: '+nuevasE+' ventas, '+nuevasR+' compras (duplicados omitidos automáticamente)');
+    loadSATData();
+  }catch(e){
+    showError('Error al importar: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent='Importar';
+  }
+}
+
+// ── BBVA PDF Import ──────────────────────────────────────
+async function importarBBVA(input){
+  var file=input.files[0];
+  if(!file)return;
+  input.value='';
+  showStatus('Leyendo estado de cuenta BBVA...',0);
+
+  try{
+    var buf=await file.arrayBuffer();
+    var pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    var texto='';
+    for(var p=1;p<=pdf.numPages;p++){
+      var pg=await pdf.getPage(p);
+      var ct=await pg.getTextContent();
+      texto+=ct.items.map(function(i){return i.str;}).join(' ')+'\n';
+    }
+
+    var movimientos=parseBBVA(texto);
+    if(!movimientos.length){
+      showError('No se detectaron movimientos en el PDF. Verifica que sea un estado de cuenta BBVA.');
+      document.getElementById('status-msg').textContent='';
+      return;
+    }
+
+    // Upsert — id generado por fecha+importe+descripcion para idempotencia
+    var rows=movimientos.map(function(m){
+      var fechaD=new Date(m.fecha+'T12:00');
+      return {
+        id:m.fecha.replace(/-/g,'')+'_'+(m.cargo||m.abono||0)+'_'+btoa(m.descripcion.slice(0,10)).slice(0,8),
+        fecha:m.fecha, descripcion:m.descripcion, referencia:m.referencia||'',
+        cargo:m.cargo||0, abono:m.abono||0,
+        tipo:m.abono>0?'abono':'cargo',
+        year:fechaD.getFullYear(), month:fechaD.getMonth()+1,
+        conciliado:false
+      };
+    });
+
+    var {error}=await sb.from('movimientos_banco').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
+    if(error)throw error;
+
+    document.getElementById('status-msg').textContent='';
+    showStatus('✓ '+rows.length+' movimientos bancarios importados');
+    loadSATData();
+  }catch(e){
+    console.error(e);
+    showError('Error al procesar PDF BBVA: '+e.message);
+    document.getElementById('status-msg').textContent='';
+  }
+}
+
+function parseBBVA(texto){
+  var movimientos=[];
+  var meses={ENE:1,FEB:2,MAR:3,ABR:4,MAY:5,JUN:6,JUL:7,AGO:8,SEP:9,OCT:10,NOV:11,DIC:12};
+
+  // Detectar año del estado de cuenta
+  var añoMatch=texto.match(/AL\s+\d+\/\d+\/(\d{4})|Periodo.*?(\d{4})|(\d{4})-\d{2}-\d{2}/);
+  var año=añoMatch?(parseInt(añoMatch[1]||añoMatch[2]||añoMatch[3])||new Date().getFullYear()):new Date().getFullYear();
+
+  // Patrón: DD/MES seguido de datos de la operación
+  // Formato BBVA: 19/FEB 19/FEB P14 SAT 3,970.00 (cargo) o 193,841.43 (abono)
+  var lineas=texto.split('\n');
+  var i=0;
+  while(i<lineas.length){
+    var linea=lineas[i].trim();
+    // Buscar línea que empiece con fecha tipo 19/FEB
+    var fechaMatch=linea.match(/^(\d{1,2})\/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)/i);
+    if(fechaMatch){
+      var dia=parseInt(fechaMatch[1]);
+      var mesStr=fechaMatch[2].toUpperCase();
+      var mesNum=meses[mesStr]||1;
+      var fechaISO=año+'-'+String(mesNum).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+
+      // Juntar esta línea con la siguiente (la descripción puede continuar)
+      var bloqueTexto=linea;
+      if(i+1<lineas.length)bloqueTexto+=' '+lineas[i+1].trim();
+      if(i+2<lineas.length)bloqueTexto+=' '+lineas[i+2].trim();
+
+      // Extraer montos — buscar números con comas
+      var montos=bloqueTexto.match(/[\d]{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}/g);
+      if(montos&&montos.length){
+        // Limpiar y convertir montos
+        var importes=montos.map(function(m){return parseFloat(m.replace(/,/g,''));}).filter(function(n){return n>0&&n<99999999;});
+
+        // Extraer descripción — texto entre la fecha repetida y el monto
+        var desc=bloqueTexto.replace(/^\d{1,2}\/[A-Z]{3}\s+\d{1,2}\/[A-Z]{3}\s+[A-Z0-9]+\s*/,'').replace(/[\d,]+\.\d{2}.*/,'').trim().slice(0,60);
+        if(!desc)desc=bloqueTexto.slice(0,60).trim();
+
+        // Determinar si es cargo o abono basado en el contexto
+        // En BBVA: la tabla tiene columnas CARGOS | ABONOS
+        // Buscamos indicadores en la descripción
+        var esCargo=bloqueTexto.match(/SAT|PAGO|CARGO|RETIRO|N06 PAGO/i)&&!bloqueTexto.match(/SPEI RECIB|DEP\.CHEQUE|ABONO/i);
+        var esAbono=bloqueTexto.match(/SPEI RECIB|DEP\.CHEQUE|ABONO/i);
+
+        if(importes.length>=1){
+          var importe=importes[0];
+          // Si hay dos importes distintos, el primero suele ser el movimiento y el segundo el saldo
+          // Para BBVA: cargos aparecen antes de abonos en la línea
+          var cargo=0, abono=0;
+          if(esAbono){abono=importe;}
+          else if(esCargo){cargo=importe;}
+          else{
+            // Heurística: si hay referencia a SPEI recibido → abono
+            cargo=importe;
+          }
+
+          movimientos.push({fecha:fechaISO,descripcion:desc,cargo:cargo,abono:abono,referencia:''});
+        }
+      }
+      i+=3;
+    } else {i++;}
+  }
+
+  // Deduplicar por fecha+importe
+  var vistos={};
+  return movimientos.filter(function(m){
+    var k=m.fecha+'_'+(m.cargo||m.abono);
+    if(vistos[k])return false;
+    vistos[k]=true;return true;
+  });
+}
+
+// ── Conciliación automática ──────────────────────────────
+async function conciliarMes(){
+  var btn=document.getElementById('btn-conciliar');
+  var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
+  var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
+  btn.disabled=true; btn.textContent='Conciliando...';
+
+  try{
+    // Cargar facturas emitidas pendientes y abonos bancarios del mes
+    var [{data:emitidas},{data:abonos}]=await Promise.all([
+      sb.from('facturas_emitidas').select('*').eq('year',año).eq('month',mes).eq('conciliada',false).eq('estado','Vigente'),
+      sb.from('movimientos_banco').select('*').eq('year',año).eq('month',mes).eq('tipo','abono').eq('conciliado',false)
+    ]);
+    emitidas=emitidas||[]; abonos=abonos||[];
+
+    var matches=[];
+    var abonosUsados=new Set();
+
+    // Para cada factura pendiente, buscar abono que coincida
+    emitidas.forEach(function(f){
+      var fechaF=new Date(f.fecha_emision+'T12:00');
+      var match=abonos.find(function(a){
+        if(abonosUsados.has(a.id))return false;
+        // Mismo monto ±5%
+        var diff=Math.abs(Number(a.abono)-Number(f.total))/Math.max(Number(f.total),1);
+        if(diff>0.05)return false;
+        // Fecha del abono >= fecha factura y dentro de 60 días (crédito a 60d)
+        var fechaA=new Date(a.fecha+'T12:00');
+        var dias=(fechaA-fechaF)/(1000*60*60*24);
+        return dias>=-1&&dias<=60;
+      });
+      if(match){
+        abonosUsados.add(match.id);
+        matches.push({factura:f,abono:match});
+      }
+    });
+
+    if(!matches.length){
+      showStatus('No se encontraron matches automáticos. Verifica montos y fechas.');
+      btn.disabled=false; btn.textContent='⚡ Conciliar automáticamente';
+      return;
+    }
+
+    // Mostrar preview de matches antes de guardar
+    mostrarPreviewConciliacion(matches, año, mes);
+
+  }catch(e){
+    showError('Error en conciliación: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent='⚡ Conciliar automáticamente';
+  }
+}
+
+var concilMatches=[];
+
+function mostrarPreviewConciliacion(matches, año, mes){
+  concilMatches=matches;
+  var total=matches.reduce(function(a,m){return a+Number(m.factura.total);},0);
+
+  var html='<div style="padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;margin-bottom:14px;">'+
+    'Se encontraron <b>'+matches.length+' coincidencias</b> · <b style="color:#3B6D11">'+fmt(total)+'</b> a conciliar'+
+  '</div>'+
+  '<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 1fr 90px;">'+
+    '<span>Factura emitida</span><span>Abono bancario</span><span style="text-align:right">Monto</span>'+
+  '</div>'+
+  matches.map(function(m){
+    return '<div class="sat-row" style="grid-template-columns:1fr 1fr 90px;align-items:start;">'+
+      '<div>'+
+        '<div style="font-size:12px;font-weight:500;">'+esc((m.factura.nombre_receptor||m.factura.rfc_receptor||'-').slice(0,30))+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+fmtDate(m.factura.fecha_emision)+' · '+esc(m.factura.uuid.slice(0,8))+'...</div>'+
+      '</div>'+
+      '<div>'+
+        '<div style="font-size:12px;font-weight:500;">'+esc((m.abono.descripcion||'-').slice(0,30))+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+fmtDate(m.abono.fecha)+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(m.factura.total))+'</div>'+
+    '</div>';
+  }).join('');
+
+  // Reusar el modal SAT preview
+  document.getElementById('sat-preview-title').textContent='Confirmar conciliación — '+MONTHS[mes-1]+' '+año;
+  document.getElementById('sat-preview-body').innerHTML=html;
+  document.getElementById('btn-confirmar-sat').textContent='Confirmar conciliación';
+  document.getElementById('btn-confirmar-sat').onclick=confirmarConciliacion;
+  document.getElementById('sat-preview-modal').style.display='block';
+}
+
+async function confirmarConciliacion(){
+  var btn=document.getElementById('btn-confirmar-sat');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    // Marcar facturas como conciliadas
+    for(var i=0;i<concilMatches.length;i++){
+      var m=concilMatches[i];
+      await sb.from('facturas_emitidas').update({conciliada:true,movimiento_banco_id:m.abono.id}).eq('uuid',m.factura.uuid);
+      await sb.from('movimientos_banco').update({conciliado:true,uuid_factura:m.factura.uuid}).eq('id',m.abono.id);
+    }
+    // Restaurar botón a función original
+    document.getElementById('btn-confirmar-sat').onclick=confirmarImportSAT;
+    document.getElementById('btn-confirmar-sat').textContent='Importar';
+    cerrarSATPreview();
+    showStatus('✓ '+concilMatches.length+' facturas conciliadas correctamente');
+    concilMatches=[];
+    loadSATData();
+  }catch(e){
+    showError('Error al guardar conciliación: '+e.message);
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+// ── Antigüedad de cartera ────────────────────────────────
+async function loadCartera(){
+  try{
+    // Todas las facturas emitidas vigentes no conciliadas de los últimos 6 meses
+    var hoy=new Date();
+    var hace6=new Date(hoy);
+    hace6.setMonth(hace6.getMonth()-6);
+    var fecha6=hace6.toISOString().split('T')[0];
+
+    var {data:pendientes}=await sb.from('facturas_emitidas')
+      .select('*')
+      .eq('estado','Vigente')
+      .eq('conciliada',false)
+      .gte('fecha_emision',fecha6)
+      .order('fecha_emision',{ascending:true});
+
+    pendientes=pendientes||[];
+    var el=document.getElementById('cartera-list');
+    var ct=document.getElementById('cartera-count');
+
+    if(!pendientes.length){
+      ct.textContent='Sin pendientes';
+      el.innerHTML='<div class="empty-state">No hay facturas pendientes de cobro ✓</div>';
+      return;
+    }
+
+    var totalPendiente=pendientes.reduce(function(a,f){return a+Number(f.total);},0);
+    ct.textContent=pendientes.length+' pendiente'+(pendientes.length!==1?'s':'')+' · '+fmt(totalPendiente);
+
+    // Agrupar por antigüedad
+    var grupos={g0:[],g30:[],g60:[],g90:[]};
+    pendientes.forEach(function(f){
+      var dias=Math.floor((hoy-new Date(f.fecha_emision+'T12:00'))/(1000*60*60*24));
+      if(dias<=30)grupos.g0.push({f:f,dias:dias});
+      else if(dias<=60)grupos.g30.push({f:f,dias:dias});
+      else if(dias<=90)grupos.g60.push({f:f,dias:dias});
+      else grupos.g90.push({f:f,dias:dias});
+    });
+
+    var bandas=[
+      {key:'g0',label:'0-30 días',color:'#3B6D11',bg:'#EAF3DE'},
+      {key:'g30',label:'31-60 días',color:'#854F0B',bg:'#FAEEDA'},
+      {key:'g60',label:'61-90 días',color:'#A32D2D',bg:'#FCEBEB'},
+      {key:'g90',label:'Más de 90 días',color:'#791F1F',bg:'#F7C1C1'},
+    ];
+
+    var html='';
+    bandas.forEach(function(b){
+      var items=grupos[b.key];
+      if(!items.length)return;
+      var subtotal=items.reduce(function(a,i){return a+Number(i.f.total);},0);
+      html+='<div style="padding:8px 1.25rem;background:'+b.bg+';border-bottom:.5px solid #d3d1c7;">'+
+        '<span style="font-size:11px;font-weight:500;color:'+b.color+';">'+b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · '+fmt(subtotal)+'</span>'+
+      '</div>'+
+      items.map(function(i){
+        return '<div class="sat-row" style="grid-template-columns:1fr 90px 60px 80px;">'+
+          '<div>'+
+            '<div style="font-size:12px;font-weight:500;">'+esc((i.f.nombre_receptor||i.f.rfc_receptor||'-').slice(0,35))+'</div>'+
+            '<div style="font-size:10px;color:#888780;">'+esc(i.f.uuid.slice(0,8))+'...</div>'+
+          '</div>'+
+          '<div style="text-align:right;font-weight:500;color:'+b.color+';">'+fmt(Number(i.f.total))+'</div>'+
+          '<div style="color:#73726c;font-size:12px;">'+i.dias+' días</div>'+
+          '<div style="color:#73726c;font-size:11px;">'+fmtDate(i.f.fecha_emision)+'</div>'+
+        '</div>';
+      }).join('');
+    });
+
+    el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 60px 80px;"><span>Cliente</span><span style="text-align:right">Monto</span><span>Días</span><span>Fecha</span></div>'+html;
+
+  }catch(e){console.error('Cartera error:',e);}
 }
 
 // ── Init ─────────────────────────────────────────────────

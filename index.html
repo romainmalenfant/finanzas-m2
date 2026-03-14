@@ -311,6 +311,12 @@ textarea:focus{outline:none;border-color:#888780;}
           </select>
         </div>
 
+        <!-- Número de factura (cobranza) -->
+        <div class="form-group" id="campo-num-factura-cobr">
+          <label>Número de factura (opcional)</label>
+          <input type="text" id="mvmt-num-factura" placeholder="Ej: A-1234">
+        </div>
+
         <!-- Monto + Moneda -->
         <div class="form-row">
           <div class="form-group">
@@ -2232,6 +2238,7 @@ function abrirFormMovimiento(tipo){
   document.getElementById('campo-cliente').style.display=(tipo==='venta'||tipo==='cobranza')?'block':'none';
   document.getElementById('campo-proveedor').style.display=tipo==='gasto'?'block':'none';
   document.getElementById('campo-facturas-pendientes').style.display='none'; // se activa al elegir cliente en cobranza
+  document.getElementById('campo-num-factura-cobr').style.display=(tipo==='cobranza'||tipo==='venta')?'block':'none';
   document.getElementById('campo-concepto').style.display=tipo!=='cobranza'?'block':'none';
   document.getElementById('campo-factura-mvmt').style.display=tipo==='venta'?'block':'none';
   document.getElementById('campo-metodo-pago').style.display=(tipo==='gasto'||tipo==='cobranza')?'block':'none';
@@ -2242,6 +2249,7 @@ function abrirFormMovimiento(tipo){
   document.getElementById('mvmt-monto').value='';
   document.getElementById('mvmt-concepto').value='';
   document.getElementById('mvmt-factura').value='';
+  document.getElementById('mvmt-num-factura').value='';
   document.getElementById('mvmt-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('mvmt-moneda').value='MXN';
   document.getElementById('mvmt-tc').value='';
@@ -2451,6 +2459,8 @@ async function guardarFormMovimiento(){
     moneda:moneda, tipo_cambio:moneda==='USD'?tc:1,
     cliente_id:clienteId||null, proveedor_id:provId||null,
     factura_vinculada_id:facturaVinculadaId||null,
+    numero_factura:(document.getElementById('mvmt-num-factura').value.trim())||
+                   (document.getElementById('mvmt-factura').value.trim())||null,
     metodo_pago:metodoPagoSeleccionado||null,
     etiqueta:(tipoMovActual==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
     year:fechaBase.getFullYear(), month:fechaBase.getMonth()+1, usuario:userName
@@ -2561,14 +2571,16 @@ function renderFacturasEmitidas(list){
   var ct=document.getElementById('emit-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr"><span>Cliente</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 80px 70px;"><span>Cliente</span><span>No. Factura</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
     sorted.map(function(f){
       var pill=f.conciliado?'<span class="pill-azul">Cobrada</span>':'<span class="pill-verde">Vigente</span>';
-      return '<div class="sat-row">'+
-        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,35))+'</div>'+
+      var numFac=f.numero_factura||'—';
+      return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 80px 70px;">'+
+        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,30))+'</div>'+
         '<div style="font-size:10px;color:#888780;">'+(f.uuid_sat?(f.uuid_sat.slice(0,8)+'...'):'manual')+'</div></div>'+
+        '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
         '<div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(f.monto))+'</div>'+
-        '<div style="color:#73726c;">'+fmtDate(f.fecha)+'</div>'+
+        '<div style="color:#73726c;font-size:11px;">'+fmtDate(f.fecha)+'</div>'+
         '<div>'+pill+'</div>'+
       '</div>';
     }).join('');
@@ -2962,12 +2974,21 @@ async function loadCartera(){
       else grupos.g90.push({f:f,dias:dias});
     });
     var bandas=[{key:'g90',label:'Más de 90 días',color:'#791F1F',bg:'#F7C1C1'},{key:'g60',label:'61-90 días',color:'#A32D2D',bg:'#FCEBEB'},{key:'g30',label:'31-60 días',color:'#854F0B',bg:'#FAEEDA'},{key:'g0',label:'0-30 días',color:'#3B6D11',bg:'#EAF3DE'}];
-    var html='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 60px 80px;"><span>Cliente</span><span style="text-align:right">Monto</span><span>Días</span><span>Fecha</span></div>';
+    var html='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 60px 70px;"><span>Cliente</span><span>No. Factura</span><span style="text-align:right">Monto</span><span>Días</span><span>Fecha</span></div>';
     bandas.forEach(function(b){
       var items=grupos[b.key];if(!items.length)return;
       var subtotal=items.reduce(function(a,i){return a+Number(i.f.monto);},0);
       html+='<div style="padding:8px 1.25rem;background:'+b.bg+';border-bottom:.5px solid #d3d1c7;"><span style="font-size:11px;font-weight:500;color:'+b.color+';">'+b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · '+fmt(subtotal)+'</span></div>';
-      html+=items.map(function(i){return '<div class="sat-row" style="grid-template-columns:1fr 90px 60px 80px;"><div><div style="font-size:12px;font-weight:500;">'+esc((i.f.contraparte||i.f.rfc_contraparte||'-').slice(0,35))+'</div></div><div style="text-align:right;font-weight:500;color:'+b.color+';">'+fmt(Number(i.f.monto))+'</div><div style="color:#73726c;font-size:12px;">'+i.dias+' días</div><div style="color:#73726c;font-size:11px;">'+fmtDate(i.f.fecha)+'</div></div>';}).join('');
+      html+=items.map(function(i){
+        var numFac=i.f.numero_factura||'—';
+        return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 60px 70px;">'+
+          '<div><div style="font-size:12px;font-weight:500;">'+esc((i.f.contraparte||i.f.rfc_contraparte||'-').slice(0,28))+'</div></div>'+
+          '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
+          '<div style="text-align:right;font-weight:500;color:'+b.color+';">'+fmt(Number(i.f.monto))+'</div>'+
+          '<div style="color:#73726c;font-size:12px;">'+i.dias+'d</div>'+
+          '<div style="color:#73726c;font-size:11px;">'+fmtDate(i.f.fecha)+'</div>'+
+        '</div>';
+      }).join('');
     });
     el.innerHTML=html;
   }catch(e){console.error('Cartera:',e);}

@@ -2707,6 +2707,7 @@ async function importarBBVA(input){
 
     var movimientos=parseBBVAPositional(allItems);
     console.log('BBVA single parsed:',movimientos.length, movimientos.slice(0,3));
+    if(!movimientos.length){
       showError('No se detectaron movimientos. Verifica que sea el estado de cuenta BBVA Maestra PyME.');
       document.getElementById('status-msg').textContent='';
       return;

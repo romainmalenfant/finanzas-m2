@@ -32,7 +32,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dot-live{width:7px;height:7px;border-radius:50%;background:#3B6D11;display:inline-block;}
 .dot-sync{width:7px;height:7px;border-radius:50%;background:#854F0B;display:inline-block;}
 .input-card{background:#fff;border:.5px solid #d3d1c7;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;}
-.sec-title{font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;}
+.sec-title{font-size:11px;font-weight:500;color:#888780;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .name-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
 .name-row label{font-size:12px;color:#73726c;flex-shrink:0;}
 .name-input{font-size:13px;padding:5px 10px;border:.5px solid #d3d1c7;border-radius:8px;background:#F5F4F0;color:#1a1a18;font-family:inherit;width:180px;}
@@ -632,12 +632,12 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
-            <option value="fecha_desc">Fecha ↓</option>
-            <option value="fecha_asc">Fecha ↑</option>
-            <option value="monto_desc">Monto ↓</option>
-            <option value="monto_asc">Monto ↑</option>
+                        <option value="fecha_asc">Fecha ↑ antiguo</option>
+            <option value="fecha_desc">Fecha ↓ reciente</option>
+            <option value="monto_desc">Monto ↓ mayor</option>
+            <option value="monto_asc">Monto ↑ menor</option>
           </select>
           <span class="mvmt-count" id="emit-count">0 facturas</span>
         </div>
@@ -649,12 +649,12 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
-            <option value="fecha_desc">Fecha ↓</option>
-            <option value="fecha_asc">Fecha ↑</option>
-            <option value="monto_desc">Monto ↓</option>
-            <option value="monto_asc">Monto ↑</option>
+                        <option value="fecha_desc">Fecha ↓ reciente</option>
+            <option value="fecha_asc">Fecha ↑ antiguo</option>
+            <option value="monto_desc">Monto ↓ mayor</option>
+            <option value="monto_asc">Monto ↑ menor</option>
           </select>
           <span class="mvmt-count" id="banco-count">0 movimientos</span>
         </div>
@@ -666,12 +666,12 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:2rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
-            <option value="fecha_desc">Fecha ↓</option>
-            <option value="fecha_asc">Fecha ↑</option>
-            <option value="monto_desc">Monto ↓</option>
-            <option value="monto_asc">Monto ↑</option>
+                        <option value="fecha_asc">Fecha ↑ antiguo</option>
+            <option value="fecha_desc">Fecha ↓ reciente</option>
+            <option value="monto_desc">Monto ↓ mayor</option>
+            <option value="monto_asc">Monto ↑ menor</option>
           </select>
           <span class="mvmt-count" id="recib-count">0 facturas</span>
         </div>
@@ -2555,7 +2555,7 @@ async function loadSATData(){
 
 function renderFacturasEmitidas(list){
   if(list)lastEmitidas=list;
-  var sortKey=(document.getElementById('emit-sort')||{}).value||'fecha_desc';
+  var sortKey=(document.getElementById('emit-sort')||{}).value||'fecha_asc';
   var sorted=sortList(lastEmitidas,sortKey);
   var el=document.getElementById('emit-list');
   var ct=document.getElementById('emit-count');
@@ -2596,7 +2596,7 @@ function renderMovsBanco(list){
 
 function renderFacturasRecibidas(list){
   if(list)lastRecibidas=list;
-  var sortKey=(document.getElementById('recib-sort')||{}).value||'fecha_desc';
+  var sortKey=(document.getElementById('recib-sort')||{}).value||'fecha_asc';
   var sorted=sortList(lastRecibidas,sortKey);
   var el=document.getElementById('recib-list');
   var ct=document.getElementById('recib-count');

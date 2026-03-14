@@ -2211,22 +2211,34 @@ function importarSAT(input){
       if(wb.SheetNames.includes('Hoja2')){
         var ws=wb.Sheets['Hoja2'];
         var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        // Header en fila 2 (índice 1), datos desde fila 3 (índice 2)
-        var headerRow=rows[1]||[];
-        var colUUID=headerRow.indexOf('Folio Fiscal');
-        var colRFC=headerRow.indexOf('RFC Receptor');
-        var colNombre=headerRow.indexOf('Nombre o Razón Social del Receptor');
-        var colFecha=headerRow.indexOf('Fecha de Emisión');
-        var colTotal=headerRow.indexOf('Total');
-        var colEfecto=headerRow.indexOf('Efecto del Comprobante');
-        var colEstado=headerRow.indexOf('Estado del Comprobante');
 
-        for(var i=2;i<rows.length;i++){
+        // Buscar fila de headers dinámicamente
+        var colUUID=-1,colRFC=-1,colNombre=-1,colFecha=-1,colTotal=-1,colEfecto=-1,colEstado=-1;
+        var dataStart=2;
+        for(var hi=0;hi<Math.min(rows.length,5);hi++){
+          var row=rows[hi];
+          var idx=row.indexOf('Folio Fiscal');
+          if(idx>=0){
+            colUUID=idx;
+            colRFC=row.indexOf('RFC Receptor');
+            colNombre=row.indexOf('Nombre o Razón Social del Receptor');
+            colFecha=row.indexOf('Fecha de Emisión');
+            colTotal=row.indexOf('Total');
+            colEfecto=row.indexOf('Efecto del Comprobante');
+            colEstado=row.indexOf('Estado del Comprobante');
+            dataStart=hi+1;
+            break;
+          }
+        }
+        // Fallback índices fijos Hoja2
+        if(colUUID<0){colUUID=0;colRFC=1;colNombre=2;colFecha=6;colTotal=5;colEfecto=4;colEstado=9;dataStart=2;}
+
+        for(var i=dataStart;i<rows.length;i++){
           var r=rows[i];
           var uuid=r[colUUID];
-          if(!uuid||uuid==='Folio Fiscal')continue;
-          var total=parseFloat(r[colTotal])||0;
-          if(total<=0)continue; // Skip pagos y complementos
+          if(!uuid||String(uuid).length<10)continue;
+          var total=parseFloat(String(r[colTotal]||'').replace(/,/g,''))||0;
+          if(total<=0)continue;
           var fecha=r[colFecha]?String(r[colFecha]).split('T')[0]:'';
           if(!fecha)continue;
           var fechaD=new Date(fecha+'T12:00');
@@ -2246,34 +2258,51 @@ function importarSAT(input){
       }
 
       // RECIBIDAD = Recibidas (facturas que TE emitieron = compras)
+      // Estructura conocida: cols 8-23, header en fila índice 1
       var hRecib=wb.SheetNames.find(function(s){return s.toUpperCase().includes('RECIB');});
       if(hRecib){
         var ws2=wb.Sheets[hRecib];
         var rows2=XLSX.utils.sheet_to_json(ws2,{header:1,defval:''});
-        // Header en fila 2 (índice 1)
-        var h2=rows2[1]||[];
-        var c2UUID=h2.indexOf('Folio Fiscal');
-        var c2RFCEm=h2.indexOf('RFC Emisor');
-        var c2NomEm=h2.indexOf('Nombre o Razón Social del Emisor');
-        var c2Fecha=h2.indexOf('Fecha de Emisión');
-        var c2Total=h2.indexOf('Total');
-        var c2Efecto=h2.indexOf('Efecto del Comprobante');
-        var c2Estado=h2.indexOf('Estado del Comprobante');
 
-        for(var j=2;j<rows2.length;j++){
+        // Buscar fila de headers (tiene 'Folio Fiscal' en algún lugar)
+        var headerIdx=-1;
+        var c2UUID=-1,c2RFCEm=-1,c2NomEm=-1,c2Fecha=-1,c2Total=-1,c2Efecto=-1,c2Estado=-1;
+        for(var hi=0;hi<Math.min(rows2.length,5);hi++){
+          var row=rows2[hi];
+          var uuidCol=row.indexOf('Folio Fiscal');
+          if(uuidCol>=0){
+            headerIdx=hi;
+            c2UUID=uuidCol;
+            c2RFCEm=row.indexOf('RFC Emisor');
+            c2NomEm=row.indexOf('Nombre o Razón Social del Emisor');
+            c2Fecha=row.indexOf('Fecha de Emisión');
+            c2Total=row.indexOf('Total');
+            c2Efecto=row.indexOf('Efecto del Comprobante');
+            c2Estado=row.indexOf('Estado del Comprobante');
+            break;
+          }
+        }
+
+        // Fallback: usar índices fijos conocidos del formato SAT
+        if(headerIdx<0||c2UUID<0){
+          headerIdx=1;
+          c2UUID=8; c2RFCEm=9; c2NomEm=10; c2Fecha=13; c2Total=16; c2Efecto=17; c2Estado=19;
+        }
+
+        for(var j=headerIdx+1;j<rows2.length;j++){
           var r2=rows2[j];
           var uuid2=r2[c2UUID];
-          if(!uuid2||uuid2==='Folio Fiscal')continue;
-          var total2=parseFloat(r2[c2Total])||0;
+          if(!uuid2||String(uuid2).length<10)continue;
+          var total2=parseFloat(String(r2[c2Total]||'').replace(/,/g,''))||0;
           if(total2<=0)continue;
-          var fecha2=r2[c2Fecha]?String(r2[c2Fecha]).split('T')[0]:'';
-          if(!fecha2)continue;
-          var fechaD2=new Date(fecha2+'T12:00');
+          var fecha2Raw=r2[c2Fecha]?String(r2[c2Fecha]).split('T')[0]:'';
+          if(!fecha2Raw)continue;
+          var fechaD2=new Date(fecha2Raw+'T12:00');
           recibidas.push({
             uuid:String(uuid2),
             rfc_emisor:String(r2[c2RFCEm]||''),
             nombre_emisor:String(r2[c2NomEm]||''),
-            fecha_emision:fecha2,
+            fecha_emision:fecha2Raw,
             total:total2,
             efecto:String(r2[c2Efecto]||'Ingreso'),
             estado:String(r2[c2Estado]||'Vigente'),

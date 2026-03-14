@@ -473,7 +473,15 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0">Movimientos del mes</div>
-        <span class="mvmt-count" id="mvmt-count">0 movimientos</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+            <option value="fecha_desc">Fecha ↓ reciente</option>
+            <option value="fecha_asc">Fecha ↑ antiguo</option>
+            <option value="monto_desc">Monto ↓ mayor</option>
+            <option value="monto_asc">Monto ↑ menor</option>
+          </select>
+          <span class="mvmt-count" id="mvmt-count">0 movimientos</span>
+        </div>
       </div>
       <div id="mvmts-list"><div class="empty-state">Sin movimientos registrados este mes</div></div>
     </div>
@@ -624,7 +632,15 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
-        <span class="mvmt-count" id="emit-count">0 facturas</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+            <option value="fecha_desc">Fecha ↓</option>
+            <option value="fecha_asc">Fecha ↑</option>
+            <option value="monto_desc">Monto ↓</option>
+            <option value="monto_asc">Monto ↑</option>
+          </select>
+          <span class="mvmt-count" id="emit-count">0 facturas</span>
+        </div>
       </div>
       <div id="emit-list"><div class="empty-state">Sin facturas importadas</div></div>
     </div>
@@ -633,7 +649,15 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
-        <span class="mvmt-count" id="banco-count">0 movimientos</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+            <option value="fecha_desc">Fecha ↓</option>
+            <option value="fecha_asc">Fecha ↑</option>
+            <option value="monto_desc">Monto ↓</option>
+            <option value="monto_asc">Monto ↑</option>
+          </select>
+          <span class="mvmt-count" id="banco-count">0 movimientos</span>
+        </div>
       </div>
       <div id="banco-list"><div class="empty-state">Sin movimientos importados</div></div>
     </div>
@@ -642,7 +666,15 @@ textarea:focus{outline:none;border-color:#888780;}
     <div class="mvmts-card" style="margin-bottom:2rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
-        <span class="mvmt-count" id="recib-count">0 facturas</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+            <option value="fecha_desc">Fecha ↓</option>
+            <option value="fecha_asc">Fecha ↑</option>
+            <option value="monto_desc">Monto ↓</option>
+            <option value="monto_asc">Monto ↑</option>
+          </select>
+          <span class="mvmt-count" id="recib-count">0 facturas</span>
+        </div>
       </div>
       <div id="recib-list"><div class="empty-state">Sin facturas importadas</div></div>
     </div>
@@ -800,7 +832,7 @@ function setSyncState(online){var el=document.getElementById('sync-indicator');e
 // ── Supabase SDK ─────────────────────────────────────────
 async function loadMovements(){
   try{
-    var {data,error}=await sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('created_at',{ascending:false});
+    var {data,error}=await sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false});
     if(error)throw error;
     movements=data||[];
     setSyncState(true);
@@ -1118,13 +1150,24 @@ function renderChart(m){
   });
 }
 
-function renderMovements(){
-  var el=document.getElementById('mvmts-list');
-  var ct=document.getElementById('mvmt-count');
-  ct.textContent=movements.length+' movimiento'+(movements.length!==1?'s':'');
-  if(!movements.length){el.innerHTML='<div class="empty-state">Sin movimientos registrados este mes</div>';return;}
+// ── Sort helpers ─────────────────────────────────────────
+var lastEmitidas=[], lastRecibidas=[], lastBanco=[];
+
+function sortList(list, sortKey){
+  var sorted=list.slice();
+  if(sortKey==='fecha_desc')sorted.sort(function(a,b){return (b.fecha||'').localeCompare(a.fecha||'');});
+  else if(sortKey==='fecha_asc')sorted.sort(function(a,b){return (a.fecha||'').localeCompare(b.fecha||'');});
+  else if(sortKey==='monto_desc')sorted.sort(function(a,b){return Number(b.monto)-Number(a.monto);});
+  else if(sortKey==='monto_asc')sorted.sort(function(a,b){return Number(a.monto)-Number(b.monto);});
+  return sorted;
+}
+
+function sortAndRender(){
+  var sortKey=document.getElementById('mvmt-sort').value;
+  var sorted=sortList(movements, sortKey);
   var me=getUserName();
-  el.innerHTML=movements.map(function(m){
+  var el=document.getElementById('mvmts-list');
+  el.innerHTML=sorted.map(function(m){
     var isOwn=!m.usuario||(m.usuario===me);
     return '<div class="mvmt-item">'+
       '<div class="mvmt-dot" style="background:'+(CAT_COLORS[m.categoria]||'#888')+'"></div>'+
@@ -1136,7 +1179,7 @@ function renderMovements(){
           (m.metodo_pago?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(m.metodo_pago)+'</span>':'')+
           (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#E6F1FB;color:#185FA5;">'+esc(m.moneda)+'</span>':'')+
           (m.origen&&m.origen!=='manual'?'<span class="badge" style="background:#E6F1FB;color:#185FA5;font-size:9px;">'+(m.origen==='sat_emitida'?'SAT':m.origen==='sat_recibida'?'SAT compra':m.origen==='banco_abono'?'Banco +':'Banco -')+'</span>':'')+
-          (m.usuario?'<span class="badge badge-user">'+esc(m.usuario)+'</span>':'')+
+          (m.usuario&&m.usuario!=='SAT'&&m.usuario!=='BBVA'?'<span class="badge badge-user">'+esc(m.usuario)+'</span>':'')+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span>'+
         '</div>'+
       '</div>'+
@@ -1144,6 +1187,14 @@ function renderMovements(){
       '<button class="btn-del '+(isOwn?'btn-del-own':'')+'" onclick="deleteMovement(\''+esc(m.id)+'\',\''+esc(m.usuario||'')+'\');" title="'+(isOwn?'Eliminar':'Eliminar (de otro usuario)')+'">×</button>'+
     '</div>';
   }).join('');
+}
+
+function renderMovements(){
+  var el=document.getElementById('mvmts-list');
+  var ct=document.getElementById('mvmt-count');
+  ct.textContent=movements.length+' movimiento'+(movements.length!==1?'s':'');
+  if(!movements.length){el.innerHTML='<div class="empty-state">Sin movimientos registrados este mes</div>';return;}
+  sortAndRender();
 }
 
 
@@ -2503,12 +2554,15 @@ async function loadSATData(){
 }
 
 function renderFacturasEmitidas(list){
+  if(list)lastEmitidas=list;
+  var sortKey=(document.getElementById('emit-sort')||{}).value||'fecha_desc';
+  var sorted=sortList(lastEmitidas,sortKey);
   var el=document.getElementById('emit-list');
   var ct=document.getElementById('emit-count');
-  ct.textContent=list.length+' factura'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
+  ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
+  if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
   el.innerHTML='<div class="sat-row sat-row-hdr"><span>Cliente</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
-    list.map(function(f){
+    sorted.map(function(f){
       var pill=f.conciliado?'<span class="pill-azul">Cobrada</span>':'<span class="pill-verde">Vigente</span>';
       return '<div class="sat-row">'+
         '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,35))+'</div>'+
@@ -2521,12 +2575,15 @@ function renderFacturasEmitidas(list){
 }
 
 function renderMovsBanco(list){
+  if(list)lastBanco=list;
+  var sortKey=(document.getElementById('banco-sort')||{}).value||'fecha_desc';
+  var sorted=sortList(lastBanco,sortKey);
   var el=document.getElementById('banco-list');
   var ct=document.getElementById('banco-count');
-  ct.textContent=list.length+' movimiento'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin movimientos bancarios importados</div>';return;}
+  ct.textContent=sorted.length+' movimiento'+(sorted.length!==1?'s':'');
+  if(!sorted.length){el.innerHTML='<div class="empty-state">Sin movimientos bancarios importados</div>';return;}
   el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:80px 1fr 100px 80px;"><span>Fecha</span><span>Descripción</span><span style="text-align:right">Importe</span><span>Tipo</span></div>'+
-    list.map(function(m){
+    sorted.map(function(m){
       var esAbono=m.origen==='banco_abono';
       return '<div class="sat-row" style="grid-template-columns:80px 1fr 100px 80px;">'+
         '<div style="color:#73726c;">'+fmtDate(m.fecha)+'</div>'+
@@ -2538,12 +2595,15 @@ function renderMovsBanco(list){
 }
 
 function renderFacturasRecibidas(list){
+  if(list)lastRecibidas=list;
+  var sortKey=(document.getElementById('recib-sort')||{}).value||'fecha_desc';
+  var sorted=sortList(lastRecibidas,sortKey);
   var el=document.getElementById('recib-list');
   var ct=document.getElementById('recib-count');
-  ct.textContent=list.length+' factura'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
+  ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
+  if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
   el.innerHTML='<div class="sat-row sat-row-hdr"><span>Proveedor</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
-    list.map(function(f){
+    sorted.map(function(f){
       var pill=f.conciliado?'<span class="pill-azul">Pagada</span>':'<span class="pill-verde">Vigente</span>';
       return '<div class="sat-row">'+
         '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,35))+'</div>'+
@@ -2702,7 +2762,7 @@ async function confirmarImportSAT(){
         var {data:cEx}=await sb.from('clientes').select('rfc').in('rfc',rfcsE);
         var rfcsExist=new Set((cEx||[]).map(function(c){return c.rfc;}));
         var nc={};
-        satPendingEmitidas.forEach(function(f){if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor)||nc[f.rfc_receptor])return;nc[f.rfc_receptor]={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),nombre:f.nombre_receptor||f.rfc_receptor,rfc:f.rfc_receptor,condiciones_pago:'30'};});
+        satPendingEmitidas.forEach(function(f){if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor)||nc[f.rfc_receptor])return;nc[f.rfc_receptor]={id:'cli_'+f.rfc_receptor.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16),nombre:f.nombre_receptor||f.rfc_receptor,rfc:f.rfc_receptor,condiciones_pago:'30'};});
         var ncArr=Object.values(nc);
         if(ncArr.length){await sb.from('clientes').upsert(ncArr,{onConflict:'rfc',ignoreDuplicates:true});clientesNuevos=ncArr.length;}
       }

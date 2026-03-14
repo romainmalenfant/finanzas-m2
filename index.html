@@ -94,6 +94,13 @@ textarea:focus{outline:none;border-color:#888780;}
 .etiq-btn{font-size:11px;padding:4px 10px;border:.5px solid #b4b2a9;border-radius:20px;background:none;cursor:pointer;color:#5f5e5a;font-family:inherit;transition:all .15s;}
 .etiq-btn:hover{background:#e8e6e0;border-color:#888780;}
 .etiq-btn.active{background:#1a1a18;color:#fff;border-color:#1a1a18;}
+.mvmt-type-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 8px;border:.5px solid #d3d1c7;border-radius:10px;background:#fff;cursor:pointer;font-size:12px;font-weight:500;color:#1a1a18;font-family:inherit;transition:all .15s;}
+.mvmt-type-btn:hover{background:#F5F4F0;border-color:#888780;}
+.cliente-card{background:#fff;border:.5px solid #d3d1c7;border-radius:10px;padding:14px 1.25rem;margin-bottom:8px;display:flex;align-items:center;gap:14px;}
+.cliente-avatar{width:38px;height:38px;border-radius:50%;background:#e8e6e0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#5f5e5a;flex-shrink:0;}
+.cliente-info{flex:1;min-width:0;}
+.cliente-nombre{font-size:14px;font-weight:500;}
+.cliente-meta{font-size:12px;color:#73726c;margin-top:2px;}
 .c-green{color:#3B6D11;}.c-blue{color:#185FA5;}.c-red{color:#A32D2D;}.c-amber{color:#854F0B;}
 .c-util-pos{color:#3B6D11;}.c-util-neg{color:#A32D2D;}
 .chart-card{background:#fff;border:.5px solid #d3d1c7;border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;}
@@ -214,33 +221,144 @@ textarea:focus{outline:none;border-color:#888780;}
 
   <div class="input-card">
     <div class="sec-title">Registrar movimiento</div>
-    <div class="name-row">
+    <div class="name-row" style="margin-bottom:14px;">
       <label>Registrado por:</label>
       <input class="name-input" id="user-name-input" type="text" placeholder="Tu nombre" oninput="saveName(this.value)">
     </div>
-    <textarea id="mvmt-input" placeholder="Escribe en lenguaje natural: 'facturamos 85 mil a Cemex', 'pagamos nómina de 32 mil', 'nos depositaron 50 mil de PEMEX', 'Vitro nos debe 120k pendiente de cobro'..." onkeydown="handleKey(event)" oninput="detectarGasto(this.value)"></textarea>
-    <div id="etiqueta-row" style="display:none;margin-bottom:10px;">
-      <div style="font-size:11px;color:#73726c;margin-bottom:6px;font-weight:500;">ETIQUETA DE GASTO</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="etiqueta-btns">
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Nómina')">Nómina</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Utilidades')">Utilidades</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Renta')">Renta</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Mutuo')">Mutuo</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Material')">Material</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Herramienta')">Herramienta</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Mantenimiento')">Mantenimiento</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Transporte')">Transporte</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Impuestos')">Impuestos</button>
-        <button class="etiq-btn" onclick="selEtiqueta(this,'Otro')">Otro</button>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+      <button class="mvmt-type-btn" onclick="abrirFormMovimiento('venta')">
+        <span style="font-size:18px;">📈</span>
+        <span>Venta</span>
+      </button>
+      <button class="mvmt-type-btn" onclick="abrirFormMovimiento('cobranza')">
+        <span style="font-size:18px;">💰</span>
+        <span>Cobranza</span>
+      </button>
+      <button class="mvmt-type-btn" onclick="abrirFormMovimiento('gasto')">
+        <span style="font-size:18px;">📤</span>
+        <span>Gasto</span>
+      </button>
+      <button class="mvmt-type-btn" onclick="abrirFormMovimiento('cuenta_por_cobrar')">
+        <span style="font-size:18px;">🕐</span>
+        <span>Cta por cobrar</span>
+      </button>
     </div>
-    <div class="input-row">
-      <button class="btn-primary" id="btn-submit" onclick="processMovement()">Registrar ↗</button>
+    <div style="display:flex;align-items:center;gap:10px;">
       <label class="btn-pdf" for="pdf-input">📄 Subir documento</label>
       <input type="file" id="pdf-input" accept=".pdf" style="display:none" onchange="handlePDF(this)">
       <span class="status-msg" id="status-msg"></span>
     </div>
-    <p class="hint-txt">Ctrl+Enter para enviar rápido · Sube facturas o estados de cuenta en PDF para importar automáticamente</p>
+  </div>
+
+  <!-- Modal formulario de movimiento -->
+  <div class="modal-overlay" id="form-mvmt-modal">
+    <div class="modal-box" style="max-width:500px;">
+      <div class="modal-hdr">
+        <div class="modal-title" id="form-mvmt-title">Registrar venta</div>
+        <button class="modal-close" onclick="cerrarFormMovimiento()">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- Campo cliente (venta, cobranza, cxc) -->
+        <div class="form-group" id="campo-cliente">
+          <label>Cliente *</label>
+          <div style="position:relative;">
+            <input type="text" id="mvmt-cliente-search" placeholder="Buscar cliente..." autocomplete="off"
+              oninput="buscarCliente(this.value)" style="width:100%;">
+            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:.5px solid #d3d1c7;border-radius:8px;z-index:10;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.08);"></div>
+          </div>
+          <input type="hidden" id="mvmt-cliente-id">
+          <div id="cliente-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;display:flex;align-items:center;justify-content:space-between;">
+            <span id="cliente-sel-nombre" style="font-weight:500;"></span>
+            <button onclick="limpiarCliente()" style="background:none;border:none;cursor:pointer;color:#888780;font-size:14px;">×</button>
+          </div>
+          <div style="margin-top:6px;">
+            <button class="btn-sm" onclick="abrirNuevoCliente(true)" style="font-size:11px;">+ Nuevo cliente</button>
+          </div>
+        </div>
+        <!-- Monto -->
+        <div class="form-group">
+          <label>Monto ($MXN) *</label>
+          <input type="number" id="mvmt-monto" placeholder="0" min="0" step="0.01">
+        </div>
+        <!-- Concepto -->
+        <div class="form-group" id="campo-concepto">
+          <label>Concepto / descripción *</label>
+          <input type="text" id="mvmt-concepto" placeholder="Ej: Fabricación de engranes, lote 50 piezas">
+        </div>
+        <!-- No. factura (venta y cxc) -->
+        <div class="form-group" id="campo-factura-mvmt">
+          <label>Número de factura (opcional)</label>
+          <input type="text" id="mvmt-factura" placeholder="F-2026-001">
+        </div>
+        <!-- Etiqueta (solo gastos) -->
+        <div class="form-group" id="campo-etiqueta">
+          <label>Etiqueta de gasto</label>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Nómina')">Nómina</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Utilidades')">Utilidades</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Renta')">Renta</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Mutuo')">Mutuo</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Material')">Material</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Herramienta')">Herramienta</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Mantenimiento')">Mantenimiento</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Transporte')">Transporte</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Impuestos')">Impuestos</button>
+            <button class="etiq-btn" onclick="selEtiqueta(this,'Otro')">Otro</button>
+          </div>
+        </div>
+        <!-- Fecha -->
+        <div class="form-group">
+          <label>Fecha</label>
+          <input type="date" id="mvmt-fecha">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarFormMovimiento()">Cancelar</button>
+        <button class="btn-primary" id="btn-save-mvmt" onclick="guardarFormMovimiento()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal nuevo cliente (desde formulario de movimiento) -->
+  <div class="modal-overlay" id="cliente-modal" style="z-index:200;">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-hdr">
+        <div class="modal-title" id="cliente-modal-title">Nuevo cliente</div>
+        <button class="modal-close" onclick="cerrarModalCliente()">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cliente-id-edit">
+        <div class="form-group">
+          <label>Nombre *</label>
+          <input type="text" id="cliente-nombre" placeholder="Nombre o razón social">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>RFC</label>
+            <input type="text" id="cliente-rfc" placeholder="XAXX010101000" style="text-transform:uppercase;">
+          </div>
+          <div class="form-group">
+            <label>Ciudad</label>
+            <input type="text" id="cliente-ciudad" placeholder="Querétaro">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Condiciones de pago</label>
+          <select id="cliente-pago">
+            <option value="inmediato">Pago inmediato</option>
+            <option value="15">Crédito 15 días</option>
+            <option value="30" selected>Crédito 30 días</option>
+            <option value="45">Crédito 45 días</option>
+            <option value="60">Crédito 60 días</option>
+            <option value="90">Crédito 90 días</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarModalCliente()">Cancelar</button>
+        <button class="btn-primary" id="btn-save-cliente" onclick="guardarCliente()">Guardar cliente</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal preview PDF -->
@@ -274,6 +392,7 @@ textarea:focus{outline:none;border-color:#888780;}
   <div class="tabs">
     <button class="tab active" onclick="switchTab('finanzas',this)">Finanzas</button>
     <button class="tab" onclick="switchTab('proyectos',this)">Proyectos</button>
+    <button class="tab" onclick="switchTab('clientes',this)">Clientes</button>
   </div>
 
   <!-- Tab Finanzas -->
@@ -310,6 +429,15 @@ textarea:focus{outline:none;border-color:#888780;}
       <button class="btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
     </div>
     <div id="proyectos-list"><div class="empty-state">Sin proyectos registrados</div></div>
+  </div>
+
+  <!-- Tab Clientes -->
+  <div id="tab-clientes" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div style="font-size:13px;color:#73726c;" id="clientes-count">0 clientes</div>
+      <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nuevo cliente</button>
+    </div>
+    <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
   </div>
 
   <!-- Modal nuevo/editar proyecto -->
@@ -419,6 +547,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 // ── State ────────────────────────────────────────────────
 let movements = [];
 let proyectos = [];
+let clientes = [];
 let curYear = new Date().getFullYear();
 let curMonth = new Date().getMonth();
 let myChart = null;
@@ -483,6 +612,26 @@ async function deleteRow(id){
 
 // ── Proyectos DB ─────────────────────────────────────────
 var entregasByProyecto={};
+
+// ── Clientes DB ──────────────────────────────────────────
+async function loadClientes(){
+  try{
+    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
+    if(error)throw error;
+    clientes=data||[];
+    renderClientes();
+  }catch(e){console.error('Clientes error:',e);}
+}
+
+async function upsertCliente(c){
+  var {error}=await sb.from('clientes').upsert([c]);
+  if(error)throw error;
+}
+
+async function deleteCliente(id){
+  var {error}=await sb.from('clientes').delete().eq('id',id);
+  if(error)throw error;
+}
 
 async function loadProyectos(){
   try{
@@ -616,7 +765,7 @@ function clasificar(texto){
   var fecha=fechaBase.toISOString().split('T')[0];
   // Categoría
   var cat='gasto';
-  if(t.match(/factur|vendimos|vend[eo]|cotiz.*acept|pedido.*cerr|orden.*compra|cerramos|contrato.*firm|nueva.*venta/))cat='venta';
+  if(t.match(/factur|vendimos|vend[eoii]|vendi\b|cotiz.*acept|pedido.*cerr|orden.*compra|cerramos|contrato.*firm|nueva.*venta|cerr.*venta/))cat='venta';
   else if(t.match(/deposit|nos.*pagaron|transfiri|nos.*pag|recib.*pago|cobramos|liquid|abono.*recib|pagaron/))cat='cobranza';
   else if(t.match(/deben|pendiente.*cobr|por cobrar|no.*han.*pag|sin.*pag|nos.*debe|adeud|factur.*pendiente/))cat='cuenta_por_cobrar';
   else if(t.match(/pag[ao]|nomin|compr[ao]|gast|egres|proveedor|renta|servicio|material|herramienta|combustible|luz\b|agua\b|telefon|internet|manten|reparac|flete|envio|seguro|impuest|iva|isr|sueldo/))cat='gasto';
@@ -786,12 +935,20 @@ function startPolling(){
 
 // ── Detección de duplicados ──────────────────────────────
 function findDuplicate(monto, fecha, categoria){
-  // Busca en movimientos del mes activo: mismo monto ±5% y categoría igual y fecha dentro de 10 días
+  // Solo compara dentro de la misma dirección: ingresos vs ingresos, egresos vs egresos
+  var ingresos=['venta','cobranza'];
+  var egresos=['gasto','cuenta_por_cobrar'];
+  var dirNuevo=ingresos.includes(categoria)?'ingreso':'egreso';
+
   var fechaD=new Date(fecha+'T12:00');
   return movements.find(function(m){
-    if(m.categoria!==categoria)return false;
+    // Misma dirección financiera (no comparar venta con gasto)
+    var dirExist=ingresos.includes(m.categoria)?'ingreso':'egreso';
+    if(dirNuevo!==dirExist)return false;
+    // Mismo monto ±5%
     var diff=Math.abs(Number(m.monto)-monto)/Math.max(monto,1);
     if(diff>0.05)return false;
+    // Fecha dentro de 10 días
     var mFecha=new Date(m.fecha+'T12:00');
     var dias=Math.abs((fechaD-mFecha)/(1000*60*60*24));
     return dias<=10;
@@ -1229,7 +1386,9 @@ function switchTab(tab, btn){
   btn.classList.add('active');
   document.getElementById('tab-finanzas').style.display=tab==='finanzas'?'block':'none';
   document.getElementById('tab-proyectos').style.display=tab==='proyectos'?'block':'none';
+  document.getElementById('tab-clientes').style.display=tab==='clientes'?'block':'none';
   if(tab==='proyectos')loadProyectos();
+  if(tab==='clientes')loadClientes();
 }
 
 // ── Proyectos UI ─────────────────────────────────────────
@@ -1581,6 +1740,243 @@ async function responderConsulta(){
   }
 }
 
+// ── Clientes UI ──────────────────────────────────────────
+var clienteModalFromForm=false;
+
+function renderClientes(){
+  var el=document.getElementById('clientes-list');
+  var ct=document.getElementById('clientes-count');
+  if(!el)return;
+  ct.textContent=clientes.length+' cliente'+(clientes.length!==1?'s':'');
+  if(!clientes.length){el.innerHTML='<div class="empty-state">Sin clientes. Agrega el primero con el botón de arriba.</div>';return;}
+  var condLabels={'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
+  el.innerHTML=clientes.map(function(c){
+    var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+    return '<div class="cliente-card">'+
+      '<div class="cliente-avatar">'+esc(initials)+'</div>'+
+      '<div class="cliente-info">'+
+        '<div class="cliente-nombre">'+esc(c.nombre)+'</div>'+
+        '<div class="cliente-meta">'+
+          (c.rfc?'RFC: '+esc(c.rfc)+' · ':'')+
+          (c.ciudad?esc(c.ciudad)+' · ':'')+
+          (condLabels[c.condiciones_pago]||'Crédito 30d')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button class="btn-sm" onclick="editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" style="color:#A32D2D;border-color:#E24B4A;" onclick="eliminarCliente(\''+esc(c.id)+'\')">Eliminar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function abrirNuevoCliente(fromForm){
+  clienteModalFromForm=fromForm;
+  document.getElementById('cliente-id-edit').value='';
+  document.getElementById('cliente-modal-title').textContent='Nuevo cliente';
+  document.getElementById('cliente-nombre').value='';
+  document.getElementById('cliente-rfc').value='';
+  document.getElementById('cliente-ciudad').value='';
+  document.getElementById('cliente-pago').value='30';
+  document.getElementById('cliente-modal').style.display='block';
+}
+
+function editarCliente(id){
+  var c=clientes.find(function(x){return x.id===id;});
+  if(!c)return;
+  clienteModalFromForm=false;
+  document.getElementById('cliente-id-edit').value=c.id;
+  document.getElementById('cliente-modal-title').textContent='Editar cliente';
+  document.getElementById('cliente-nombre').value=c.nombre||'';
+  document.getElementById('cliente-rfc').value=c.rfc||'';
+  document.getElementById('cliente-ciudad').value=c.ciudad||'';
+  document.getElementById('cliente-pago').value=c.condiciones_pago||'30';
+  document.getElementById('cliente-modal').style.display='block';
+}
+
+function cerrarModalCliente(){
+  document.getElementById('cliente-modal').style.display='none';
+}
+
+async function guardarCliente(){
+  var nombre=document.getElementById('cliente-nombre').value.trim();
+  if(!nombre){alert('El nombre del cliente es obligatorio.');return;}
+  var btn=document.getElementById('btn-save-cliente');
+  btn.disabled=true; btn.textContent='Guardando...';
+  var id=document.getElementById('cliente-id-edit').value||Date.now().toString()+Math.random().toString(36).slice(2,5);
+  var c={
+    id:id, nombre:nombre,
+    rfc:document.getElementById('cliente-rfc').value.trim().toUpperCase()||null,
+    ciudad:document.getElementById('cliente-ciudad').value.trim()||null,
+    condiciones_pago:document.getElementById('cliente-pago').value
+  };
+  try{
+    await upsertCliente(c);
+    clientes=clientes.filter(function(x){return x.id!==id;});
+    clientes.push(c);
+    clientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
+    cerrarModalCliente();
+    renderClientes();
+    if(clienteModalFromForm){
+      // Seleccionar este cliente en el formulario de movimiento
+      seleccionarCliente(c);
+    }
+    showStatus('✓ Cliente guardado');
+  }catch(e){showError('Error al guardar cliente: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Guardar cliente';}
+}
+
+async function eliminarCliente(id){
+  var c=clientes.find(function(x){return x.id===id;});
+  if(!confirm('¿Eliminar cliente "'+(c?c.nombre:id)+'"?'))return;
+  try{await deleteCliente(id);clientes=clientes.filter(function(x){return x.id!==id;});renderClientes();}
+  catch(e){showError('No se pudo eliminar: '+e.message);}
+}
+
+// ── Formulario estructurado de movimiento ─────────────────
+var tipoMovActual='';
+
+function abrirFormMovimiento(tipo){
+  tipoMovActual=tipo;
+  etiquetaSeleccionada='';
+  document.querySelectorAll('.etiq-btn').forEach(function(b){b.classList.remove('active');});
+
+  var titles={venta:'Registrar venta',cobranza:'Registrar cobranza',gasto:'Registrar gasto',cuenta_por_cobrar:'Registrar cuenta por cobrar'};
+  document.getElementById('form-mvmt-title').textContent=titles[tipo]||'Registrar movimiento';
+
+  // Mostrar/ocultar campos según tipo
+  var conCliente=['venta','cobranza','cuenta_por_cobrar'];
+  document.getElementById('campo-cliente').style.display=conCliente.includes(tipo)?'block':'none';
+  document.getElementById('campo-concepto').style.display=tipo!=='cobranza'?'block':'none';
+  document.getElementById('campo-factura-mvmt').style.display=(tipo==='venta'||tipo==='cuenta_por_cobrar')?'block':'none';
+  document.getElementById('campo-etiqueta').style.display=tipo==='gasto'?'block':'none';
+
+  // Reset campos
+  document.getElementById('mvmt-monto').value='';
+  document.getElementById('mvmt-concepto').value='';
+  document.getElementById('mvmt-factura').value='';
+  document.getElementById('mvmt-fecha').value=new Date().toISOString().split('T')[0];
+  limpiarCliente();
+
+  document.getElementById('form-mvmt-modal').style.display='block';
+  // Cargar clientes si no están cargados
+  if(!clientes.length)loadClientes();
+}
+
+function cerrarFormMovimiento(){
+  document.getElementById('form-mvmt-modal').style.display='none';
+}
+
+// Búsqueda de cliente
+function buscarCliente(q){
+  var dd=document.getElementById('cliente-dropdown');
+  if(!q.trim()){dd.style.display='none';return;}
+  var ql=q.toLowerCase();
+  var matches=clientes.filter(function(c){
+    return c.nombre.toLowerCase().includes(ql)||(c.rfc&&c.rfc.toLowerCase().includes(ql));
+  }).slice(0,6);
+  if(!matches.length){
+    dd.style.display='block';
+    dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#888780;">Sin resultados — <button onclick="abrirNuevoCliente(true)" class="btn-sm" style="display:inline;">+ crear cliente</button></div>';
+    return;
+  }
+  dd.style.display='block';
+  dd.innerHTML=matches.map(function(c){
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:.5px solid #eeecea;" '+
+      'onmousedown="seleccionarCliente('+JSON.stringify(c).replace(/"/g,'&quot;')+')" '+
+      'onmouseover="this.style.background=\'#F5F4F0\'" onmouseout="this.style.background=\'\'">'+
+      '<span style="font-weight:500;">'+esc(c.nombre)+'</span>'+
+      (c.rfc?'<span style="color:#888780;font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
+    '</div>';
+  }).join('');
+}
+
+function seleccionarCliente(c){
+  document.getElementById('mvmt-cliente-id').value=c.id;
+  document.getElementById('mvmt-cliente-search').value='';
+  document.getElementById('cliente-dropdown').style.display='none';
+  var sel=document.getElementById('cliente-seleccionado');
+  sel.style.display='flex';
+  document.getElementById('cliente-sel-nombre').textContent=c.nombre+(c.ciudad?' · '+c.ciudad:'');
+}
+
+function limpiarCliente(){
+  document.getElementById('mvmt-cliente-id').value='';
+  document.getElementById('mvmt-cliente-search').value='';
+  document.getElementById('cliente-dropdown').style.display='none';
+  document.getElementById('cliente-seleccionado').style.display='none';
+}
+
+async function guardarFormMovimiento(){
+  var userName=getUserName();
+  if(!userName){
+    var n=prompt('¿Cuál es tu nombre?');
+    if(!n||!n.trim())return;
+    saveName(n.trim());
+    document.getElementById('user-name-input').value=n.trim();
+    userName=n.trim();
+  }
+
+  var monto=parseFloat(document.getElementById('mvmt-monto').value)||0;
+  if(!monto){alert('El monto es obligatorio.');return;}
+
+  var conCliente=['venta','cobranza','cuenta_por_cobrar'];
+  if(conCliente.includes(tipoMovActual)&&!document.getElementById('mvmt-cliente-id').value){
+    alert('Selecciona un cliente.');return;
+  }
+  if(tipoMovActual!=='cobranza'&&!document.getElementById('mvmt-concepto').value.trim()){
+    alert('El concepto es obligatorio.');return;
+  }
+
+  var clienteId=document.getElementById('mvmt-cliente-id').value;
+  var cliente=clienteId?clientes.find(function(c){return c.id===clienteId;}):null;
+  var concepto=document.getElementById('mvmt-concepto').value.trim();
+  var factura=document.getElementById('mvmt-factura').value.trim();
+  var fecha=document.getElementById('mvmt-fecha').value||new Date().toISOString().split('T')[0];
+  var fechaBase=new Date(fecha+'T12:00');
+
+  var descripcion='';
+  if(tipoMovActual==='venta')descripcion='Venta'+(concepto?' · '+concepto:'')+(cliente?' a '+cliente.nombre:'');
+  else if(tipoMovActual==='cobranza')descripcion='Cobranza'+(cliente?' de '+cliente.nombre:'');
+  else if(tipoMovActual==='gasto')descripcion=concepto||'Gasto';
+  else if(tipoMovActual==='cuenta_por_cobrar')descripcion='CxC'+(concepto?' · '+concepto:'')+(cliente?' — '+cliente.nombre:'');
+
+  var mv={
+    id:Date.now().toString()+Math.random().toString(36).slice(2,7),
+    fecha:fecha,
+    raw_text:descripcion,
+    descripcion:descripcion,
+    contraparte:cliente?cliente.nombre:'',
+    monto:monto,
+    categoria:tipoMovActual,
+    year:fechaBase.getFullYear(),
+    month:fechaBase.getMonth()+1,
+    usuario:userName,
+    etiqueta:(tipoMovActual==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null
+  };
+
+  // Verificar duplicado
+  var dup=findDuplicate(monto,fecha,tipoMovActual);
+  if(dup){
+    var ok=confirm('⚠️ Posible duplicado:\n"'+dup.descripcion.slice(0,60)+'"\n$'+Math.round(dup.monto).toLocaleString('es-MX')+' · '+fmtDate(dup.fecha)+'\n\n¿Es diferente y quieres registrarlo?');
+    if(!ok)return;
+  }
+
+  var btn=document.getElementById('btn-save-mvmt');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    await insertMovement(mv);
+    cerrarFormMovimiento();
+    etiquetaSeleccionada='';
+    showStatus('✓ '+CAT_LABELS[tipoMovActual]+' registrada · $'+Math.round(monto).toLocaleString('es-MX'));
+    await loadMovements();
+  }catch(e){
+    showError('Error al guardar: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent='Guardar';
+  }
+}
+
 // ── Init ─────────────────────────────────────────────────
 (function init(){
   pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1590,6 +1986,7 @@ async function responderConsulta(){
     document.getElementById('user-badge').textContent=name;
   }
   loadMovements();
+  loadClientes();
   startPolling();
 })();
 </script>

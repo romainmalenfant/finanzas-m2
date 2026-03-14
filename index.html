@@ -474,11 +474,11 @@ textarea:focus{outline:none;border-color:#888780;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0">Movimientos del mes</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
-            <option value="fecha_desc">Fecha ↓ reciente</option>
-            <option value="fecha_asc">Fecha ↑ antiguo</option>
-            <option value="monto_desc">Monto ↓ mayor</option>
-            <option value="monto_asc">Monto ↑ menor</option>
+          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
+            <option value="fecha_desc">📅 Fecha ↓ reciente</option>
+            <option value="fecha_asc">📅 Fecha ↑ antiguo</option>
+            <option value="monto_desc">💰 Monto ↓ mayor</option>
+            <option value="monto_asc">💰 Monto ↑ menor</option>
           </select>
           <span class="mvmt-count" id="mvmt-count">0 movimientos</span>
         </div>
@@ -633,7 +633,7 @@ textarea:focus{outline:none;border-color:#888780;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
             <option value="fecha_desc">Fecha ↓</option>
             <option value="fecha_asc">Fecha ↑</option>
             <option value="monto_desc">Monto ↓</option>
@@ -650,7 +650,7 @@ textarea:focus{outline:none;border-color:#888780;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
             <option value="fecha_desc">Fecha ↓</option>
             <option value="fecha_asc">Fecha ↑</option>
             <option value="monto_desc">Monto ↓</option>
@@ -667,7 +667,7 @@ textarea:focus{outline:none;border-color:#888780;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:3px 6px;border:.5px solid #d3d1c7;border-radius:6px;background:#F5F4F0;font-family:inherit;color:#5f5e5a;">
+          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
             <option value="fecha_desc">Fecha ↓</option>
             <option value="fecha_asc">Fecha ↑</option>
             <option value="monto_desc">Monto ↓</option>
@@ -2961,7 +2961,7 @@ async function loadCartera(){
       else if(dias<=90)grupos.g60.push({f:f,dias:dias});
       else grupos.g90.push({f:f,dias:dias});
     });
-    var bandas=[{key:'g0',label:'0-30 días',color:'#3B6D11',bg:'#EAF3DE'},{key:'g30',label:'31-60 días',color:'#854F0B',bg:'#FAEEDA'},{key:'g60',label:'61-90 días',color:'#A32D2D',bg:'#FCEBEB'},{key:'g90',label:'Más de 90 días',color:'#791F1F',bg:'#F7C1C1'}];
+    var bandas=[{key:'g90',label:'Más de 90 días',color:'#791F1F',bg:'#F7C1C1'},{key:'g60',label:'61-90 días',color:'#A32D2D',bg:'#FCEBEB'},{key:'g30',label:'31-60 días',color:'#854F0B',bg:'#FAEEDA'},{key:'g0',label:'0-30 días',color:'#3B6D11',bg:'#EAF3DE'}];
     var html='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 60px 80px;"><span>Cliente</span><span style="text-align:right">Monto</span><span>Días</span><span>Fecha</span></div>';
     bandas.forEach(function(b){
       var items=grupos[b.key];if(!items.length)return;

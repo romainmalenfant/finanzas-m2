@@ -405,6 +405,7 @@ textarea:focus{outline:none;border-color:#888780;}
     <button class="tab active" onclick="switchTab('finanzas',this)">Finanzas</button>
     <button class="tab" onclick="switchTab('proyectos',this)">Proyectos</button>
     <button class="tab" onclick="switchTab('clientes',this)">Clientes</button>
+    <button class="tab" onclick="switchTab('proveedores',this)">Proveedores</button>
     <button class="tab" onclick="switchTab('sat',this)">SAT &amp; Banco</button>
   </div>
 
@@ -451,6 +452,68 @@ textarea:focus{outline:none;border-color:#888780;}
       <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nuevo cliente</button>
     </div>
     <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
+  </div>
+
+  <!-- Tab Proveedores -->
+  <div id="tab-proveedores" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <div style="font-size:13px;color:#73726c;" id="prov-count">0 proveedores</div>
+      <button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
+    </div>
+    <div id="proveedores-list"><div class="empty-state">Sin proveedores. Se crean automáticamente al importar el SAT.</div></div>
+  </div>
+
+  <!-- Modal proveedor -->
+  <div class="modal-overlay" id="prov-modal" style="z-index:200;">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-hdr">
+        <div class="modal-title" id="prov-modal-title">Nuevo proveedor</div>
+        <button class="modal-close" onclick="cerrarModalProveedor()">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="prov-id-edit">
+        <div class="form-group">
+          <label>Nombre / Razón social *</label>
+          <input type="text" id="prov-nombre" placeholder="Nombre del proveedor">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>RFC</label>
+            <input type="text" id="prov-rfc" placeholder="RFC000000000" style="text-transform:uppercase;">
+          </div>
+          <div class="form-group">
+            <label>Ciudad</label>
+            <input type="text" id="prov-ciudad" placeholder="Querétaro">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo</label>
+            <select id="prov-tipo">
+              <option value="general">General</option>
+              <option value="nomina">Nómina</option>
+              <option value="servicios">Servicios recurrentes</option>
+              <option value="material">Material / insumos</option>
+              <option value="financiero">Financiero</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Condiciones de pago</label>
+            <select id="prov-pago">
+              <option value="inmediato">Pago inmediato</option>
+              <option value="15">Crédito 15 días</option>
+              <option value="30" selected>Crédito 30 días</option>
+              <option value="60">Crédito 60 días</option>
+              <option value="90">Crédito 90 días</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarModalProveedor()">Cancelar</button>
+        <button class="btn-primary" id="btn-save-prov" onclick="guardarProveedor()">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <!-- Tab SAT & Banco -->
@@ -655,6 +718,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let movements = [];
 let proyectos = [];
 let clientes = [];
+let proveedores = [];
 let curYear = new Date().getFullYear();
 let curMonth = new Date().getMonth();
 let myChart = null;
@@ -1494,10 +1558,127 @@ function switchTab(tab, btn){
   document.getElementById('tab-finanzas').style.display=tab==='finanzas'?'block':'none';
   document.getElementById('tab-proyectos').style.display=tab==='proyectos'?'block':'none';
   document.getElementById('tab-clientes').style.display=tab==='clientes'?'block':'none';
+  document.getElementById('tab-proveedores').style.display=tab==='proveedores'?'block':'none';
   document.getElementById('tab-sat').style.display=tab==='sat'?'block':'none';
   if(tab==='proyectos')loadProyectos();
   if(tab==='clientes')loadClientes();
+  if(tab==='proveedores')loadProveedores();
   if(tab==='sat')initSATTab();
+}
+
+// ── Proveedores DB & UI ──────────────────────────────────
+async function loadProveedores(){
+  try{
+    var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
+    if(error)throw error;
+    proveedores=data||[];
+    renderProveedores();
+  }catch(e){console.error('Proveedores error:',e);}
+}
+
+async function upsertProveedor(p){
+  var {error}=await sb.from('proveedores').upsert([p]);
+  if(error)throw error;
+}
+
+async function deleteProveedor(id){
+  var {error}=await sb.from('proveedores').delete().eq('id',id);
+  if(error)throw error;
+}
+
+var tipoLabels={general:'General',nomina:'Nómina',servicios:'Servicios',material:'Material',financiero:'Financiero'};
+var condLabels2={inmediato:'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','60':'Crédito 60d','90':'Crédito 90d'};
+
+function renderProveedores(){
+  var el=document.getElementById('proveedores-list');
+  var ct=document.getElementById('prov-count');
+  if(!el)return;
+  ct.textContent=proveedores.length+' proveedor'+(proveedores.length!==1?'es':'');
+  if(!proveedores.length){
+    el.innerHTML='<div class="empty-state">Sin proveedores. Se crean automáticamente al importar facturas SAT recibidas.</div>';
+    return;
+  }
+  el.innerHTML=proveedores.map(function(p){
+    var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+    var tipoBadge=p.tipo&&p.tipo!=='general'?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(tipoLabels[p.tipo]||p.tipo)+'</span>':'';
+    return '<div class="cliente-card">'+
+      '<div class="cliente-avatar" style="background:#e8e6e0;">'+esc(initials)+'</div>'+
+      '<div class="cliente-info">'+
+        '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+
+        '<div class="cliente-meta" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+          (p.rfc?'<span>RFC: '+esc(p.rfc)+'</span>':'')+
+          (p.ciudad?'<span>'+esc(p.ciudad)+'</span>':'')+
+          '<span>'+(condLabels2[p.condiciones_pago]||'Crédito 30d')+'</span>'+
+          tipoBadge+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button class="btn-sm" onclick="editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" style="color:#A32D2D;border-color:#E24B4A;" onclick="eliminarProveedor(\''+esc(p.id)+'\')">Eliminar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function abrirNuevoProveedor(){
+  document.getElementById('prov-id-edit').value='';
+  document.getElementById('prov-modal-title').textContent='Nuevo proveedor';
+  document.getElementById('prov-nombre').value='';
+  document.getElementById('prov-rfc').value='';
+  document.getElementById('prov-ciudad').value='';
+  document.getElementById('prov-tipo').value='general';
+  document.getElementById('prov-pago').value='30';
+  document.getElementById('prov-modal').style.display='block';
+}
+
+function editarProveedor(id){
+  var p=proveedores.find(function(x){return x.id===id;});
+  if(!p)return;
+  document.getElementById('prov-id-edit').value=p.id;
+  document.getElementById('prov-modal-title').textContent='Editar proveedor';
+  document.getElementById('prov-nombre').value=p.nombre||'';
+  document.getElementById('prov-rfc').value=p.rfc||'';
+  document.getElementById('prov-ciudad').value=p.ciudad||'';
+  document.getElementById('prov-tipo').value=p.tipo||'general';
+  document.getElementById('prov-pago').value=p.condiciones_pago||'30';
+  document.getElementById('prov-modal').style.display='block';
+}
+
+function cerrarModalProveedor(){document.getElementById('prov-modal').style.display='none';}
+
+async function guardarProveedor(){
+  var nombre=document.getElementById('prov-nombre').value.trim();
+  if(!nombre){alert('El nombre es obligatorio.');return;}
+  var btn=document.getElementById('btn-save-prov');
+  btn.disabled=true; btn.textContent='Guardando...';
+  var id=document.getElementById('prov-id-edit').value||Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  var p={
+    id:id, nombre:nombre,
+    rfc:document.getElementById('prov-rfc').value.trim().toUpperCase()||null,
+    ciudad:document.getElementById('prov-ciudad').value.trim()||null,
+    tipo:document.getElementById('prov-tipo').value,
+    condiciones_pago:document.getElementById('prov-pago').value
+  };
+  try{
+    await upsertProveedor(p);
+    proveedores=proveedores.filter(function(x){return x.id!==id;});
+    proveedores.push(p);
+    proveedores.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
+    cerrarModalProveedor();
+    renderProveedores();
+    showStatus('✓ Proveedor guardado');
+  }catch(e){showError('Error: '+e.message);}
+  finally{btn.disabled=false; btn.textContent='Guardar';}
+}
+
+async function eliminarProveedor(id){
+  var p=proveedores.find(function(x){return x.id===id;});
+  if(!confirm('¿Eliminar proveedor "'+(p?p.nombre:id)+'"?'))return;
+  try{
+    await deleteProveedor(id);
+    proveedores=proveedores.filter(function(x){return x.id!==id;});
+    renderProveedores();
+  }catch(e){showError('No se pudo eliminar: '+e.message);}
 }
 
 // ── Proyectos UI ─────────────────────────────────────────
@@ -2390,24 +2571,84 @@ async function confirmarImportSAT(){
   var btn=document.getElementById('btn-confirmar-sat');
   btn.disabled=true; btn.textContent='Importando...';
 
-  var nuevasE=0, nuevasR=0, duplicadas=0;
   try{
-    // Insert emitidas usando upsert (uuid es PK, duplicados se ignoran)
+    // 1. Upsert facturas (UUID como PK — duplicados ignorados automáticamente)
     if(satPendingEmitidas.length){
       var {error:e1}=await sb.from('facturas_emitidas').upsert(satPendingEmitidas,{onConflict:'uuid',ignoreDuplicates:true});
       if(e1)throw e1;
-      nuevasE=satPendingEmitidas.length;
     }
     if(satPendingRecibidas.length){
       var {error:e2}=await sb.from('facturas_recibidas').upsert(satPendingRecibidas,{onConflict:'uuid',ignoreDuplicates:true});
       if(e2)throw e2;
-      nuevasR=satPendingRecibidas.length;
     }
+
+    // 2. Auto-crear clientes desde facturas emitidas (por RFC)
+    var clientesNuevos=0, proveedoresNuevos=0;
+    if(satPendingEmitidas.length){
+      // Obtener clientes existentes por RFC
+      var rfcsEmit=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
+      var {data:cExist}=await sb.from('clientes').select('id,rfc').in('rfc',rfcsEmit);
+      var rfcsExist=new Set((cExist||[]).map(function(c){return c.rfc;}));
+
+      // Agrupar por RFC para crear uno por empresa
+      var byRFC={};
+      satPendingEmitidas.forEach(function(f){
+        if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor))return;
+        if(!byRFC[f.rfc_receptor]){
+          byRFC[f.rfc_receptor]={
+            id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+            nombre:f.nombre_receptor||f.rfc_receptor,
+            rfc:f.rfc_receptor,
+            ciudad:null,
+            condiciones_pago:'30'
+          };
+        }
+      });
+      var nuevosClientes=Object.values(byRFC);
+      if(nuevosClientes.length){
+        var {error:ec}=await sb.from('clientes').upsert(nuevosClientes,{onConflict:'rfc',ignoreDuplicates:true});
+        if(!ec)clientesNuevos=nuevosClientes.length;
+      }
+    }
+
+    // 3. Auto-crear proveedores desde facturas recibidas (por RFC)
+    if(satPendingRecibidas.length){
+      var rfcsRecib=[...new Set(satPendingRecibidas.map(function(f){return f.rfc_emisor;}).filter(Boolean))];
+      var {data:pExist}=await sb.from('proveedores').select('id,rfc').in('rfc',rfcsRecib);
+      var rfcsPExist=new Set((pExist||[]).map(function(p){return p.rfc;}));
+
+      var byRFCProv={};
+      satPendingRecibidas.forEach(function(f){
+        if(!f.rfc_emisor||rfcsPExist.has(f.rfc_emisor))return;
+        if(!byRFCProv[f.rfc_emisor]){
+          byRFCProv[f.rfc_emisor]={
+            id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+            nombre:f.nombre_emisor||f.rfc_emisor,
+            rfc:f.rfc_emisor,
+            ciudad:null,
+            condiciones_pago:'30',
+            tipo:'general'
+          };
+        }
+      });
+      var nuevosProv=Object.values(byRFCProv);
+      if(nuevosProv.length){
+        var {error:ep}=await sb.from('proveedores').upsert(nuevosProv,{onConflict:'rfc',ignoreDuplicates:true});
+        if(!ep)proveedoresNuevos=nuevosProv.length;
+      }
+    }
+
     cerrarSATPreview();
-    showStatus('✓ Importado: '+nuevasE+' ventas, '+nuevasR+' compras (duplicados omitidos automáticamente)');
+    var msg='✓ Importado: '+satPendingEmitidas.length+' ventas, '+satPendingRecibidas.length+' compras';
+    if(clientesNuevos)msg+=' · '+clientesNuevos+' cliente'+(clientesNuevos!==1?'s':'')+' creado'+(clientesNuevos!==1?'s':'');
+    if(proveedoresNuevos)msg+=' · '+proveedoresNuevos+' proveedor'+(proveedoresNuevos!==1?'es':'')+' creado'+(proveedoresNuevos!==1?'s':'');
+    showStatus(msg);
+    // Reload clientes en memoria
+    loadClientes();
     loadSATData();
   }catch(e){
     showError('Error al importar: '+e.message);
+    console.error(e);
   }finally{
     btn.disabled=false; btn.textContent='Importar';
   }
@@ -2423,29 +2664,47 @@ async function importarBBVA(input){
   try{
     var buf=await file.arrayBuffer();
     var pdf=await pdfjsLib.getDocument({data:buf}).promise;
-    var texto='';
+
+    // Usar datos posicionales para distinguir columnas CARGOS vs ABONOS
+    var allItems=[];
     for(var p=1;p<=pdf.numPages;p++){
       var pg=await pdf.getPage(p);
+      var vp=pg.getViewport({scale:1});
       var ct=await pg.getTextContent();
-      texto+=ct.items.map(function(i){return i.str;}).join(' ')+'\n';
+      ct.items.forEach(function(item){
+        if(item.str&&item.str.trim()){
+          allItems.push({
+            str:item.str.trim(),
+            x:Math.round(item.transform[4]),
+            y:Math.round(item.transform[5]),
+            page:p,
+            width:vp.width
+          });
+        }
+      });
     }
 
-    var movimientos=parseBBVA(texto);
+    var movimientos=parseBBVAPositional(allItems);
+
     if(!movimientos.length){
-      showError('No se detectaron movimientos en el PDF. Verifica que sea un estado de cuenta BBVA.');
+      showError('No se detectaron movimientos. Verifica que sea el estado de cuenta BBVA Maestra PyME.');
       document.getElementById('status-msg').textContent='';
       return;
     }
 
-    // Upsert — id generado por fecha+importe+descripcion para idempotencia
     var rows=movimientos.map(function(m){
       var fechaD=new Date(m.fecha+'T12:00');
+      var safeKey=(m.descripcion||'').replace(/[^a-zA-Z0-9]/g,'').slice(0,8);
       return {
-        id:m.fecha.replace(/-/g,'')+'_'+(m.cargo||m.abono||0)+'_'+btoa(m.descripcion.slice(0,10)).slice(0,8),
-        fecha:m.fecha, descripcion:m.descripcion, referencia:m.referencia||'',
-        cargo:m.cargo||0, abono:m.abono||0,
+        id:m.fecha.replace(/-/g,'')+'_'+String(m.cargo||m.abono||0).replace('.','')+'_'+safeKey,
+        fecha:m.fecha,
+        descripcion:m.descripcion,
+        referencia:m.referencia||'',
+        cargo:m.cargo||0,
+        abono:m.abono||0,
         tipo:m.abono>0?'abono':'cargo',
-        year:fechaD.getFullYear(), month:fechaD.getMonth()+1,
+        year:fechaD.getFullYear(),
+        month:fechaD.getMonth()+1,
         conciliado:false
       };
     });
@@ -2454,7 +2713,9 @@ async function importarBBVA(input){
     if(error)throw error;
 
     document.getElementById('status-msg').textContent='';
-    showStatus('✓ '+rows.length+' movimientos bancarios importados');
+    showStatus('✓ '+rows.length+' movimientos BBVA importados ('+
+      rows.filter(function(r){return r.tipo==='abono';}).length+' abonos, '+
+      rows.filter(function(r){return r.tipo==='cargo';}).length+' cargos)');
     loadSATData();
   }catch(e){
     console.error(e);
@@ -2463,74 +2724,107 @@ async function importarBBVA(input){
   }
 }
 
-function parseBBVA(texto){
+function parseBBVAPositional(items){
+  var MESES={ENE:1,FEB:2,MAR:3,ABR:4,MAY:5,JUN:6,JUL:7,AGO:8,SEP:9,OCT:10,NOV:11,DIC:12};
   var movimientos=[];
-  var meses={ENE:1,FEB:2,MAR:3,ABR:4,MAY:5,JUN:6,JUL:7,AGO:8,SEP:9,OCT:10,NOV:11,DIC:12};
 
-  // Detectar año del estado de cuenta
-  var añoMatch=texto.match(/AL\s+\d+\/\d+\/(\d{4})|Periodo.*?(\d{4})|(\d{4})-\d{2}-\d{2}/);
-  var año=añoMatch?(parseInt(añoMatch[1]||añoMatch[2]||añoMatch[3])||new Date().getFullYear()):new Date().getFullYear();
+  // Detectar año desde items
+  var año=new Date().getFullYear();
+  items.forEach(function(it){
+    var m=it.str.match(/AL\s+\d+\/\d+\/(\d{4})|DEL\s+\d+\/\d+\/(\d{4})|(\d{4})-\d{2}-\d{2}/);
+    if(m){var y=parseInt(m[1]||m[2]||m[3]);if(y>2000&&y<2100)año=y;}
+  });
 
-  // Patrón: DD/MES seguido de datos de la operación
-  // Formato BBVA: 19/FEB 19/FEB P14 SAT 3,970.00 (cargo) o 193,841.43 (abono)
-  var lineas=texto.split('\n');
-  var i=0;
-  while(i<lineas.length){
-    var linea=lineas[i].trim();
-    // Buscar línea que empiece con fecha tipo 19/FEB
-    var fechaMatch=linea.match(/^(\d{1,2})\/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)/i);
-    if(fechaMatch){
-      var dia=parseInt(fechaMatch[1]);
-      var mesStr=fechaMatch[2].toUpperCase();
-      var mesNum=meses[mesStr]||1;
-      var fechaISO=año+'-'+String(mesNum).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+  // Detectar ancho de página para normalizar columnas
+  var pageWidth=items.length?items[0].width||612:612;
 
-      // Juntar esta línea con la siguiente (la descripción puede continuar)
-      var bloqueTexto=linea;
-      if(i+1<lineas.length)bloqueTexto+=' '+lineas[i+1].trim();
-      if(i+2<lineas.length)bloqueTexto+=' '+lineas[i+2].trim();
+  // Agrupar items por línea (mismo y ±4px, misma página)
+  var lines={};
+  items.forEach(function(it){
+    var key=it.page+'_'+Math.round(it.y/4)*4;
+    if(!lines[key])lines[key]=[];
+    lines[key].push(it);
+  });
 
-      // Extraer montos — buscar números con comas
-      var montos=bloqueTexto.match(/[\d]{1,3}(?:,\d{3})+(?:\.\d{2})?|\d+\.\d{2}/g);
-      if(montos&&montos.length){
-        // Limpiar y convertir montos
-        var importes=montos.map(function(m){return parseFloat(m.replace(/,/g,''));}).filter(function(n){return n>0&&n<99999999;});
+  // Ordenar cada línea por x
+  Object.values(lines).forEach(function(l){l.sort(function(a,b){return a.x-b.x;});});
 
-        // Extraer descripción — texto entre la fecha repetida y el monto
-        var desc=bloqueTexto.replace(/^\d{1,2}\/[A-Z]{3}\s+\d{1,2}\/[A-Z]{3}\s+[A-Z0-9]+\s*/,'').replace(/[\d,]+\.\d{2}.*/,'').trim().slice(0,60);
-        if(!desc)desc=bloqueTexto.slice(0,60).trim();
+  // Ordenar líneas por página+y desc (PDF y-axis va de abajo arriba)
+  var sortedLines=Object.entries(lines).sort(function(a,b){
+    var pa=parseInt(a[0]), pb=parseInt(b[0]);
+    if(pa!==pb)return pa-pb;
+    return parseFloat(b[0].split('_')[1])-parseFloat(a[0].split('_')[1]);
+  }).map(function(e){return e[1];});
 
-        // Determinar si es cargo o abono basado en el contexto
-        // En BBVA: la tabla tiene columnas CARGOS | ABONOS
-        // Buscamos indicadores en la descripción
-        var esCargo=bloqueTexto.match(/SAT|PAGO|CARGO|RETIRO|N06 PAGO/i)&&!bloqueTexto.match(/SPEI RECIB|DEP\.CHEQUE|ABONO/i);
-        var esAbono=bloqueTexto.match(/SPEI RECIB|DEP\.CHEQUE|ABONO/i);
+  // Encontrar columnas de CARGOS y ABONOS buscando el header
+  var xCargo=null, xAbono=null;
+  sortedLines.forEach(function(line){
+    var texts=line.map(function(i){return i.str;});
+    var ci=texts.findIndex(function(t){return t==='CARGOS';});
+    var ai=texts.findIndex(function(t){return t==='ABONOS';});
+    if(ci>=0&&ai>=0){
+      xCargo=line[ci].x;
+      xAbono=line[ai].x;
+    }
+  });
+  // Fallback: BBVA típico ~60% y ~75% del ancho
+  if(!xCargo){xCargo=pageWidth*0.58; xAbono=pageWidth*0.72;}
+  var colTol=pageWidth*0.1; // tolerancia ±10% del ancho
 
-        if(importes.length>=1){
-          var importe=importes[0];
-          // Si hay dos importes distintos, el primero suele ser el movimiento y el segundo el saldo
-          // Para BBVA: cargos aparecen antes de abonos en la línea
-          var cargo=0, abono=0;
-          if(esAbono){abono=importe;}
-          else if(esCargo){cargo=importe;}
-          else{
-            // Heurística: si hay referencia a SPEI recibido → abono
-            cargo=importe;
-          }
+  // Procesar líneas buscando fechas tipo DD/MES
+  for(var li=0;li<sortedLines.length;li++){
+    var line=sortedLines[li];
+    var lineStr=line.map(function(i){return i.str;}).join(' ');
+    var fechaMatch=lineStr.match(/^(\d{1,2})\/(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)/i);
+    if(!fechaMatch)continue;
 
-          movimientos.push({fecha:fechaISO,descripcion:desc,cargo:cargo,abono:abono,referencia:''});
-        }
+    var dia=parseInt(fechaMatch[1]);
+    var mesStr=fechaMatch[2].toUpperCase();
+    var mesNum=MESES[mesStr];
+    if(!mesNum)continue;
+    var fechaISO=año+'-'+String(mesNum).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+
+    // Juntar con siguiente línea (referencia/descripción)
+    var nextLine=li+1<sortedLines.length?sortedLines[li+1]:[];
+    var refStr=nextLine.map(function(i){return i.str;}).join(' ');
+
+    // Buscar montos en esta línea por posición x
+    var cargo=0, abono=0;
+    line.forEach(function(it){
+      var n=parseFloat(it.str.replace(/,/g,''));
+      if(isNaN(n)||n<=0||n>99999999)return;
+      if(Math.abs(it.x-xCargo)<colTol)cargo=n;
+      else if(Math.abs(it.x-xAbono)<colTol)abono=n;
+    });
+
+    // Si no encontró por posición, usar keywords
+    if(!cargo&&!abono){
+      var nums=lineStr.match(/\b\d{1,3}(?:,\d{3})+(?:\.\d{2})?\b|\b\d+\.\d{2}\b/g)||[];
+      var importes=nums.map(function(n){return parseFloat(n.replace(/,/g,''));}).filter(function(n){return n>0&&n<99999999;});
+      if(importes.length){
+        var esAbono=lineStr.match(/SPEI\s*RECIB|DEP\.?\s*CHEQUE|ABONO\s*SPEI/i)||refStr.match(/SPEI\s*RECIB|DEP\.?\s*CHEQUE/i);
+        if(esAbono)abono=importes[0]; else cargo=importes[0];
       }
-      i+=3;
-    } else {i++;}
+    }
+
+    if(!cargo&&!abono)continue;
+
+    // Descripción limpia
+    var desc=lineStr
+      .replace(/^\d{1,2}\/[A-Z]{3}\s+\d{1,2}\/[A-Z]{3}\s+/i,'')
+      .replace(/[A-Z]\d{2}\s+/,'')
+      .replace(/\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\b/g,'')
+      .replace(/\s+/g,' ').trim().slice(0,60);
+    if(!desc)desc=lineStr.slice(0,60);
+
+    movimientos.push({fecha:fechaISO,descripcion:desc,referencia:refStr.slice(0,80),cargo:cargo,abono:abono});
   }
 
-  // Deduplicar por fecha+importe
-  var vistos={};
+  // Deduplicar
+  var seen={};
   return movimientos.filter(function(m){
     var k=m.fecha+'_'+(m.cargo||m.abono);
-    if(vistos[k])return false;
-    vistos[k]=true;return true;
+    if(seen[k])return false; seen[k]=true; return true;
   });
 }
 

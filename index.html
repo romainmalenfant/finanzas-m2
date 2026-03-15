@@ -2028,7 +2028,7 @@ async function guardarProveedor(){
     proveedores.push(p);
     proveedores.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
     cerrarModalProveedor();
-    renderProveedores();
+    await loadProveedores();
     showStatus('✓ Proveedor guardado');
   }catch(e){showError('Error: '+e.message);}
   finally{btn.disabled=false; btn.textContent='Guardar';}
@@ -2510,11 +2510,8 @@ async function guardarCliente(){
     clientes.push(c);
     clientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
     cerrarModalCliente();
-    renderClientes();
-    if(clienteModalFromForm){
-      // Seleccionar este cliente en el formulario de movimiento
-      seleccionarCliente(c);
-    }
+    await loadClientes();
+    if(clienteModalFromForm){ seleccionarCliente(c); }
     showStatus('✓ Cliente guardado');
   }catch(e){showError('Error al guardar cliente: '+e.message);}
   finally{btn.disabled=false;btn.textContent='Guardar cliente';}
@@ -3354,8 +3351,8 @@ function renderEmpleados(list){
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="editarEmpleado(\''+esc(e.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarEmpleado(\''+esc(e.id)+'\')">×</button>'+
+        '<button class="btn-sm" onclick="editarEmpleado(\''+esc(String(e.id))+'\')">Editar</button>'+
+        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarEmpleado(\''+esc(String(e.id))+'\')">×</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -3801,7 +3798,6 @@ function renderContactosList(list){
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="editarContacto(\''+esc(c.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarContacto(\''+esc(c.id)+'\')">×</button>'+
       '</div>'+
     '</div>';
   }).join('');

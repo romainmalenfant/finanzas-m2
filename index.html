@@ -27,6 +27,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .s-item:hover svg{stroke:#94a3b8;}
 .s-tooltip{display:none;position:fixed;left:60px;background:#1a2035;color:#e2e8f0;font-size:11px;padding:5px 10px;border-radius:7px;white-space:nowrap;border:0.5px solid #2d3a5a;z-index:200;pointer-events:none;}
 .s-item:hover .s-tooltip{display:block;}
+.s-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;border-radius:8px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none;border:1.5px solid #0b0e17;}
+.s-badge-red{background:#f87171;color:#fff;}
+.s-badge-amber{background:#fbbf24;color:#0b0e17;}
 .s-divider{width:22px;height:0.5px;background:#1a2035;margin:6px 0;}
 
 /* ── Main area ── */
@@ -263,6 +266,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </button>
     <button class="s-item" id="sb-proyectos" onclick="switchTab('proyectos',this)" title="Proyectos">
       <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span class="s-badge s-badge-amber" id="badge-proyectos" style="display:none;"></span>
       <span class="s-tooltip">Proyectos</span>
     </button>
     <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Clientes">
@@ -271,6 +275,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </button>
     <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
       <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
+      <span class="s-badge s-badge-red" id="badge-proveedores" style="display:none;"></span>
       <span class="s-tooltip">Proveedores</span>
     </button>
     <button class="s-item" id="sb-contactos" onclick="switchTab('contactos',this)" title="Contactos">
@@ -284,6 +289,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </button>
     <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="SAT & Banco">
       <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
+      <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
       <span class="s-tooltip">SAT & Banco</span>
     </button>
     <button class="s-item" onclick="abrirReportes()" title="Reportes">
@@ -1288,6 +1294,34 @@ async function loadYTD(){
 async function insertMovement(mv){
   var {error}=await sb.from('movimientos_v2').insert([mv]);
   if(error)throw error;
+}
+
+// ── Sidebar badges ────────────────────────────────────────
+function updateBadges(){
+  var hoy=new Date();
+  // SAT — facturas emitidas sin cobrar >30 días
+  if(_cxcRows){
+    var venc=_cxcRows.filter(function(m){return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}).length;
+    var b=document.getElementById('badge-sat');
+    if(b){b.style.display=venc>0?'flex':'none';b.textContent=venc>9?'9+':String(venc);}
+  }
+  // Proveedores — CxP sin pagar >30 días
+  if(_cxpRows){
+    var vp=_cxpRows.filter(function(m){return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}).length;
+    var bp=document.getElementById('badge-proveedores');
+    if(bp){bp.style.display=vp>0?'flex':'none';bp.textContent=vp>9?'9+':String(vp);}
+  }
+  // Proyectos atrasados
+  if(typeof proyectos!=='undefined'&&proyectos.length&&typeof entregasByProyecto!=='undefined'){
+    var atr=proyectos.filter(function(p){
+      var ents=entregasByProyecto[p.id]||[];
+      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+      var est=estadoProyecto(p,entregadas);
+      return(est.lbl||est)==='Atrasado';
+    }).length;
+    var bj=document.getElementById('badge-proyectos');
+    if(bj){bj.style.display=atr>0?'flex':'none';bj.textContent=atr>9?'9+':String(atr);}
+  }
 }
 
 function invalidateMovementCache(){cacheInvalidate('ytd_'+new Date().getFullYear());_ytdMvmts=null;_cxcRows=null;_cxpRows=null;}
@@ -2497,7 +2531,7 @@ async function responderConsulta(){
       .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
       .eq('origen','sat_emitida').eq('conciliado',false)
       .order('fecha',{ascending:true});
-    _cxcRows=cxcRows||[];
+    _cxcRows=cxcRows||[]; updateBadges();
     var cxcTotal=_cxcRows.reduce(function(a,m){return a+Number(m.monto);},0);
     var hoy=new Date();
     var cxcDetalle=(cxcRows||[]).map(function(m){
@@ -2513,7 +2547,7 @@ async function responderConsulta(){
       .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
       .eq('origen','sat_recibida').eq('conciliado',false)
       .order('fecha',{ascending:true});
-    _cxpRows=cxpRows||[];
+    _cxpRows=cxpRows||[]; updateBadges();
     var cxpTotal=_cxpRows.reduce(function(a,m){return a+Number(m.monto);},0);
     var cxpDetalle=(cxpRows||[]).map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
@@ -3586,7 +3620,6 @@ function renderEmpleados(list){
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="editarEmpleado(\''+esc(String(e.id))+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarEmpleado(\''+esc(String(e.id))+'\')">×</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -4273,6 +4306,7 @@ async function loadProyectos(){
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
     proyectos=filtered;
     renderProyectos();
+    updateBadges();
   }catch(e){console.error('Proyectos:',e);}
 }
 

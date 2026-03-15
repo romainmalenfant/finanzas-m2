@@ -275,6 +275,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
         <button class="today-btn" onclick="goToday()">Hoy</button>
       </div>
     </div>
+    <span class="status-msg" id="status-msg" style="font-size:12px;color:#34d399;margin-right:8px;transition:opacity .3s;"></span>
     <div class="topbar-right">
       <div class="sync-indicator" id="sync-indicator"><span class="dot-live"></span> En línea</div>
       <span class="user-badge" id="user-badge">–</span>
@@ -770,10 +771,11 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <!-- Tab Clientes -->
   <div id="tab-clientes" style="display:none;">
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr 2fr;gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total clientes</div><div class="mvalue c-blue" id="cli-k-total">0</div></div>
-      <div class="mcard"><div class="mlabel">Mayor facturador YTD</div><div class="mvalue-sm" id="cli-k-top" style="font-size:13px;font-weight:600;color:#94a3b8;margin-top:4px;">—</div></div>
-      <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores deudores</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard"><div class="mlabel">Activos (90d)</div><div class="mvalue c-green" id="cli-k-activos">0</div></div>
+      <div class="mcard"><div class="mlabel">Top facturadores YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudores</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
@@ -1105,7 +1107,7 @@ function getUserName(){return localStorage.getItem('m2_username')||'';}
 function saveName(v){localStorage.setItem('m2_username',v);document.getElementById('user-badge').textContent=v||'–';}
 function changeName(){var n=prompt('¿Cómo te llamas?',getUserName());if(n&&n.trim()){saveName(n.trim());document.getElementById('user-name-input').value=n.trim();}}
 function showError(msg){var b=document.getElementById('error-banner');b.textContent=msg;b.style.display='block';setTimeout(function(){b.style.display='none';},5000);}
-function showStatus(msg,dur){var s=document.getElementById('status-msg');s.textContent=msg;if(dur!==0)setTimeout(function(){if(s.textContent===msg)s.textContent='';},dur||3500);}
+function showStatus(msg,dur){var s=document.getElementById('status-msg');if(!s)return;s.textContent=msg;if(dur!==0)setTimeout(function(){if(s.textContent===msg)s.textContent='';},dur||3500);}
 function setSyncState(online){var el=document.getElementById('sync-indicator');el.innerHTML=online?'<span class="dot-live"></span> En línea':'<span class="dot-sync"></span> Sin conexión';}
 
 // ── Supabase SDK ─────────────────────────────────────────
@@ -1377,7 +1379,7 @@ async function processMovement(){
   }catch(e){
     console.error(e);
     showError('Error al guardar: '+e.message);
-    document.getElementById('status-msg').textContent='';
+    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
   }finally{
     btn.disabled=false;
   }
@@ -1619,11 +1621,11 @@ async function handlePDF(input){
     });
     pdfMovimientos=detectados;
     mostrarModalPDF(file.name,detectados);
-    document.getElementById('status-msg').textContent='';
+    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
   }catch(e){
     console.error(e);
     showError('Error al leer PDF: '+e.message);
-    document.getElementById('status-msg').textContent='';
+    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
   }
 }
 
@@ -1976,7 +1978,6 @@ function renderProveedores(){
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#A32D2D;border-color:#E24B4A;" onclick="eliminarProveedor(\''+esc(p.id)+'\')">Eliminar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -2458,7 +2459,6 @@ function renderClientes(){
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#A32D2D;border-color:#E24B4A;" onclick="eliminarCliente(\''+esc(c.id)+'\')">Eliminar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -2992,7 +2992,7 @@ function procesarExcelSAT(buf,fileName){
     satPendingEmitidas=result.emitidas;
     satPendingRecibidas=result.recibidas;
     mostrarPreviewSAT(result.emitidas,result.recibidas);
-    document.getElementById('status-msg').textContent='';
+    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
   }catch(e){showError('Error al leer el Excel: '+e.message);}
 }
 
@@ -3015,7 +3015,7 @@ async function importarSATMultiple(input){
   satPendingEmitidas=allEmitidas;
   satPendingRecibidas=allRecibidas;
   mostrarPreviewSAT(allEmitidas,allRecibidas);
-  document.getElementById('status-msg').textContent='';
+  var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
 }
 
 function readFileAsync(file){
@@ -3136,13 +3136,13 @@ async function importarBBVAMultiple(input){
       });
     }
     var seen={};totalRows=totalRows.filter(function(r){if(seen[r.id])return false;seen[r.id]=true;return true;});
-    if(!totalRows.length){showError('No se detectaron movimientos en los PDFs.');document.getElementById('status-msg').textContent='';return;}
+    if(!totalRows.length){showError('No se detectaron movimientos en los PDFs.');var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';return;}
     var {error}=await sb.from('movimientos_v2').upsert(totalRows,{onConflict:'id',ignoreDuplicates:true});
     if(error)throw error;
-    document.getElementById('status-msg').textContent='';
+    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
     showStatus('✓ '+totalRows.length+' movimientos BBVA importados ('+totalRows.filter(function(r){return r.origen==='banco_abono';}).length+' abonos, '+totalRows.filter(function(r){return r.origen==='banco_cargo';}).length+' cargos)');
     loadSATData();
-  }catch(e){console.error(e);showError('Error BBVA: '+e.message);document.getElementById('status-msg').textContent='';}
+  }catch(e){console.error(e);showError('Error BBVA: '+e.message);var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';}
 }
 
 function parseBBVAPositional(items){
@@ -3595,26 +3595,34 @@ async function loadClientesKPIs(){
     });
     document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 
-    // Top por ventas YTD
+    // Top 5 por ventas YTD
     var {data:ytdVentas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('categoria','venta').eq('year',año);
     var byCliente={};
     (ytdVentas||[]).forEach(function(m){
       var k=(m.contraparte||'Sin nombre').trim();
       byCliente[k]=(byCliente[k]||0)+Number(m.monto);
     });
-    var topArr=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,1);
-    if(topArr.length)document.getElementById('cli-k-top').textContent=topArr[0][0].slice(0,22)+' · '+fmt(topArr[0][1]);
+    var top5fac=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var topEl=document.getElementById('cli-k-top');
+    if(top5fac.length){
+      topEl.innerHTML=top5fac.map(function(d,i){
+        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
+          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:#34d399;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+        '</div>';
+      }).join('');
+    }else{topEl.textContent='Sin ventas registradas';}
 
-    // Top 5 deudores
+    // Top 5 deudores — nombre completo
     var {data:deudas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_emitida').eq('conciliado',false);
     var byDeudor={};
     (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+Number(m.monto);});
-    var top5=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var deudorEl=document.getElementById('cli-k-deudor');
-    if(top5.length){
-      deudorEl.innerHTML=top5.map(function(d,i){
+    if(top5deu.length){
+      deudorEl.innerHTML=top5deu.map(function(d,i){
         return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
           '<span style="color:#fbbf24;flex-shrink:0;">'+fmt(d[1])+'</span>'+
         '</div>';
       }).join('');
@@ -3650,7 +3658,6 @@ function renderClientesList(list){
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="verContactosCliente(\''+esc(c.id)+'\',\''+esc(c.nombre)+'\')">Contactos</button>'+
         '<button class="btn-sm" onclick="editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarCliente(\''+esc(c.id)+'\')">×</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -3726,7 +3733,6 @@ function renderProveedoresList(list){
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
         '<button class="btn-sm" onclick="editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
-        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarProveedor(\''+esc(p.id)+'\')">×</button>'+
       '</div>'+
     '</div>';
   }).join('');

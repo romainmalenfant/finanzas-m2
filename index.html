@@ -214,6 +214,20 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 .toast-close:hover{color:#94a3b8;}
 .toast-bar{height:3px;width:100%;transform-origin:left;border-radius:0 0 10px 10px;}
 @keyframes toast-progress{from{transform:scaleX(1);}to{transform:scaleX(0);}}
+
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.06em;border-bottom:0.5px solid #1a2035;cursor:pointer;user-select:none;white-space:nowrap;}
+.data-table th:hover{color:#94a3b8;}
+.data-table th .sort-arrow{margin-left:4px;opacity:.4;font-size:9px;}
+.data-table th.sorted .sort-arrow{opacity:1;color:#60a5fa;}
+.data-table td{padding:10px 12px;border-bottom:0.5px solid #0f1420;color:#cbd5e1;vertical-align:middle;}
+.data-table tr:hover td{background:#12172a;cursor:pointer;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table .td-muted{color:#475569;font-size:12px;}
+.data-table .td-mono{font-family:monospace;font-size:11px;color:#64748b;}
+.data-table .td-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;}
+.data-table .td-stars{color:#fbbf24;letter-spacing:-2px;}
+.data-table .td-name{font-weight:500;color:#e2e8f0;}
 .kbar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;}
 .kbar-box{background:#0f1420;border:0.5px solid #1a2035;border-radius:14px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);}
 .kbar-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:0.5px solid #1a2035;}
@@ -994,20 +1008,21 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mcard"><div class="mlabel">Monto en curso</div><div class="mvalue c-amber" id="proj-k-monto">$0</div></div>
     </div>
     <!-- Filtros -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
-      <div style="display:flex;gap:8px;align-items:center;">
-        <select id="proj-year-filter" onchange="loadProyectos()" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;"></select>
-        <select id="proj-status-filter" onchange="loadProyectos()" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;">
-          <option value="">Todos los estados</option>
-          <option value="En proceso">En proceso</option>
-          <option value="Completado">Completado</option>
-          <option value="Atrasado">Atrasado</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span style="font-size:12px;color:#475569;" id="proj-count">0 proyectos</span>
-        <button class="btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
-      </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
+      <input type="text" id="proj-search" placeholder="Buscar por cliente, pedido o tipo de pieza..."
+        oninput="filtrarProyectos(this.value)"
+        style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+      <button class="btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;">
+      <select id="proj-year-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;"></select>
+      <select id="proj-status-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;">
+        <option value="">Todos los estados</option>
+        <option value="En proceso">En proceso</option>
+        <option value="Completado">Completado</option>
+        <option value="Atrasado">Atrasado</option>
+      </select>
+      <span style="font-size:12px;color:#475569;" id="proj-count">0 proyectos</span>
     </div>
     <div id="proyectos-list"><div class="empty-state">Sin proyectos registrados</div></div>
   </div>
@@ -1379,7 +1394,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── State ────────────────────────────────────────────────
 let movements = [];
-let proyectos = [];
+let proyectos = []; var allProyectos = [];
 let clientes = [];
 let proveedores = [];var etiquetaSeleccionada='';
 var metodoPagoSeleccionado='';
@@ -2348,12 +2363,12 @@ function abrirNuevoProveedor(){
   document.getElementById('prov-ciudad').value='';
   document.getElementById('prov-tipo').value='general';
   document.getElementById('prov-pago').value='30';
-  document.getElementById('prov-clabe').value=p.clabe||'';
-  document.getElementById('prov-limite').value=p.limite_credito||0;
-  document.getElementById('prov-categoria').value=p.categoria||'';
-  document.getElementById('prov-calificacion').value=p.calificacion||0;
-  document.getElementById('prov-notas').value=p.notas||'';
-  document.getElementById('prov-activo').checked=(p.activo!==false);
+  document.getElementById('prov-clabe').value='';
+  document.getElementById('prov-limite').value=0;
+  document.getElementById('prov-categoria').value='';
+  document.getElementById('prov-calificacion').value=0;
+  document.getElementById('prov-notas').value='';
+  document.getElementById('prov-activo').checked=true;
   document.getElementById('prov-modal').style.display='block';
 }
 
@@ -2895,7 +2910,7 @@ function abrirNuevoCliente(fromForm){
   document.getElementById('cliente-rfc').value='';
   document.getElementById('cliente-ciudad').value='';
   document.getElementById('cliente-pago').value='30';
-  document.getElementById('cliente-activo').checked=(c.activo!==false);
+  document.getElementById('cliente-activo').checked=true;
   document.getElementById('cliente-modal').style.display='block';
 }
 
@@ -4202,6 +4217,11 @@ document.addEventListener('keydown',function(e){
   }
   if(e.key==='Escape'){
     var dm=document.getElementById('detail-modal');if(dm&&dm.style.display==='block'){dm.style.display='none';return;}
+    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proyecto-modal','form-mvmt-modal'];
+    for(var i=0;i<modals.length;i++){
+      var m=document.getElementById(modals[i]);
+      if(m&&m.style.display==='block'){m.style.display='none';return;}
+    }
   }
   if(e.key==='Escape'&&document.getElementById('kbar-overlay').style.display==='flex'){
     cerrarKBar();
@@ -4945,7 +4965,7 @@ function abrirNuevoContacto(){
     sel.innerHTML='<option value="">— Sin empresa —</option>';
     clientes.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   }
-  document.getElementById('contacto-activo').checked=(c.activo!==false);
+  document.getElementById('contacto-activo').checked=true;
   document.getElementById('contacto-modal').style.display='block';
 }
 
@@ -5003,6 +5023,29 @@ async function eliminarContacto(id){
   catch(e){showError('Error: '+e.message);}
 }
 
+function filtrarProyectos(q){
+  var ql=(q||'').toLowerCase();
+  var año=document.getElementById('proj-year-filter').value;
+  var status=document.getElementById('proj-status-filter').value;
+  var filtered=proyectos.filter(function(p){
+    if(año&&p.year&&String(p.year)!==String(año))return false;
+    if(status){
+      var ents=entregasByProyecto[p.id]||[];
+      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+      var est=estadoProyecto(p,entregadas);
+      if((est.lbl||est)!==status)return false;
+    }
+    if(!ql)return true;
+    return (p.nombre_cliente||'').toLowerCase().includes(ql)||
+           (p.nombre_pedido||'').toLowerCase().includes(ql)||
+           (p.tipo_pieza||'').toLowerCase().includes(ql);
+  });
+  document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
+  proyectos=filtered;
+  renderProyectos();
+  proyectos=allProyectos; // restore after render
+}
+
 // ── Proyectos override con filtros ────────────────────────
 async function loadProyectos(){
   initProjYearFilter();
@@ -5046,7 +5089,7 @@ async function loadProyectos(){
       return (est.lbl||est)===status;
     }):all;
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
-    proyectos=filtered;
+    proyectos=filtered; allProyectos=filtered;
     renderProyectos();
     updateBadges();
   }catch(e){console.error('Proyectos:',e);}

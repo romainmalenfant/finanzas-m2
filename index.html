@@ -2222,7 +2222,7 @@ function renderProveedores(){
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -2338,7 +2338,7 @@ function renderProyectos(){
     }
 
     return '<div class="proj-card">'+
-      '<div class="proj-hdr" onclick="toggleProj(\''+p.id+'\')">'+
+      '<div class="proj-hdr" style="cursor:pointer;" onclick="verDetalleProyecto(\''+p.id+'\')">'+
         '<div class="proj-title">'+
           '<div class="proj-nombre">'+esc(p.nombre_pedido)+'</div>'+
           '<div class="proj-cliente">'+esc(p.nombre_cliente)+(p.tipo_pieza?' · '+esc(p.tipo_pieza):'')+'</div>'+
@@ -2759,7 +2759,7 @@ function renderClientes(){
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -4272,7 +4272,7 @@ async function verDetalleProyecto(id){
     var empresa=clientes.find(function(c){return c.nombre===p.nombre_cliente;});
     var contactoClave=null;
     if(p.contacto_id){
-      var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).single();
+      var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).maybeSingle();
       contactoClave=ct;
     }
 
@@ -4579,8 +4579,8 @@ function renderClientesList(list){
         (condLabels[c.condiciones_pago]||'30d')+'</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="verContactosCliente(\''+esc(c.id)+'\',\''+esc(c.nombre)+'\')">Contactos</button>'+
-        '<button class="btn-sm" onclick="editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();verContactosCliente(\''+esc(c.id)+'\',\''+esc(c.nombre)+'\')">Contactos</button>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
       '</div>'+
     '</div>';
   }).join('');
@@ -4660,7 +4660,7 @@ function renderProveedoresList(list){
   if(!list.length){el.innerHTML='<div class="empty-state">Sin proveedores</div>';return;}
   el.innerHTML=list.map(function(p){
     var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleProveedor(\''+esc(p.id)+'\')">'+
       '<div class="cliente-avatar">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+
@@ -4668,7 +4668,7 @@ function renderProveedoresList(list){
         (p.tipo||'General')+'</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" onclick="event.stopPropagation();editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
       '</div>'+
     '</div>';
   }).join('');

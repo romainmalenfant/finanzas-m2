@@ -186,6 +186,22 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 
 /* ── Misc ── */
 
+
+.detail-modal-box{max-width:720px;margin:2rem auto;background:#0f1420;border-radius:14px;overflow:hidden;border:0.5px solid #1a2035;}
+.detail-section{padding:1.25rem;border-bottom:0.5px solid #1a2035;}
+.detail-section:last-child{border-bottom:none;}
+.detail-section-title{font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.detail-field{background:#12172a;border-radius:8px;padding:10px 12px;}
+.detail-field-label{font-size:10px;color:#475569;margin-bottom:3px;}
+.detail-field-value{font-size:13px;font-weight:500;color:#e2e8f0;}
+.detail-kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.detail-kpi{background:#12172a;border-radius:8px;padding:12px;}
+.detail-kpi-label{font-size:10px;color:#475569;margin-bottom:4px;}
+.detail-kpi-value{font-size:20px;font-weight:700;}
+.detail-list-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #1a2035;font-size:12px;}
+.detail-list-item:last-child{border-bottom:none;}
+.detail-avatar{width:44px;height:44px;border-radius:50%;background:#1a2035;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#60a5fa;flex-shrink:0;}
 .kbar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;}
 .kbar-box{background:#0f1420;border:0.5px solid #1a2035;border-radius:14px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);}
 .kbar-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:0.5px solid #1a2035;}
@@ -232,6 +248,26 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 </style>
 </head>
 <body style="display:flex;flex-direction:row;">
+  <!-- ── Detail view modal ────────────────────────────── -->
+  <div class="modal-overlay" id="detail-modal" style="z-index:500;padding:1rem;">
+    <div class="detail-modal-box">
+      <div class="modal-hdr" style="background:#0b0e17;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="detail-avatar" id="detail-avatar">?</div>
+          <div>
+            <div class="modal-title" id="detail-title">—</div>
+            <div style="font-size:11px;color:#475569;margin-top:2px;" id="detail-subtitle"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-sm" id="detail-edit-btn" style="display:none;">Editar</button>
+          <button class="modal-close" onclick="document.getElementById('detail-modal').style.display='none'">×</button>
+        </div>
+      </div>
+      <div class="modal-body" id="detail-body" style="max-height:75vh;padding:0;"></div>
+    </div>
+  </div>
+
   <!-- ── Login screen ─────────────────────────────────── -->
   <div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#08090f;display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="width:100%;max-width:360px;padding:0 1.5rem;">
@@ -1197,6 +1233,12 @@ textarea:focus{outline:none;border-color:#3B82F6;}
         <div class="form-group">
           <label>Notas adicionales</label>
           <textarea id="proj-notas" style="min-height:60px;margin-bottom:0;" placeholder="Observaciones, materiales, especificaciones..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Contacto clave (opcional)</label>
+          <select id="proj-contacto-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <option value="">— Sin contacto clave —</option>
+          </select>
         </div>
       </div>
       <div class="modal-footer">
@@ -2273,6 +2315,7 @@ function renderProyectos(){
     var est=estadoProyecto(p,entregadas);
 
     // Tabla de entregas
+    // Add detail click to proj header
     var entregasHTML='';
     if(entregas.length){
       entregasHTML='<div style="margin-top:12px;">'+
@@ -2386,6 +2429,20 @@ function poblarClientesEnProyecto(valorActual){
   document.getElementById('proj-cliente').value=valorActual||'';
 }
 
+function poblarContactosEnProyecto(valorActual){
+  var sel=document.getElementById('proj-contacto-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Sin contacto clave —</option>';
+  contactos.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c.id;
+    var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
+    o.textContent=nombre+(c.clientes&&c.clientes.nombre?' ('+c.clientes.nombre+')':'');
+    if(c.id===valorActual)o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
 function abrirNuevoProyecto(){
   if(!clientes.length)loadClientes();
   document.getElementById('proj-id').value='';
@@ -2395,6 +2452,7 @@ function abrirNuevoProyecto(){
   document.getElementById('proj-fecha-pedido').value=new Date().toISOString().split('T')[0];
   document.getElementById('proj-fecha-entrega').value='';
   poblarClientesEnProyecto('');
+  poblarContactosEnProyecto('');
   document.getElementById('proj-modal').style.display='block';
 }
 
@@ -2404,6 +2462,7 @@ function editarProyecto(id){
   document.getElementById('proj-id').value=p.id;
   document.getElementById('proj-modal-title').textContent='Editar proyecto';
   poblarClientesEnProyecto(p.nombre_cliente||'');
+  poblarContactosEnProyecto(p.contacto_id||'');
   document.getElementById('proj-pedido').value=p.nombre_pedido||'';
   document.getElementById('proj-tipo-pieza').value=p.tipo_pieza||'';
   document.getElementById('proj-total-piezas').value=p.total_piezas||0;
@@ -2435,6 +2494,7 @@ async function guardarProyecto(){
     fecha_entrega:document.getElementById('proj-fecha-entrega').value||null,
     monto_total:parseFloat(document.getElementById('proj-monto').value)||0,
     notas:document.getElementById('proj-notas').value.trim(),
+    contacto_id:document.getElementById('proj-contacto-sel').value||null,
     year:proyYear
   };
   try{
@@ -2688,7 +2748,7 @@ function renderClientes(){
   var condLabels={'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
   el.innerHTML=clientes.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')" >'+
       '<div class="cliente-avatar">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(c.nombre)+'</div>'+
@@ -3646,7 +3706,7 @@ function renderEmpleados(list){
     var nombre=(e.nombre||'')+(e.apellido?' '+e.apellido:'');
     var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
     var sc=statusColor[e.estatus]||'#475569';
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpleado(\''+esc(String(e.id))+'\')">'+
       '<div class="cliente-avatar" style="background:#12172a;color:'+sc+';">'+esc(ini)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(nombre)+'</div>'+
@@ -3891,7 +3951,7 @@ function buscarKBar(q){
     sections.push('<div class="kbar-section">Empresas</div>'+
       cliMatch.map(function(c){
         var ini=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-        return '<div class="kbar-item" onclick="kbarGoTo(\'clientes\')">'+
+        return '<div class="kbar-item" onclick="cerrarKBar();verDetalleEmpresa(\''+c.id+'\')">'+
           '<div class="kbar-item-icon" style="background:#12172a;color:#60a5fa;font-size:11px;font-weight:600;">'+esc(ini)+'</div>'+
           '<div class="kbar-item-main">'+
             '<div class="kbar-item-name">'+esc(c.nombre)+'</div>'+
@@ -3916,7 +3976,7 @@ function buscarKBar(q){
         var est=estadoProyecto(p,entregadas);
         var lbl=est.lbl||est;
         var color=lbl==='Completado'?'#34d399':lbl==='Atrasado'?'#f87171':'#60a5fa';
-        return '<div class="kbar-item" onclick="kbarGoTo(\'proyectos\')">'+
+        return '<div class="kbar-item" onclick="cerrarKBar();verDetalleProyecto(\''+p.id+'\')" >'+
           '<div class="kbar-item-icon" style="background:#12172a;">📋</div>'+
           '<div class="kbar-item-main">'+
             '<div class="kbar-item-name">'+esc(p.nombre_pedido)+'</div>'+
@@ -3960,7 +4020,7 @@ function buscarKBar(q){
     sections.push('<div class="kbar-section">Contactos</div>'+
       contMatch.map(function(c){
         var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
-        return '<div class="kbar-item" onclick="kbarGoTo(\'contactos\')">'+
+        return '<div class="kbar-item" onclick="cerrarKBar();verDetalleContacto(\''+c.id+'\')">'+
           '<div class="kbar-item-icon" style="background:#12172a;color:#60a5fa;font-size:11px;font-weight:600;">'+
             esc(nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?')+
           '</div>'+
@@ -3992,6 +4052,287 @@ document.addEventListener('keydown',function(e){
     cerrarKBar();
   }
 });
+
+// ── Detail views ─────────────────────────────────────────
+function abrirDetail(titulo, subtitulo, iniciales, bodyHTML, editFn){
+  document.getElementById('detail-title').textContent=titulo;
+  document.getElementById('detail-subtitle').textContent=subtitulo||'';
+  document.getElementById('detail-avatar').textContent=iniciales||'?';
+  document.getElementById('detail-body').innerHTML=bodyHTML;
+  var eb=document.getElementById('detail-edit-btn');
+  if(editFn){eb.style.display='block';eb.onclick=editFn;}
+  else eb.style.display='none';
+  document.getElementById('detail-modal').style.display='block';
+}
+
+// ── Empresa detail ────────────────────────────────────────
+async function verDetalleEmpresa(id){
+  var c=clientes.find(function(x){return x.id===id;});
+  if(!c)return;
+  var ini=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+  var html='<div style="padding:16px;"><div style="color:#475569;font-size:12px;">Cargando datos...</div></div>';
+  abrirDetail(c.nombre,c.rfc||'',ini,html,function(){cerrarDetail();editarCliente(id);});
+
+  try{
+    var año=new Date().getFullYear();
+    var [mvRes,cxcRes,projRes,contRes]=await Promise.all([
+      sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte').eq('year',año).or('cliente_id.eq.'+id+(c.rfc?',rfc_contraparte.eq.'+c.rfc:'')).order('fecha',{ascending:false}).limit(10),
+      sb.from('movimientos_v2').select('monto,fecha,descripcion,numero_factura').eq('origen','sat_emitida').eq('conciliado',false).or('cliente_id.eq.'+id+(c.rfc?',rfc_contraparte.eq.'+c.rfc:'')),
+      sb.from('proyectos').select('*').ilike('nombre_cliente','%'+c.nombre+'%').eq('year',año),
+      sb.from('contactos').select('*').eq('cliente_id',id).order('nombre')
+    ]);
+    var mvmts=mvRes.data||[], cxcFacturas=cxcRes.data||[], projs=projRes.data||[], conts=contRes.data||[];
+    var ventas=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxcTotal=cxcFacturas.reduce(function(a,m){return a+Number(m.monto);},0);
+    var condLabels={'inmediato':'Pago inmediato','15':'15 días','30':'30 días','45':'45 días','60':'60 días','90':'90 días'};
+    var hoy=new Date();
+
+    var body=
+      // KPIs
+      '<div class="detail-section">'+
+        '<div class="detail-kpi-grid">'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Ventas YTD</div><div class="detail-kpi-value c-green">'+fmt(ventas)+'</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Por cobrar</div><div class="detail-kpi-value c-amber">'+fmt(cxcTotal)+'</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Proyectos activos</div><div class="detail-kpi-value c-blue">'+projs.length+'</div></div>'+
+        '</div>'+
+      '</div>'+
+      // Datos generales
+      '<div class="detail-section">'+
+        '<div class="detail-section-title">Datos generales</div>'+
+        '<div class="detail-grid">'+
+          '<div class="detail-field"><div class="detail-field-label">RFC</div><div class="detail-field-value">'+(c.rfc||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Ciudad</div><div class="detail-field-value">'+(c.ciudad||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Condiciones de pago</div><div class="detail-field-value">'+(condLabels[c.condiciones_pago]||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activa':'Inactiva')+'</div></div>'+
+        '</div>'+
+      '</div>'+
+      // Facturas pendientes
+      (cxcFacturas.length?
+        '<div class="detail-section">'+
+          '<div class="detail-section-title">Facturas por cobrar ('+cxcFacturas.length+')</div>'+
+          cxcFacturas.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
+            var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
+            var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
+            return '<div class="detail-list-item">'+
+              '<div><div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.descripcion||'Sin descripción').slice(0,40)+'</div>'+
+              '<div style="font-size:10px;color:#475569;">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+' días</span></div></div>'+
+              '<span style="font-weight:600;color:#fbbf24;">'+fmt(f.monto)+'</span>'+
+            '</div>';
+          }).join('')+
+        '</div>':'') +
+      // Proyectos
+      (projs.length?
+        '<div class="detail-section">'+
+          '<div class="detail-section-title">Proyectos '+año+'</div>'+
+          projs.map(function(p){
+            return '<div class="detail-list-item">'+
+              '<div><div style="font-size:12px;color:#e2e8f0;">'+esc(p.nombre_pedido)+'</div>'+
+              '<div style="font-size:10px;color:#475569;">Entrega: '+fmtDateFull(p.fecha_entrega)+'</div></div>'+
+              '<span style="font-weight:600;color:#94a3b8;">'+fmt(p.monto_total||0)+'</span>'+
+            '</div>';
+          }).join('')+
+        '</div>':'') +
+      // Contactos
+      '<div class="detail-section">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+          '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
+          '<button class="btn-sm" onclick="abrirNuevoContacto();document.getElementById(\'contacto-cliente-sel\').value=\''+id+'\'">+ Agregar</button>'+
+        '</div>'+
+        (conts.length?conts.map(function(ct){
+          var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
+          return '<div class="detail-list-item">'+
+            '<div><div style="font-size:12px;color:#e2e8f0;">'+esc(nombre)+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
+            (ct.telefono?'<span style="font-size:11px;color:#475569;">'+esc(ct.telefono)+'</span>':'')+'</div>';
+        }).join(''):'<div style="color:#334155;font-size:12px;padding:8px 0;">Sin contactos registrados</div>')+
+      '</div>'+
+      // Últimos movimientos
+      (mvmts.length?
+        '<div class="detail-section">'+
+          '<div class="detail-section-title">Últimos movimientos '+año+'</div>'+
+          mvmts.slice(0,6).map(function(m){
+            var col=CAT_COLORS[m.categoria]||'#475569';
+            return '<div class="detail-list-item">'+
+              '<div><div style="font-size:12px;color:#e2e8f0;">'+(m.descripcion||m.contraparte||'').slice(0,40)+'</div>'+
+              '<div style="font-size:10px;color:#475569;">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div></div>'+
+              '<span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(m.monto)+'</span>'+
+            '</div>';
+          }).join('')+
+        '</div>':'');
+
+    document.getElementById('detail-body').innerHTML=body;
+  }catch(e){console.error('Detalle empresa:',e);}
+}
+
+// ── Proveedor detail ──────────────────────────────────────
+async function verDetalleProveedor(id){
+  var p=proveedores.find(function(x){return x.id===id;});
+  if(!p)return;
+  var ini=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+  abrirDetail(p.nombre,p.rfc||'',ini,'<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProveedor(id);});
+  try{
+    var año=new Date().getFullYear();
+    var [mvRes,cxpRes]=await Promise.all([
+      sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion').eq('year',año).or(p.rfc?'rfc_contraparte.eq.'+p.rfc+',contraparte.ilike.%'+p.nombre+'%':'contraparte.ilike.%'+p.nombre+'%').order('fecha',{ascending:false}).limit(10),
+      sb.from('movimientos_v2').select('monto,fecha,descripcion,numero_factura').eq('origen','sat_recibida').eq('conciliado',false).or(p.rfc?'rfc_contraparte.eq.'+p.rfc+',contraparte.ilike.%'+p.nombre+'%':'contraparte.ilike.%'+p.nombre+'%')
+    ]);
+    var mvmts=mvRes.data||[], cxp=cxpRes.data||[];
+    var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxpTotal=cxp.reduce(function(a,m){return a+Number(m.monto);},0);
+    var hoy=new Date();
+    var body=
+      '<div class="detail-section">'+
+        '<div class="detail-kpi-grid">'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Compras YTD</div><div class="detail-kpi-value c-red">'+fmt(totalCompras)+'</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Por pagar</div><div class="detail-kpi-value c-amber">'+fmt(cxpTotal)+'</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Facturas pendientes</div><div class="detail-kpi-value c-blue">'+cxp.length+'</div></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="detail-section"><div class="detail-section-title">Datos</div>'+
+        '<div class="detail-grid">'+
+          '<div class="detail-field"><div class="detail-field-label">RFC</div><div class="detail-field-value">'+(p.rfc||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Ciudad</div><div class="detail-field-value">'+(p.ciudad||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Tipo</div><div class="detail-field-value">'+(p.tipo||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Condiciones</div><div class="detail-field-value">'+(p.condiciones_pago||'—')+'</div></div>'+
+        '</div>'+
+      '</div>'+
+      (cxp.length?'<div class="detail-section"><div class="detail-section-title">Facturas por pagar</div>'+
+        cxp.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
+          var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
+          var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
+            '<span style="font-weight:600;color:#f87171;">'+fmt(f.monto)+'</span></div>';
+        }).join('')+'</div>':'')+
+      (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos</div>'+
+        mvmts.slice(0,6).map(function(m){
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(m.descripcion||'').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+fmtDate(m.fecha)+'</div></div>'+
+            '<span style="font-weight:600;color:#f87171;">'+fmt(m.monto)+'</span></div>';
+        }).join('')+'</div>':'');
+    document.getElementById('detail-body').innerHTML=body;
+  }catch(e){console.error('Detalle proveedor:',e);}
+}
+
+// ── Contacto detail ───────────────────────────────────────
+async function verDetalleContacto(id){
+  var c=contactos.find(function(x){return x.id===id;});
+  if(!c)return;
+  var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
+  var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
+  var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';
+  var body=
+    '<div class="detail-section"><div class="detail-grid">'+
+      '<div class="detail-field"><div class="detail-field-label">Cargo</div><div class="detail-field-value">'+(c.cargo||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Empresa</div><div class="detail-field-value" style="color:#60a5fa;cursor:pointer;" onclick="'+
+        (c.cliente_id?'document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+c.cliente_id+'\');},100)':'')
+      +'">'+esc(empresa)+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>':'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activo':'Inactivo')+'</div></div>'+
+      (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value">'+esc(c.notas)+'</div></div>':'')+''+
+    '</div></div>';
+  abrirDetail(nombre,empresa+' · '+(c.cargo||''),ini,body,function(){cerrarDetail();editarContacto(id);});
+}
+
+// ── Empleado detail ───────────────────────────────────────
+async function verDetalleEmpleado(id){
+  var e=empleados.find(function(x){return String(x.id)===String(id);});
+  if(!e)return;
+  var nombre=(e.nombre||'')+(e.apellido?' '+e.apellido:'');
+  var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
+  var body=
+    '<div class="detail-section"><div class="detail-grid">'+
+      '<div class="detail-field"><div class="detail-field-label">Cargo</div><div class="detail-field-value">'+(e.cargo||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Área</div><div class="detail-field-value">'+(e.area||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Salario mensual</div><div class="detail-field-value c-green">'+(e.salario_mensual?fmt(e.salario_mensual):'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Fecha ingreso</div><div class="detail-field-value">'+(e.fecha_ingreso?fmtDateFull(e.fecha_ingreso):'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(e.email?'<a href="mailto:'+esc(e.email)+'" style="color:#60a5fa;">'+esc(e.email)+'</a>':'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.telefono||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(e.estatus==='Activo'?'#34d399':e.estatus==='Inactivo'?'#fbbf24':'#f87171')+';">'+(e.estatus||'Activo')+'</div></div>'+
+    '</div></div>';
+  abrirDetail(nombre,e.cargo||(e.area||''),ini,body,function(){cerrarDetail();editarEmpleado(id);});
+}
+
+// ── Proyecto detail ───────────────────────────────────────
+async function verDetalleProyecto(id){
+  var p=proyectos.find(function(x){return x.id===id;});
+  if(!p)return;
+  var ini=(p.nombre_pedido||'?').slice(0,2).toUpperCase();
+  abrirDetail(p.nombre_pedido,p.nombre_cliente,ini,'<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProyecto(id);});
+  try{
+    var ents=entregasByProyecto[id]||[];
+    var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+    var est=estadoProyecto(p,entregadas);
+    var lbl=est.lbl||est;
+    var color=lbl==='Completado'?'#34d399':lbl==='Atrasado'?'#f87171':'#60a5fa';
+    var pct=p.total_piezas>0?Math.round(entregadas/p.total_piezas*100):0;
+
+    // Fetch contacto clave and empresa
+    var empresa=clientes.find(function(c){return c.nombre===p.nombre_cliente;});
+    var contactoClave=null;
+    if(p.contacto_id){
+      var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).single();
+      contactoClave=ct;
+    }
+
+    var body=
+      '<div class="detail-section">'+
+        '<div class="detail-kpi-grid">'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Monto total</div><div class="detail-kpi-value c-green">'+fmt(p.monto_total||0)+'</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Avance</div><div class="detail-kpi-value" style="color:'+color+';">'+pct+'%</div></div>'+
+          '<div class="detail-kpi"><div class="detail-kpi-label">Estado</div><div class="detail-kpi-value" style="font-size:14px;color:'+color+';">'+lbl+'</div></div>'+
+        '</div>'+
+        '<div style="margin-top:10px;background:#12172a;border-radius:6px;height:6px;overflow:hidden;">'+
+          '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px;"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="detail-section"><div class="detail-section-title">Datos del proyecto</div>'+
+        '<div class="detail-grid">'+
+          '<div class="detail-field"><div class="detail-field-label">Tipo de pieza</div><div class="detail-field-value">'+(p.tipo_pieza||'—')+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Total piezas</div><div class="detail-field-value">'+entregadas+' / '+(p.total_piezas||0)+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Fecha pedido</div><div class="detail-field-value">'+fmtDateFull(p.fecha_pedido)+'</div></div>'+
+          '<div class="detail-field"><div class="detail-field-label">Fecha entrega</div><div class="detail-field-value">'+fmtDateFull(p.fecha_entrega)+'</div></div>'+
+        '</div>'+
+        (p.notas?'<div style="margin-top:8px;" class="detail-field"><div class="detail-field-label">Notas</div><div class="detail-field-value">'+esc(p.notas)+'</div></div>':'')+
+      '</div>'+
+      // Empresa vinculada
+      '<div class="detail-section"><div class="detail-section-title">Empresa</div>'+
+        (empresa?
+          '<div class="detail-list-item" style="cursor:pointer;" onclick="document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+empresa.id+'\');},100)">'+
+            '<div><div style="font-size:13px;font-weight:500;color:#60a5fa;">'+esc(empresa.nombre)+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+(empresa.rfc||'')+'</div></div>'+
+            '<span style="font-size:11px;color:#475569;">Ver detalle →</span>'+
+          '</div>':
+          '<div style="color:#334155;font-size:12px;padding:8px 0;">'+esc(p.nombre_cliente)+'</div>')+
+      '</div>'+
+      // Contacto clave
+      '<div class="detail-section">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+          '<div class="detail-section-title" style="margin-bottom:0;">Contacto clave</div>'+
+        '</div>'+
+        (contactoClave?
+          '<div class="detail-list-item">'+
+            '<div><div style="font-size:13px;font-weight:500;color:#e2e8f0;">'+(contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:'')+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+(contactoClave.cargo||'')+(contactoClave.email?' · '+contactoClave.email:'')+'</div></div>'+
+            (contactoClave.telefono?'<span style="font-size:11px;color:#475569;">'+esc(contactoClave.telefono)+'</span>':'')+
+          '</div>':
+          '<div style="color:#334155;font-size:12px;padding:8px 0;">Sin contacto clave asignado</div>')+
+      '</div>'+
+      // Entregas
+      (ents.length?'<div class="detail-section"><div class="detail-section-title">Historial de entregas</div>'+
+        ents.map(function(e){
+          return '<div class="detail-list-item">'+
+            '<div><div style="font-size:12px;color:#e2e8f0;">'+fmtDateFull(e.fecha)+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+(e.notas||'')+'</div></div>'+
+            '<span style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</span>'+
+          '</div>';
+        }).join('')+'</div>':'');
+    document.getElementById('detail-body').innerHTML=body;
+  }catch(e){console.error('Detalle proyecto:',e);}
+}
+
+function cerrarDetail(){document.getElementById('detail-modal').style.display='none';}
 
 // ── switchTab updated ────────────────────────────────────
 function switchTab(tab, btn){
@@ -4396,7 +4737,7 @@ function renderContactosList(list){
     var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
     var initials=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
     var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleContacto(\''+esc(c.id)+'\')">'+
       '<div class="cliente-avatar" style="background:#1a2035;color:#60a5fa;">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(nombre)+'</div>'+

@@ -376,16 +376,15 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 
         <!-- Facturas pendientes del cliente (solo cobranza) -->
         <div class="form-group" id="campo-facturas-pendientes" style="display:none;">
-          <label>Factura que se está pagando (opcional)</label>
-          <select id="mvmt-factura-sel" style="width:100%;padding:8px 10px;border:.5px solid #d3d1c7;border-radius:8px;font-family:inherit;font-size:13px;background:#F5F4F0;color:#1a1a18;" onchange="selFacturaPendiente(this.value)">
-            <option value="">— Sin vincular —</option>
-          </select>
-        </div>
-
-        <!-- Número de factura (cobranza) -->
-        <div class="form-group" id="campo-num-factura-cobr">
-          <label>Número de factura (opcional)</label>
-          <input type="text" id="mvmt-num-factura" placeholder="Ej: A-1234">
+          <label>Factura que se está pagando</label>
+          <div style="position:relative;">
+            <input type="text" id="factura-search-input" placeholder="Buscar por folio, descripción o monto..."
+              style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;"
+              oninput="filtrarFacturasPendientes(this.value)" onclick="mostrarDropdownFacturas()">
+            <div id="facturas-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;max-height:200px;overflow-y:auto;z-index:300;margin-top:2px;"></div>
+          </div>
+          <input type="hidden" id="mvmt-factura-sel">
+          <div id="factura-seleccionada" style="display:none;margin-top:6px;padding:8px 10px;background:#12172a;border:0.5px solid #34d39944;border-radius:6px;font-size:12px;color:#34d399;"></div>
         </div>
 
         <!-- Monto + Moneda -->
@@ -576,6 +575,72 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
     </div>
 
+    <!-- CxC y CxP -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;">
+
+      <!-- Cuentas por Cobrar -->
+      <div class="mvmts-card" style="margin-bottom:0;">
+        <div class="mvmts-hdr">
+          <div class="sec-title" style="margin-bottom:0;">Cuentas por cobrar</div>
+          <div style="display:flex;gap:16px;align-items:baseline;">
+            <span style="font-size:11px;color:#475569;" id="cxc-num-facturas">0 facturas</span>
+            <span style="font-size:16px;font-weight:700;color:#fbbf24;" id="cxc-total">$0</span>
+          </div>
+        </div>
+        <!-- Antigüedad bands -->
+        <div id="cxc-antiguedad" style="padding:8px 1.25rem;border-bottom:0.5px solid #1a2035;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cxc-bands">
+            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">0–30d</div>
+              <div style="font-size:13px;font-weight:600;color:#34d399;" id="cxc-b0">$0</div>
+            </div>
+            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">31–60d</div>
+              <div style="font-size:13px;font-weight:600;color:#fbbf24;" id="cxc-b1">$0</div>
+            </div>
+            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">61–90d</div>
+              <div style="font-size:13px;font-weight:600;color:#f97316;" id="cxc-b2">$0</div>
+            </div>
+            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">+90d</div>
+              <div style="font-size:13px;font-weight:600;color:#f87171;" id="cxc-b3">$0</div>
+            </div>
+          </div>
+        </div>
+        <!-- Top 5 deudores -->
+        <div id="cxc-top5" style="padding:4px 0;"></div>
+      </div>
+
+      <!-- Cuentas por Pagar -->
+      <div class="mvmts-card" style="margin-bottom:0;">
+        <div class="mvmts-hdr">
+          <div class="sec-title" style="margin-bottom:0;">Cuentas por pagar</div>
+          <div style="display:flex;gap:16px;align-items:baseline;">
+            <span style="font-size:11px;color:#475569;" id="cxp-num-facturas">0 facturas</span>
+            <span style="font-size:16px;font-weight:700;color:#f87171;" id="cxp-total">$0</span>
+          </div>
+        </div>
+        <!-- Vence pronto -->
+        <div style="padding:8px 1.25rem;border-bottom:0.5px solid #1a2035;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="padding:8px 10px;background:#2a0d0d44;border:0.5px solid #f8717122;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">Vencidas (+30 días)</div>
+              <div style="font-size:14px;font-weight:700;color:#f87171;" id="cxp-vence30">$0</div>
+              <div style="font-size:10px;color:#475569;" id="cxp-vence30-num">0 facturas</div>
+            </div>
+            <div style="padding:8px 10px;background:#12172a;border-radius:6px;">
+              <div style="font-size:9px;color:#475569;margin-bottom:2px;">Resto pendiente</div>
+              <div style="font-size:14px;font-weight:700;color:#94a3b8;" id="cxp-resto">$0</div>
+            </div>
+          </div>
+        </div>
+        <!-- Top 5 proveedores -->
+        <div id="cxp-top5" style="padding:4px 0;"></div>
+      </div>
+
+    </div>
+
     <!-- Registrar movimiento — ABAJO -->
     <div class="input-card" style="margin-top:0.5rem;">
       <div class="sec-title">Registrar movimiento</div>
@@ -711,10 +776,10 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <div id="tab-finanzas" style="display:none;">
     <!-- KPIs del mes -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="fin-ventas">$0</div><div class="mytd">Año: <span id="fin-ytd-ventas">$0</span></div></div>
-      <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="fin-cobr">$0</div><div class="mytd">Año: <span id="fin-ytd-cobr">$0</span></div></div>
-      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="fin-gasto">$0</div><div class="mytd">Año: <span id="fin-ytd-gasto">$0</span></div></div>
-      <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="fin-util">$0</div><div class="mytd">Año: <span id="fin-ytd-util">$0</span></div></div>
+      <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="fin-ventas">$0</div></div>
+      <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="fin-cobr">$0</div></div>
+      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="fin-gasto">$0</div></div>
+      <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="fin-util">$0</div></div>
     </div>
     <div class="chart-card">
       <div class="sec-title">Resumen visual del mes</div>
@@ -1443,7 +1508,7 @@ function sortAndRender(){
           (m.etiqueta?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(m.etiqueta)+'</span>':'')+
           (m.metodo_pago?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(m.metodo_pago)+'</span>':'')+
           (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#E6F1FB;color:#185FA5;">'+esc(m.moneda)+'</span>':'')+
-          (m.origen&&m.origen!=='manual'?'<span class="badge" style="background:#E6F1FB;color:#185FA5;font-size:9px;">'+(m.origen==='sat_emitida'?'SAT':m.origen==='sat_recibida'?'SAT compra':m.origen==='banco_abono'?'Banco +':'Banco -')+'</span>':'')+
+          (m.origen==='banco_abono'||m.origen==='banco_cargo'?'<span class="badge" style="background:#0d1f3c;color:#60a5fa;font-size:9px;">'+(m.origen==='banco_abono'?'Banco +':'Banco −')+'</span>':'')+
           (m.usuario&&m.usuario!=='SAT'&&m.usuario!=='BBVA'?'<span class="badge badge-user">'+esc(m.usuario)+'</span>':'')+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span>'+
         '</div>'+
@@ -2525,7 +2590,7 @@ function abrirFormMovimiento(tipo){
   document.getElementById('campo-cliente').style.display=(tipo==='venta'||tipo==='cobranza')?'block':'none';
   document.getElementById('campo-proveedor').style.display=tipo==='gasto'?'block':'none';
   document.getElementById('campo-facturas-pendientes').style.display='none'; // se activa al elegir cliente en cobranza
-  document.getElementById('campo-num-factura-cobr').style.display=(tipo==='cobranza'||tipo==='venta')?'block':'none';
+  // campo-num-factura-cobr removed — replaced by searchable dropdown
   document.getElementById('campo-concepto').style.display=tipo!=='cobranza'?'block':'none';
   document.getElementById('campo-factura-mvmt').style.display=tipo==='venta'?'block':'none';
   document.getElementById('campo-metodo-pago').style.display=(tipo==='gasto'||tipo==='cobranza')?'block':'none';
@@ -2536,6 +2601,8 @@ function abrirFormMovimiento(tipo){
   document.getElementById('mvmt-monto').value='';
   document.getElementById('mvmt-concepto').value='';
   document.getElementById('mvmt-factura').value='';
+  document.getElementById('factura-search-input').value='';
+  var fsel=document.getElementById('factura-seleccionada');if(fsel)fsel.style.display='none';
   document.getElementById('mvmt-num-factura').value='';
   document.getElementById('mvmt-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('mvmt-moneda').value='MXN';
@@ -2649,53 +2716,109 @@ function limpiarProveedor(){
 }
 
 // Facturas pendientes del cliente seleccionado (para cobranza)
+var facturasPendientesCache=[];
+
 async function cargarFacturasPendientes(clienteId){
-  var sel=document.getElementById('mvmt-factura-sel');
-  sel.innerHTML='<option value="">— Sin vincular —</option>';
+  // Reset
+  document.getElementById('factura-search-input').value='';
+  document.getElementById('mvmt-factura-sel').value='';
+  document.getElementById('factura-seleccionada').style.display='none';
+  document.getElementById('facturas-dropdown').style.display='none';
   document.getElementById('campo-facturas-pendientes').style.display='none';
+  facturasPendientesCache=[];
   if(!clienteId||tipoMovActual!=='cobranza')return;
   try{
     var {data}=await sb.from('movimientos_v2')
-      .select('id,descripcion,monto,fecha,moneda')
+      .select('id,descripcion,monto,fecha,moneda,numero_factura,tipo_cambio,contraparte,rfc_contraparte')
       .eq('origen','sat_emitida').eq('conciliado',false)
       .eq('cliente_id',clienteId);
-    // También buscar por RFC
     var cliente=clientes.find(function(c){return c.id===clienteId;});
     if(cliente&&cliente.rfc){
       var {data:d2}=await sb.from('movimientos_v2')
-        .select('id,descripcion,monto,fecha,moneda')
+        .select('id,descripcion,monto,fecha,moneda,numero_factura,tipo_cambio,contraparte,rfc_contraparte')
         .eq('origen','sat_emitida').eq('conciliado',false)
         .eq('rfc_contraparte',cliente.rfc);
       data=(data||[]).concat(d2||[]);
-      // dedup
       var seen={}; data=data.filter(function(r){if(seen[r.id])return false;seen[r.id]=true;return true;});
     }
     if(data&&data.length){
-      data.forEach(function(f){
-        var opt=document.createElement('option');
-        opt.value=f.id;
-        opt.textContent=fmtDate(f.fecha)+' · '+f.descripcion.slice(0,35)+' · '+fmt(f.monto)+(f.moneda&&f.moneda!=='MXN'?' '+f.moneda:'');
-        sel.appendChild(opt);
+      // Sort by folio then date
+      data.sort(function(a,b){
+        var fa=a.numero_factura||''; var fb=b.numero_factura||'';
+        if(fa&&fb)return fa.localeCompare(fb);
+        return new Date(b.fecha)-new Date(a.fecha);
       });
+      facturasPendientesCache=data;
       document.getElementById('campo-facturas-pendientes').style.display='block';
+      renderDropdownFacturas(data);
     }
   }catch(e){console.error('Facturas pendientes:',e);}
 }
 
-function selFacturaPendiente(id){
-  if(!id)return;
-  // Autocompletar monto con el de la factura
-  sb.from('movimientos_v2').select('monto,moneda,tipo_cambio').eq('id',id).single().then(function(res){
-    if(res.data){
-      document.getElementById('mvmt-monto').value=res.data.monto;
-      if(res.data.moneda&&res.data.moneda!=='MXN'){
-        document.getElementById('mvmt-moneda').value=res.data.moneda;
-        toggleTipoCambio(res.data.moneda);
-        if(res.data.tipo_cambio)document.getElementById('mvmt-tc').value=res.data.tipo_cambio;
-      }
-    }
-  });
+function renderDropdownFacturas(list){
+  var dd=document.getElementById('facturas-dropdown');
+  if(!list.length){
+    dd.innerHTML='<div style="padding:10px 12px;font-size:12px;color:#475569;">Sin facturas pendientes</div>';
+    return;
+  }
+  dd.innerHTML=list.map(function(f){
+    var folio=f.numero_factura?'<span style="font-weight:600;color:#60a5fa;">'+esc(f.numero_factura)+'</span> · ':'';
+    var desc=(f.descripcion||f.contraparte||'').slice(0,40);
+    var monto='<span style="color:#34d399;float:right;">'+fmt(f.monto)+'</span>';
+    return '<div onclick="elegirFactura(\''+f.id+'\')" data-id="'+f.id+'" '+
+      'style="padding:9px 12px;cursor:pointer;border-bottom:0.5px solid #1a2035;font-size:12px;color:#e2e8f0;" '+
+      'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+ 
+      '<div>'+folio+esc(desc)+monto+'</div>'+
+      '<div style="font-size:10px;color:#475569;margin-top:2px;">'+fmtDate(f.fecha)+'</div>'+
+    '</div>';
+  }).join('');
 }
+
+function filtrarFacturasPendientes(q){
+  var dd=document.getElementById('facturas-dropdown');
+  dd.style.display='block';
+  if(!q){renderDropdownFacturas(facturasPendientesCache);return;}
+  var ql=q.toLowerCase();
+  var filtered=facturasPendientesCache.filter(function(f){
+    return (f.numero_factura||'').toLowerCase().includes(ql)||
+           (f.descripcion||'').toLowerCase().includes(ql)||
+           String(f.monto).includes(ql)||
+           (f.contraparte||'').toLowerCase().includes(ql);
+  });
+  renderDropdownFacturas(filtered);
+}
+
+function mostrarDropdownFacturas(){
+  var dd=document.getElementById('facturas-dropdown');
+  dd.style.display='block';
+  renderDropdownFacturas(facturasPendientesCache);
+}
+
+function elegirFactura(id){
+  var f=facturasPendientesCache.find(function(x){return x.id===id;});
+  if(!f)return;
+  document.getElementById('mvmt-factura-sel').value=id;
+  document.getElementById('facturas-dropdown').style.display='none';
+  var folio=f.numero_factura?f.numero_factura+' · ':'';
+  var desc=(f.descripcion||f.contraparte||'').slice(0,40);
+  var sel=document.getElementById('factura-seleccionada');
+  sel.textContent='✓ '+folio+desc+' · '+fmt(f.monto);
+  sel.style.display='block';
+  document.getElementById('factura-search-input').value=folio+(f.descripcion||'').slice(0,30);
+  // Autocompletar monto
+  document.getElementById('mvmt-monto').value=f.monto;
+  if(f.moneda&&f.moneda!=='MXN'){
+    document.getElementById('mvmt-moneda').value=f.moneda;
+    toggleTipoCambio(f.moneda);
+    if(f.tipo_cambio)document.getElementById('mvmt-tc').value=f.tipo_cambio;
+  }
+}
+
+// Close dropdown on click outside
+document.addEventListener('click',function(e){
+  var dd=document.getElementById('facturas-dropdown');
+  if(dd&&!dd.contains(e.target)&&e.target.id!=='factura-search-input')dd.style.display='none';
+});
 
 async function guardarFormMovimiento(){
   var userName=getUserName();
@@ -2746,8 +2869,7 @@ async function guardarFormMovimiento(){
     moneda:moneda, tipo_cambio:moneda==='USD'?tc:1,
     cliente_id:clienteId||null, proveedor_id:provId||null,
     factura_vinculada_id:facturaVinculadaId||null,
-    numero_factura:(document.getElementById('mvmt-num-factura').value.trim())||
-                   (document.getElementById('mvmt-factura').value.trim())||null,
+    numero_factura:(document.getElementById('mvmt-factura').value.trim())||null,
     metodo_pago:metodoPagoSeleccionado||null,
     etiqueta:(tipoMovActual==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
     year:fechaBase.getFullYear(), month:fechaBase.getMonth()+1, usuario:userName
@@ -3410,6 +3532,81 @@ async function eliminarEmpleado(id){
 }
 
 
+// ── CxC y CxP Dashboard ──────────────────────────────────
+async function loadCxC(){
+  try{
+    var {data}=await sb.from('movimientos_v2')
+      .select('contraparte,monto,fecha')
+      .eq('origen','sat_emitida').eq('conciliado',false);
+    var rows=data||[];
+    var total=rows.reduce(function(a,m){return a+Number(m.monto);},0);
+    document.getElementById('cxc-total').textContent=fmt(total);
+    document.getElementById('cxc-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
+
+    // Antigüedad
+    var hoy=new Date(); var b=[0,0,0,0];
+    rows.forEach(function(m){
+      var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
+      if(dias<=30)b[0]+=Number(m.monto);
+      else if(dias<=60)b[1]+=Number(m.monto);
+      else if(dias<=90)b[2]+=Number(m.monto);
+      else b[3]+=Number(m.monto);
+    });
+    ['cxc-b0','cxc-b1','cxc-b2','cxc-b3'].forEach(function(id,i){
+      document.getElementById(id).textContent=fmt(b[i]);
+    });
+
+    // Top 5 deudores
+    var byCliente={};
+    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byCliente[k]=(byCliente[k]||0)+Number(m.monto);});
+    var top5=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var el=document.getElementById('cxc-top5');
+    el.innerHTML=top5.map(function(d,i){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
+        '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+        '<span style="color:#fbbf24;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+      '</div>';
+    }).join('');
+  }catch(e){console.error('CxC:',e);}
+}
+
+async function loadCxP(){
+  try{
+    var {data}=await sb.from('movimientos_v2')
+      .select('contraparte,monto,fecha')
+      .eq('origen','sat_recibida').eq('conciliado',false);
+    var rows=data||[];
+    var total=rows.reduce(function(a,m){return a+Number(m.monto);},0);
+    document.getElementById('cxp-total').textContent=fmt(total);
+    document.getElementById('cxp-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
+
+    // Vence en 30 días (fecha_entrega o fecha + 30d estimado)
+    var hoy=new Date();
+    // Vencidas / urgentes = llevan >30 días sin pagar
+    var vence30=rows.filter(function(m){
+      var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
+      return dias>30;
+    });
+    var montoVence=vence30.reduce(function(a,m){return a+Number(m.monto);},0);
+    var montoResto=total-montoVence;
+    document.getElementById('cxp-vence30').textContent=fmt(montoVence);
+    document.getElementById('cxp-vence30-num').textContent=vence30.length+' factura'+(vence30.length!==1?'s':'');
+    document.getElementById('cxp-resto').textContent=fmt(montoResto);
+
+    // Top 5 proveedores
+    var byProv={};
+    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+Number(m.monto);});
+    var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var el=document.getElementById('cxp-top5');
+    el.innerHTML=top5.map(function(d,i){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
+        '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+        '<span style="color:#f87171;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+      '</div>';
+    }).join('');
+  }catch(e){console.error('CxP:',e);}
+}
+
 // ── switchTab updated ────────────────────────────────────
 function switchTab(tab, btn){
   var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat'];
@@ -3496,16 +3693,22 @@ async function loadDashboard(){
     document.getElementById('db-gasto-mom').innerHTML=momBadge(gastoMes,gastoLY,'Gasto '+MONTHS[mesActual-1]);
     document.getElementById('db-util-mom').innerHTML=momBadge(ventasMes-gastoMes,ventasLY-gastoLY,'Util. '+MONTHS[mesActual-1]);
 
-    // Gráfica 12 meses
+    // Gráfica 12 meses — incluye año anterior si necesario
     var meses12=[]; var labels12=[]; var vData=[]; var cData=[];
     for(var i=11;i>=0;i--){
       var d=new Date(año,mesActual-1-i,1);
       meses12.push({y:d.getFullYear(),m:d.getMonth()+1});
       labels12.push(MONTHS[d.getMonth()].slice(0,3));
     }
+    var needsPrevYear=meses12[0].y<año;
+    var allChartData=ytd.slice();
+    if(needsPrevYear){
+      var {data:prevYearData}=await sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1);
+      allChartData=allChartData.concat(prevYearData||[]);
+    }
     meses12.forEach(function(mo){
-      var ventasMo=ytd.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-      var cobrMo=ytd.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
+      var ventasMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+      var cobrMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
       vData.push(ventasMo); cData.push(cobrMo);
     });
 
@@ -3529,6 +3732,9 @@ async function loadDashboard(){
         }
       }
     });
+
+    loadCxC();
+    loadCxP();
 
     // Últimos movimientos
     var {data:ultimos}=await sb.from('movimientos_v2').select('*').order('fecha',{ascending:false}).limit(8);
@@ -3881,17 +4087,29 @@ async function loadProyectos(){
     (entregas||[]).forEach(function(e){if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];entregasByProyecto[e.proyecto_id].push(e);});
 
     // KPIs (use all without status filter for counts)
-    var abiertos=all.filter(function(p){return estadoProyecto(p,entregasByProyecto[p.id]||[])==='En proceso';}).length;
-    var completos=all.filter(function(p){return estadoProyecto(p,entregasByProyecto[p.id]||[])==='Completado';}).length;
-    var atrasados=all.filter(function(p){return estadoProyecto(p,entregasByProyecto[p.id]||[])==='Atrasado';}).length;
-    var montoEnCurso=all.filter(function(p){return estadoProyecto(p,entregasByProyecto[p.id]||[])==='En proceso';}).reduce(function(a,p){return a+Number(p.monto_total||0);},0);
+    var abiertos=0,completos=0,atrasados=0,montoEnCurso=0;
+    all.forEach(function(p){
+      var ents=entregasByProyecto[p.id]||[];
+      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+      var est=estadoProyecto(p,entregadas);
+      var lbl=est.lbl||est;
+      if(lbl==='Completado')completos++;
+      else if(lbl==='Atrasado')atrasados++;
+      else abiertos++;
+      if(lbl==='En proceso')montoEnCurso+=Number(p.monto_total||0);
+    });
     document.getElementById('proj-k-abiertos').textContent=abiertos;
     document.getElementById('proj-k-completos').textContent=completos;
     document.getElementById('proj-k-atrasados').textContent=atrasados;
     document.getElementById('proj-k-monto').textContent=fmt(montoEnCurso);
 
     // Apply status filter for list
-    var filtered=status?all.filter(function(p){return estadoProyecto(p,entregasByProyecto[p.id]||[])===status;}):all;
+    var filtered=status?all.filter(function(p){
+      var ents=entregasByProyecto[p.id]||[];
+      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+      var est=estadoProyecto(p,entregadas);
+      return (est.lbl||est)===status;
+    }):all;
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
     proyectos=filtered;
     renderProyectos();

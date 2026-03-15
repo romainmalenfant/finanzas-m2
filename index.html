@@ -1172,24 +1172,7 @@ async function deleteCliente(id){
   if(error)throw error;
 }
 
-async function loadProyectos(){
-  try{
-    var {data,error}=await sb.from('proyectos').select('*').order('created_at',{ascending:false});
-    if(error)throw error;
-    proyectos=data||[];
-    // Load all entregas
-    var ids=proyectos.map(function(p){return p.id;});
-    if(ids.length){
-      var {data:ent}=await sb.from('entregas').select('*').in('proyecto_id',ids).order('fecha',{ascending:true});
-      entregasByProyecto={};
-      (ent||[]).forEach(function(e){
-        if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];
-        entregasByProyecto[e.proyecto_id].push(e);
-      });
-    }
-    renderProyectos();
-  }catch(e){console.error('Proyectos error:',e);}
-}
+
 
 async function upsertProyecto(proj){
   var {error}=await sb.from('proyectos').upsert([proj]);
@@ -2202,16 +2185,19 @@ async function guardarProyecto(){
   var btn=document.getElementById('btn-save-proj');
   btn.disabled=true; btn.textContent='Guardando...';
   var id=document.getElementById('proj-id').value||Date.now().toString()+Math.random().toString(36).slice(2,5);
+  var fechaPedido=document.getElementById('proj-fecha-pedido').value||null;
+  var proyYear=fechaPedido?parseInt(fechaPedido.split('-')[0]):new Date().getFullYear();
   var proj={
     id:id,
     nombre_cliente:cliente,
     nombre_pedido:pedido,
     tipo_pieza:document.getElementById('proj-tipo-pieza').value.trim(),
     total_piezas:parseInt(document.getElementById('proj-total-piezas').value)||0,
-    fecha_pedido:document.getElementById('proj-fecha-pedido').value||null,
+    fecha_pedido:fechaPedido,
     fecha_entrega:document.getElementById('proj-fecha-entrega').value||null,
     monto_total:parseFloat(document.getElementById('proj-monto').value)||0,
-    notas:document.getElementById('proj-notas').value.trim()
+    notas:document.getElementById('proj-notas').value.trim(),
+    year:proyYear
   };
   try{
     await upsertProyecto(proj);
@@ -2849,7 +2835,10 @@ async function loadSATData(){
       .in('origen',['sat_emitida','sat_recibida','banco_abono','banco_cargo'])
       .order('fecha',{ascending:false});
     if(error)throw error;
-    var all=data||[];
+    var all=(data||[]).filter(function(p){
+      if(!año)return true;
+      return !p.year||p.year===parseInt(año);
+    });
     var emitidas=all.filter(function(m){return m.origen==='sat_emitida';});
     var recibidas=all.filter(function(m){return m.origen==='sat_recibida';});
     var banco=all.filter(function(m){return m.origen==='banco_abono'||m.origen==='banco_cargo';});
@@ -3883,7 +3872,7 @@ async function loadProyectos(){
   var status=document.getElementById('proj-status-filter').value;
   try{
     var q=sb.from('proyectos').select('*').order('fecha_entrega',{ascending:true});
-    if(año)q=q.eq('year',parseInt(año));
+    // No filter if empty — show all. If year selected, include null-year rows too for backward compat
     var {data,error}=await q;
     if(error)throw error;
     var all=data||[];

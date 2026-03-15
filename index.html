@@ -2350,87 +2350,123 @@ async function responderConsulta(){
   }
 
   try{
-    // Recopilar contexto de la BD para pasarle a Claude
+    // ── Contexto financiero enfocado en año en curso ──────
     var año=new Date().getFullYear();
-    var mes=new Date().getMonth()+1;
     var MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-    // YTD metrics
-    var {data:ytdRows}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month,year,contraparte,descripcion').eq('year',año);
-    var ytd=ytdRows||[];
-    var ventasYTD=ytd.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    // Todos los movimientos del año — base de todo
+    var {data:allMvmts}=await sb.from('movimientos_v2')
+      .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
+      .eq('year',año).order('fecha',{ascending:false});
+    var mvmts=allMvmts||[];
 
-    // CxC pendiente
-    var {data:cxcRows}=await sb.from('movimientos_v2').select('contraparte,monto,fecha').eq('origen','sat_emitida').eq('conciliado',false);
-    var cxcTotal=(cxcRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cxcByCliente={};
-    (cxcRows||[]).forEach(function(m){var k=m.contraparte||'Sin nombre';cxcByCliente[k]=(cxcByCliente[k]||0)+Number(m.monto);});
-    var topDeudores=Object.entries(cxcByCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,10)
-      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join(', ');
+    // YTD resumen
+    var ventasYTD=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cobrYTD=mvmts.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var gastoYTD=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var utilYTD=ventasYTD-gastoYTD;
+    var flujoYTD=cobrYTD-gastoYTD;
 
-    // CxP pendiente
-    var {data:cxpRows}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_recibida').eq('conciliado',false);
-    var cxpTotal=(cxpRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
-
-    // Top clientes por ventas YTD
-    var byClienteYTD={};
-    ytd.filter(function(m){return m.categoria==='venta';}).forEach(function(m){var k=m.contraparte||'?';byClienteYTD[k]=(byClienteYTD[k]||0)+Number(m.monto);});
-    var topClientes=Object.entries(byClienteYTD).sort(function(a,b){return b[1]-a[1];}).slice(0,10)
-      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join(', ');
-
-    // Ventas por mes YTD
-    var ventasPorMes={};
-    ytd.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
-      var k=MONTHS_ES[(m.month||1)-1]; ventasPorMes[k]=(ventasPorMes[k]||0)+Number(m.monto);
+    // Ventas por mes
+    var ventasMes={};
+    mvmts.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
+      var k=MONTHS_ES[(m.month||1)-1];
+      ventasMes[k]=(ventasMes[k]||0)+Number(m.monto);
     });
-    var resumenMeses=Object.entries(ventasPorMes).map(function(e){return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');}).join(', ');
+    var resumenMeses=Object.entries(ventasMes).map(function(e){
+      return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');
+    }).join(' | ');
 
-    // Clientes registrados
-    var listaClientes=clientes.slice(0,50).map(function(c){return c.nombre+(c.ciudad?' ('+c.ciudad+')':'')+(c.rfc?' RFC:'+c.rfc:'');}).join(', ');
+    // Ventas por cliente (YTD)
+    var ventasByCliente={};
+    mvmts.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
+      var k=(m.contraparte||'Sin nombre').trim();
+      ventasByCliente[k]=(ventasByCliente[k]||0)+Number(m.monto);
+    });
+    var topVentasCliente=Object.entries(ventasByCliente).sort(function(a,b){return b[1]-a[1];})
+      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
 
-    // Proveedores registrados
-    var listaProveedores=proveedores.slice(0,30).map(function(p){return p.nombre+(p.ciudad?' ('+p.ciudad+')':'');}).join(', ');
+    // Gastos por etiqueta/proveedor
+    var gastosByProv={};
+    mvmts.filter(function(m){return m.tipo==='egreso';}).forEach(function(m){
+      var k=(m.contraparte||m.etiqueta||'Sin clasificar').trim();
+      gastosByProv[k]=(gastosByProv[k]||0)+Number(m.monto);
+    });
+    var topGastos=Object.entries(gastosByProv).sort(function(a,b){return b[1]-a[1];}).slice(0,15)
+      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
 
-    // Proyectos
-    var {data:projRows}=await sb.from('proyectos').select('nombre_cliente,nombre_pedido,monto_total,fecha_entrega,total_piezas').eq('year',año);
-    var resumenProyectos=(projRows||[]).slice(0,20).map(function(p){
-      return p.nombre_cliente+' | '+p.nombre_pedido+' | $'+(p.monto_total||0)+' | entrega:'+p.fecha_entrega;
+    // CxC — facturas sin cobrar con antigüedad
+    var {data:cxcRows}=await sb.from('movimientos_v2')
+      .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
+      .eq('origen','sat_emitida').eq('conciliado',false)
+      .order('fecha',{ascending:true});
+    var cxcTotal=(cxcRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    var hoy=new Date();
+    var cxcDetalle=(cxcRows||[]).map(function(m){
+      var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
+      return (m.contraparte||m.rfc_contraparte||'?')+
+        (m.numero_factura?' | folio:'+m.numero_factura:'')+
+        ' | $'+Math.round(Number(m.monto)).toLocaleString('es-MX')+
+        ' | fecha:'+m.fecha+' | '+dias+'d sin cobrar';
     }).join('\n');
 
-    // Empleados
-    var {data:empRows}=await sb.from('empleados').select('nombre,apellido,cargo,area,estatus,salario_mensual').order('nombre');
-    var resumenEmpleados=(empRows||[]).slice(0,30).map(function(e){
-      return (e.nombre||'')+(e.apellido?' '+e.apellido:'')+' | '+( e.cargo||'')+'  | '+(e.area||'')+(e.estatus?' | '+e.estatus:'');
+    // CxP — facturas sin pagar con antigüedad
+    var {data:cxpRows}=await sb.from('movimientos_v2')
+      .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
+      .eq('origen','sat_recibida').eq('conciliado',false)
+      .order('fecha',{ascending:true});
+    var cxpTotal=(cxpRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxpDetalle=(cxpRows||[]).map(function(m){
+      var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
+      return (m.contraparte||m.rfc_contraparte||'?')+
+        (m.numero_factura?' | folio:'+m.numero_factura:'')+
+        ' | $'+Math.round(Number(m.monto)).toLocaleString('es-MX')+
+        ' | fecha:'+m.fecha+' | '+dias+'d sin pagar';
     }).join('\n');
 
-    // Contactos
-    var {data:contRows}=await sb.from('contactos').select('nombre,apellido,cargo,email,telefono,clientes(nombre)').order('nombre');
-    var resumenContactos=(contRows||[]).slice(0,30).map(function(c){
-      return (c.nombre||'')+(c.apellido?' '+c.apellido:'')+' | '+(c.cargo||'')+' | '+(c.clientes&&c.clientes.nombre||'sin empresa')+' | '+(c.email||'')+(c.telefono?' | '+c.telefono:'');
+    // Proyectos del año
+    var {data:projRows}=await sb.from('proyectos').select('*').eq('year',año).order('fecha_entrega',{ascending:true});
+    var proyectosDetalle=(projRows||[]).map(function(p){
+      return p.nombre_cliente+' | '+p.nombre_pedido+
+        ' | piezas:'+p.total_piezas+
+        ' | monto:$'+(p.monto_total||0)+
+        ' | pedido:'+p.fecha_pedido+
+        ' | entrega:'+p.fecha_entrega+
+        (p.notas?' | notas:'+p.notas:'');
     }).join('\n');
 
-    // Construir prompt
+    // Clientes registrados con todos sus campos
+    var clientesDetalle=clientes.map(function(c){
+      return c.nombre+(c.rfc?' | RFC:'+c.rfc:'')+(c.ciudad?' | '+c.ciudad:'')+(c.condiciones_pago?' | pago:'+c.condiciones_pago+'d':'');
+    }).join('\n');
+
+    // Construir prompt compacto
     var contextStr=
       'Empresa: Grupo M2 — Maquinado Industrial, Querétaro, México.\n'+
-      'Fecha actual: '+new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})+'.\n\n'+
-      '## Finanzas '+año+' (YTD)\n'+
+      'Fecha hoy: '+hoy.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})+'.\n\n'+
+
+      '## FINANZAS '+año+' (YTD)\n'+
       'Ventas: $'+Math.round(ventasYTD).toLocaleString('es-MX')+
       ' | Cobranza: $'+Math.round(cobrYTD).toLocaleString('es-MX')+
       ' | Gastos: $'+Math.round(gastoYTD).toLocaleString('es-MX')+
-      ' | Utilidad: $'+Math.round(ventasYTD-gastoYTD).toLocaleString('es-MX')+'\n'+
-      'Ventas por mes: '+resumenMeses+'\n\n'+
-      '## Cuentas por cobrar (facturas SAT sin conciliar)\n'+
-      'Total CxC: $'+Math.round(cxcTotal).toLocaleString('es-MX')+' | Top deudores: '+topDeudores+'\n\n'+
-      '## Cuentas por pagar\n'+
-      'Total CxP: $'+Math.round(cxpTotal).toLocaleString('es-MX')+'\n\n'+
-      '## Top clientes por ventas YTD\n'+topClientes+'\n\n'+
-      '## Clientes registrados\n'+listaClientes+'\n\n'+
-      '## Proveedores registrados\n'+listaProveedores+'\n\n'+
-      '## Proyectos '+año+'\n'+(resumenProyectos||'Sin proyectos registrados')+'\n\n'+
-      '## Empleados\n'+(resumenEmpleados||'Sin empleados registrados')+'\n\n'+
-      '## Contactos\n'+(resumenContactos||'Sin contactos registrados');
+      ' | Utilidad: $'+Math.round(utilYTD).toLocaleString('es-MX')+
+      ' | Flujo: $'+Math.round(flujoYTD).toLocaleString('es-MX')+'\n\n'+
+
+      '## VENTAS POR MES\n'+resumenMeses+'\n\n'+
+
+      '## VENTAS POR CLIENTE (YTD)\n'+topVentasCliente+'\n\n'+
+
+      '## GASTOS POR PROVEEDOR/CATEGORÍA (YTD)\n'+topGastos+'\n\n'+
+
+      '## CUENTAS POR COBRAR — '+( cxcRows||[]).length+' facturas | Total: $'+Math.round(cxcTotal).toLocaleString('es-MX')+'\n'+
+      (cxcDetalle||'Sin facturas pendientes')+'\n\n'+
+
+      '## CUENTAS POR PAGAR — '+(cxpRows||[]).length+' facturas | Total: $'+Math.round(cxpTotal).toLocaleString('es-MX')+'\n'+
+      (cxpDetalle||'Sin facturas pendientes')+'\n\n'+
+
+      '## PROYECTOS '+año+'\n'+(proyectosDetalle||'Sin proyectos')+'\n\n'+
+
+      '## CLIENTES REGISTRADOS\n'+clientesDetalle;
 
     var payload={
       model:'claude-haiku-4-5-20251001',

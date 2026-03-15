@@ -2571,13 +2571,13 @@ function renderFacturasEmitidas(list){
   var ct=document.getElementById('emit-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 80px 70px;"><span>Cliente</span><span>No. Factura</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 100px 90px 80px 70px;"><span>Cliente / RFC</span><span>No. Factura</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
     sorted.map(function(f){
       var pill=f.conciliado?'<span class="pill-azul">Cobrada</span>':'<span class="pill-verde">Vigente</span>';
       var numFac=f.numero_factura||'—';
-      return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 80px 70px;">'+
-        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,30))+'</div>'+
-        '<div style="font-size:10px;color:#888780;">'+(f.uuid_sat?(f.uuid_sat.slice(0,8)+'...'):'manual')+'</div></div>'+
+      return '<div class="sat-row" style="grid-template-columns:1fr 100px 90px 80px 70px;">'+
+        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||'-').slice(0,35))+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+esc(f.rfc_contraparte||'')+'</div></div>'+
         '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
         '<div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(f.monto))+'</div>'+
         '<div style="color:#73726c;font-size:11px;">'+fmtDate(f.fecha)+'</div>'+
@@ -2614,14 +2614,14 @@ function renderFacturasRecibidas(list){
   var ct=document.getElementById('recib-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr"><span>Proveedor</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 70px;"><span>Proveedor / RFC</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
     sorted.map(function(f){
       var pill=f.conciliado?'<span class="pill-azul">Pagada</span>':'<span class="pill-verde">Vigente</span>';
-      return '<div class="sat-row">'+
-        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,35))+'</div>'+
-        '<div style="font-size:10px;color:#888780;">'+(f.uuid_sat?(f.uuid_sat.slice(0,8)+'...'):'manual')+'</div></div>'+
+      return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 70px;">'+
+        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||'-').slice(0,35))+'</div>'+
+        '<div style="font-size:10px;color:#888780;">'+esc(f.rfc_contraparte||'')+'</div></div>'+
         '<div style="text-align:right;font-weight:500;color:#A32D2D;">'+fmt(Number(f.monto))+'</div>'+
-        '<div style="color:#73726c;">'+fmtDate(f.fecha)+'</div>'+
+        '<div style="color:#73726c;font-size:11px;">'+fmtDate(f.fecha)+'</div>'+
         '<div>'+pill+'</div>'+
       '</div>';
     }).join('');
@@ -2982,7 +2982,8 @@ async function loadCartera(){
       html+=items.map(function(i){
         var numFac=i.f.numero_factura||'—';
         return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 60px 70px;">'+
-          '<div><div style="font-size:12px;font-weight:500;">'+esc((i.f.contraparte||i.f.rfc_contraparte||'-').slice(0,28))+'</div></div>'+
+          '<div><div style="font-size:12px;font-weight:500;">'+esc((i.f.contraparte||i.f.rfc_contraparte||'-').slice(0,28))+'</div>'+
+          '<div style="font-size:10px;color:#888780;">'+esc(i.f.rfc_contraparte||'')+'</div></div>'+
           '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
           '<div style="text-align:right;font-weight:500;color:'+b.color+';">'+fmt(Number(i.f.monto))+'</div>'+
           '<div style="color:#73726c;font-size:12px;">'+i.dias+'d</div>'+

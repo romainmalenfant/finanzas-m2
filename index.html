@@ -891,13 +891,49 @@ textarea:focus{outline:none;border-color:#3B82F6;}
           <div class="form-group"><label>Email</label><input type="email" id="emp-email" placeholder="juan@grupom2.mx"></div>
           <div class="form-group"><label>Teléfono</label><input type="tel" id="emp-tel" placeholder="+52 442 000 0000"></div>
         </div>
-        <div class="form-group">
-          <label>Estatus</label>
-          <select id="emp-estatus" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
-            <option value="Activo">Activo</option>
-            <option value="Inactivo">Inactivo</option>
-            <option value="Baja">Baja</option>
-          </select>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estatus</label>
+            <select id="emp-estatus" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              <option value="Activo">Activo</option>
+              <option value="Inactivo">Inactivo</option>
+              <option value="Baja">Baja</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tipo de contrato</label>
+            <select id="emp-contrato" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              <option value="">— Seleccionar —</option>
+              <option value="nomina">Nómina</option>
+              <option value="honorarios">Honorarios</option>
+              <option value="destajo">Destajo</option>
+              <option value="temporal">Temporal</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>RFC</label><input type="text" id="emp-rfc" placeholder="ABCD123456XYZ" style="text-transform:uppercase;"></div>
+          <div class="form-group"><label>IMSS / NSS</label><input type="text" id="emp-imss" placeholder="Número de seguridad social"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>CLABE bancaria</label><input type="text" id="emp-clabe" placeholder="18 dígitos" maxlength="18"></div>
+          <div class="form-group"><label>Días de vacaciones</label><input type="number" id="emp-vacaciones" placeholder="0" min="0"></div>
+        </div>
+        <div style="padding:0 0 12px;border-bottom:0.5px solid #1a2035;margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Contacto de emergencia</div>
+          <div class="form-row">
+            <div class="form-group"><label>Nombre</label><input type="text" id="emp-emg-nombre" placeholder="Nombre completo"></div>
+            <div class="form-group"><label>Teléfono</label><input type="tel" id="emp-emg-tel" placeholder="+52 442 000 0000"></div>
+          </div>
+        </div>
+        <div class="form-group"><label>Notas internas</label><textarea id="emp-notas" placeholder="Observaciones..." style="min-height:50px;"></textarea></div>
+        <div style="display:flex;gap:16px;margin-bottom:4px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#94a3b8;">
+            <input type="checkbox" id="emp-tiene-contrato" style="width:14px;height:14px;accent-color:#3B82F6;"> Contrato firmado
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#94a3b8;">
+            <input type="checkbox" id="emp-imss-activo" style="width:14px;height:14px;accent-color:#3B82F6;"> IMSS activo
+          </label>
         </div>
       </div>
       <div style="padding:0 1.25rem 1rem;">
@@ -1067,6 +1103,36 @@ textarea:focus{outline:none;border-color:#3B82F6;}
             </select>
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label>CLABE bancaria</label><input type="text" id="prov-clabe" placeholder="18 dígitos" maxlength="18"></div>
+          <div class="form-group"><label>Límite de crédito ($MXN)</label><input type="number" id="prov-limite" placeholder="0" min="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="prov-categoria" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              <option value="">— Seleccionar —</option>
+              <option value="materia_prima">Materia prima</option>
+              <option value="herramienta">Herramienta / equipo</option>
+              <option value="servicio">Servicio</option>
+              <option value="logistica">Logística</option>
+              <option value="administrativo">Administrativo</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Calificación</label>
+            <select id="prov-calificacion" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              <option value="0">— Sin calificar —</option>
+              <option value="5">⭐⭐⭐⭐⭐ Excelente</option>
+              <option value="4">⭐⭐⭐⭐ Bueno</option>
+              <option value="3">⭐⭐⭐ Regular</option>
+              <option value="2">⭐⭐ Deficiente</option>
+              <option value="1">⭐ Malo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Notas internas</label><textarea id="prov-notas" placeholder="Observaciones, condiciones especiales..." style="min-height:50px;"></textarea></div>
       </div>
       <div style="padding:0 1.25rem 1rem;">
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
@@ -2282,6 +2348,11 @@ function abrirNuevoProveedor(){
   document.getElementById('prov-ciudad').value='';
   document.getElementById('prov-tipo').value='general';
   document.getElementById('prov-pago').value='30';
+  document.getElementById('prov-clabe').value=p.clabe||'';
+  document.getElementById('prov-limite').value=p.limite_credito||0;
+  document.getElementById('prov-categoria').value=p.categoria||'';
+  document.getElementById('prov-calificacion').value=p.calificacion||0;
+  document.getElementById('prov-notas').value=p.notas||'';
   document.getElementById('prov-activo').checked=(p.activo!==false);
   document.getElementById('prov-modal').style.display='block';
 }
@@ -2313,6 +2384,11 @@ async function guardarProveedor(){
     ciudad:document.getElementById('prov-ciudad').value.trim()||null,
     tipo:document.getElementById('prov-tipo').value,
     condiciones_pago:document.getElementById('prov-pago').value,
+    clabe:document.getElementById('prov-clabe').value.trim()||null,
+    limite_credito:parseFloat(document.getElementById('prov-limite').value)||0,
+    categoria:document.getElementById('prov-categoria').value||null,
+    calificacion:parseInt(document.getElementById('prov-calificacion').value)||0,
+    notas:document.getElementById('prov-notas').value.trim()||null,
     activo:document.getElementById('prov-activo').checked
   };
   try{
@@ -3794,7 +3870,27 @@ function editarEmpleado(id){
   document.getElementById('emp-email').value=e.email||'';
   document.getElementById('emp-tel').value=e.telefono||'';
   document.getElementById('emp-estatus').value=e.estatus||'Activo';
+  document.getElementById('emp-contrato').value=e.tipo_contrato||'';
+  document.getElementById('emp-rfc').value=e.rfc||'';
+  document.getElementById('emp-imss').value=e.imss||'';
+  document.getElementById('emp-clabe').value=e.clabe||'';
+  document.getElementById('emp-vacaciones').value=e.dias_vacaciones||0;
+  document.getElementById('emp-emg-nombre').value=e.contacto_emergencia_nombre||'';
+  document.getElementById('emp-emg-tel').value=e.contacto_emergencia_tel||'';
+  document.getElementById('emp-notas').value=e.notas||'';
+  document.getElementById('emp-tiene-contrato').checked=!!e.tiene_contrato;
+  document.getElementById('emp-imss-activo').checked=!!e.imss_activo;
   document.getElementById('emp-activo').checked=(e.activo!==false);
+  document.getElementById('emp-contrato').value='';
+  document.getElementById('emp-rfc').value='';
+  document.getElementById('emp-imss').value='';
+  document.getElementById('emp-clabe').value='';
+  document.getElementById('emp-vacaciones').value=0;
+  document.getElementById('emp-emg-nombre').value='';
+  document.getElementById('emp-emg-tel').value='';
+  document.getElementById('emp-notas').value='';
+  document.getElementById('emp-tiene-contrato').checked=false;
+  document.getElementById('emp-imss-activo').checked=false;
   document.getElementById('empleado-modal').style.display='block';
 }
 
@@ -3814,6 +3910,16 @@ async function guardarEmpleado(){
     email:document.getElementById('emp-email').value.trim()||null,
     telefono:document.getElementById('emp-tel').value.trim()||null,
     estatus:document.getElementById('emp-estatus').value,
+    tipo_contrato:document.getElementById('emp-contrato').value||null,
+    rfc:(document.getElementById('emp-rfc').value.trim().toUpperCase())||null,
+    imss:document.getElementById('emp-imss').value.trim()||null,
+    clabe:document.getElementById('emp-clabe').value.trim()||null,
+    dias_vacaciones:parseInt(document.getElementById('emp-vacaciones').value)||0,
+    contacto_emergencia_nombre:document.getElementById('emp-emg-nombre').value.trim()||null,
+    contacto_emergencia_tel:document.getElementById('emp-emg-tel').value.trim()||null,
+    notas:document.getElementById('emp-notas').value.trim()||null,
+    tiene_contrato:document.getElementById('emp-tiene-contrato').checked,
+    imss_activo:document.getElementById('emp-imss-activo').checked,
     activo:document.getElementById('emp-activo').checked
   };
   if(idEdit)rec.id=idEdit;
@@ -4254,7 +4360,12 @@ async function verDetalleProveedor(id){
         '<div class="detail-field"><div class="detail-field-label">Ciudad</div><div class="detail-field-value">'+(p.ciudad||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Tipo</div><div class="detail-field-value">'+(p.tipo||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Condiciones</div><div class="detail-field-value">'+(p.condiciones_pago||'—')+'</div></div>'+
-      '</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Categoría</div><div class="detail-field-value">'+(p.categoria||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Calificación</div><div class="detail-field-value">'+(p.calificacion?'⭐'.repeat(p.calificacion):'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Límite crédito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+
+      '</div>'+
+      (p.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:#94a3b8;">'+esc(p.notas)+'</div></div>':'')+
       (cxp.length?'<div class="detail-section"><div class="detail-section-title">Facturas por pagar</div>'+
         cxp.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
           var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));

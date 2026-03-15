@@ -207,6 +207,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 .dup-actions{display:flex;gap:8px;margin-top:8px;}
 .dup-btn.active{background:#854F0B;color:#fff;}
 @media(max-width:640px){.metrics-hero{grid-template-columns:1fr;}.topbar-brand,.topbar-sub{display:none;}}
+.topbar.hide-period .period-nav{display:none;}
 </style>
 </head>
 <body style="display:flex;flex-direction:row;">
@@ -541,15 +542,13 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </div>
   </div>
 
-  <div class="metrics-hero">
-    <div class="mcard-hero"><div class="mlabel">Utilidad operativa</div><div class="mvalue-hero c-util-pos" id="m-util">$0</div><div class="mtrend" style="font-size:11px;color:#334155;margin-top:4px;">Ventas − Gastos</div><div class="mytd">Año: <span id="ytd-util">$0</span></div></div>
-    <div class="mcard-hero"><div class="mlabel">Por cobrar · cartera</div><div class="mvalue-hero c-amber" id="m-cxc">$0</div><div class="mtrend" style="font-size:11px;color:#334155;margin-top:4px;">Facturas pendientes de cobro</div><div class="mytd">Año: <span id="ytd-cxc">$0</span></div></div>
-  </div>
-  <div class="metrics-grid">
-    <div class="mcard"><div class="mlabel">Ventas facturadas</div><div class="mvalue c-green" id="m-ventas">$0</div><div class="mytd">Año: <span id="ytd-ventas">$0</span></div></div>
-    <div class="mcard"><div class="mlabel">Cobranza cobrada</div><div class="mvalue c-blue" id="m-cobr">$0</div><div class="mytd">Año: <span id="ytd-cobr">$0</span></div></div>
-    <div class="mcard"><div class="mlabel">Gastos / egresos</div><div class="mvalue c-red" id="m-gasto">$0</div><div class="mytd">Año: <span id="ytd-gasto">$0</span></div></div>
-    <div class="mcard"><div class="mlabel">Flujo de caja</div><div class="mvalue c-util-pos" id="m-flujo">$0</div><div class="mytd">Año: <span id="ytd-flujo">$0</span></div></div>
+  <!-- Hidden metric IDs for JS compatibility -->
+  <div style="display:none;">
+    <span id="m-util"></span><span id="m-cxc"></span><span id="m-ventas"></span>
+    <span id="m-cobr"></span><span id="m-gasto"></span><span id="m-flujo"></span>
+    <span id="ytd-util"></span><span id="ytd-cxc"></span><span id="ytd-ventas"></span>
+    <span id="ytd-cobr"></span><span id="ytd-gasto"></span><span id="ytd-flujo"></span>
+    <div id="month-label" style="display:none;"></div>
   </div>
 
   <!-- Tabs -->
@@ -582,20 +581,19 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div style="position:relative;height:200px;"><canvas id="dbChart"></canvas></div>
     </div>
 
-    <!-- Fila: últimos movimientos + consulta NL -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div class="mvmts-card" style="margin-bottom:0;">
-        <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos</div></div>
-        <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
+    <!-- Consulta NL arriba -->
+    <div class="input-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
+        <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
       </div>
-      <div class="input-card" style="margin-bottom:0;">
-        <div class="sec-title">Consultar datos</div>
-        <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <input type="text" id="query-input" placeholder="Ej: ¿Cuánto vendimos en febrero?" style="flex:1;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
-          <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
-        </div>
-        <div id="query-result" style="font-size:13px;color:#94a3b8;min-height:60px;line-height:1.6;"></div>
-      </div>
+      <div id="query-result" style="font-size:13px;color:#94a3b8;margin-top:10px;min-height:0;line-height:1.6;"></div>
+    </div>
+
+    <!-- Fila: últimos movimientos -->
+    <div class="mvmts-card" style="margin-bottom:0;">
+      <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos</div></div>
+      <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
     </div>
   </div>
 
@@ -3211,6 +3209,9 @@ function switchTab(tab, btn){
   if(panel)panel.style.display='block';
   if(btn)btn.classList.add('active');
   else{var sb=document.getElementById('sb-'+tab);if(sb)sb.classList.add('active');}
+  // Hide month nav on dashboard
+  var tb=document.querySelector('.topbar');
+  if(tb){if(tab==='dashboard')tb.classList.add('hide-period');else tb.classList.remove('hide-period');}
   if(tab==='dashboard')loadDashboard();
   if(tab==='proyectos')loadProyectos();
   if(tab==='clientes'){loadClientes();loadClientesKPIs();}

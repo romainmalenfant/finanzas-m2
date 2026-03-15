@@ -246,6 +246,10 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <span class="s-tooltip">Contactos</span>
     </button>
     <div class="s-divider"></div>
+    <button class="s-item" id="sb-empleados" onclick="switchTab('empleados',this)" title="Empleados">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="s-tooltip">Empleados</span>
+    </button>
     <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="SAT & Banco">
       <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
       <span class="s-tooltip">SAT & Banco</span>
@@ -563,6 +567,15 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <!-- Tab Dashboard -->
   <div id="tab-dashboard" style="display:none;">
 
+    <!-- Consulta NL — SIEMPRE ARRIBA -->
+    <div class="input-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
+        <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
+      </div>
+      <div id="query-result" style="font-size:13px;color:#94a3b8;margin-top:10px;min-height:0;line-height:1.6;"></div>
+    </div>
+
     <!-- KPIs YTD hero -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="mcard-hero"><div class="mlabel">Ventas YTD</div><div class="mvalue-hero c-green" id="db-ventas-ytd">$0</div><div class="mtrend" id="db-ventas-mom" style="font-size:11px;color:#475569;margin-top:4px;"></div></div>
@@ -581,19 +594,30 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div style="position:relative;height:200px;"><canvas id="dbChart"></canvas></div>
     </div>
 
-    <!-- Consulta NL arriba -->
-    <div class="input-card" style="margin-bottom:1.5rem;">
-      <div style="display:flex;gap:8px;">
-        <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
-        <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
-      </div>
-      <div id="query-result" style="font-size:13px;color:#94a3b8;margin-top:10px;min-height:0;line-height:1.6;"></div>
-    </div>
-
-    <!-- Fila: últimos movimientos -->
-    <div class="mvmts-card" style="margin-bottom:0;">
+    <!-- Últimos movimientos -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos</div></div>
       <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
+    </div>
+
+    <!-- Registrar movimiento — ABAJO -->
+    <div class="input-card" style="margin-top:0.5rem;">
+      <div class="sec-title">Registrar movimiento</div>
+      <div style="margin-bottom:10px;font-size:12px;color:#475569;" id="user-name-row">
+        Registrado por: <input type="text" id="user-name-input" placeholder="Tu nombre" oninput="saveName(this.value)"
+          style="padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;font-family:inherit;font-size:12px;background:#12172a;color:#e2e8f0;width:140px;margin-left:6px;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('venta')">
+          <span style="font-size:22px;">📋</span>Venta
+        </button>
+        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('cobranza')">
+          <span style="font-size:22px;">💰</span>Cobranza
+        </button>
+        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('gasto')">
+          <span style="font-size:22px;">🧾</span>Gasto
+        </button>
+      </div>
     </div>
   </div>
 
@@ -645,6 +669,68 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </div>
   </div>
 
+  <!-- Tab Empleados -->
+  <div id="tab-empleados" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <div style="font-size:13px;color:#475569;" id="empleados-count">0 empleados</div>
+      <button class="btn-primary" onclick="abrirNuevoEmpleado()">+ Nuevo empleado</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Total empleados</div><div class="mvalue c-blue" id="emp-k-total">0</div></div>
+      <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="emp-k-activos">0</div></div>
+      <div class="mcard"><div class="mlabel">Nómina mensual</div><div class="mvalue c-amber" id="emp-k-nomina">$0</div></div>
+      <div class="mcard"><div class="mlabel">Áreas</div><div class="mvalue" id="emp-k-areas" style="color:#94a3b8;">0</div></div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <input type="text" id="empleados-search" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarEmpleados(this.value)"
+        style="width:100%;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+    </div>
+    <div id="empleados-list"><div class="empty-state">Sin empleados registrados. Primero crea la tabla <code>empleados</code> en Supabase.</div></div>
+  </div>
+
+  <!-- Modal empleado -->
+  <div class="modal-overlay" id="empleado-modal" style="z-index:200;">
+    <div class="modal-box" style="max-width:500px;">
+      <div class="modal-hdr">
+        <div class="modal-title" id="empleado-modal-title">Nuevo empleado</div>
+        <button class="modal-close" onclick="document.getElementById('empleado-modal').style.display='none'">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="empleado-id-edit">
+        <div class="form-row">
+          <div class="form-group"><label>Nombre *</label><input type="text" id="emp-nombre" placeholder="Juan"></div>
+          <div class="form-group"><label>Apellido</label><input type="text" id="emp-apellido" placeholder="García"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Cargo</label><input type="text" id="emp-cargo" placeholder="Operador CNC"></div>
+          <div class="form-group"><label>Área</label><input type="text" id="emp-area" placeholder="Producción"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Salario mensual</label><input type="number" id="emp-salario" placeholder="0" min="0"></div>
+          <div class="form-group"><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Email</label><input type="email" id="emp-email" placeholder="juan@grupom2.mx"></div>
+          <div class="form-group"><label>Teléfono</label><input type="tel" id="emp-tel" placeholder="+52 442 000 0000"></div>
+        </div>
+        <div class="form-group">
+          <label>Estatus</label>
+          <select id="emp-estatus" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
+            <option value="Baja">Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="document.getElementById('empleado-modal').style.display='none'">Cancelar</button>
+        <button class="btn-primary" id="btn-save-empleado" onclick="guardarEmpleado()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+
+
   <!-- Tab Finanzas -->
   <div id="tab-finanzas">
     <div class="chart-card">
@@ -656,7 +742,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0">Movimientos del mes</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
+          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
             <option value="fecha_desc">📅 Fecha ↓ reciente</option>
             <option value="fecha_asc">📅 Fecha ↑ antiguo</option>
             <option value="monto_desc">💰 Monto ↓ mayor</option>
@@ -668,16 +754,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div id="mvmts-list"><div class="empty-state">Sin movimientos registrados este mes</div></div>
     </div>
 
-    <!-- Consulta en lenguaje natural -->
-    <div class="input-card" style="margin-bottom:2rem;">
-      <div class="sec-title">Consultar datos</div>
-      <div style="font-size:12px;color:#73726c;margin-bottom:10px;">Pregunta sobre tus finanzas en lenguaje natural. Ejemplos: <em>"¿cuánto vendí en enero?", "¿cuáles son mis gastos de este año?", "¿cuánto me deben?"</em></div>
-      <div style="display:flex;gap:10px;">
-        <input type="text" id="query-input" placeholder="Escribe tu pregunta..." style="flex:1;padding:9px 12px;border:.5px solid #d3d1c7;border-radius:8px;font-family:inherit;font-size:14px;background:#F5F4F0;color:#1a1a18;" onkeydown="if(event.key==='Enter')responderConsulta()">
-        <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
-      </div>
-      <div id="query-response" style="display:none;margin-top:14px;padding:14px;background:#F5F4F0;border-radius:8px;font-size:13px;line-height:1.6;color:#1a1a18;"></div>
-    </div>
+
   </div>
 
   <!-- Tab Proyectos -->
@@ -824,8 +901,8 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <div class="sec-title" style="margin-bottom:0;">Resumen SAT · <span id="sat-periodo">Marzo 2026</span></div>
         <div style="display:flex;gap:8px;">
-          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:.5px solid #d3d1c7;border-radius:6px;font-size:12px;font-family:inherit;background:#F5F4F0;"></select>
-          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:.5px solid #d3d1c7;border-radius:6px;font-size:12px;font-family:inherit;background:#F5F4F0;"></select>
+          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid #1a2035;border-radius:6px;font-size:12px;font-family:inherit;background:#12172a;color:#94a3b8;"></select>
+          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid #1a2035;border-radius:6px;font-size:12px;font-family:inherit;background:#12172a;color:#94a3b8;"></select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="sat-metrics">
@@ -853,7 +930,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
+          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
                         <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -870,7 +947,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
+          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
                         <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -887,7 +964,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:.5px solid #b4b2a9;border-radius:6px;background:#fff;font-family:inherit;color:#1a1a18;cursor:pointer;">
+          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
                         <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -1031,9 +1108,9 @@ let myChart = null;
 let pollingInterval = null;
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const CAT_COLORS = {venta:'#3B6D11',cobranza:'#185FA5',gasto:'#A32D2D',cuenta_por_cobrar:'#854F0B'};
-const CAT_LABELS = {venta:'Venta',cobranza:'Cobranza',gasto:'Gasto',cuenta_por_cobrar:'Cuenta por cobrar'};
-const CAT_BADGE  = {venta:'bv',cobranza:'bc',gasto:'bg',cuenta_por_cobrar:'bx'};
+const CAT_COLORS = {venta:'#34d399',cobranza:'#60a5fa',gasto:'#f87171',compra:'#f87171',cobranza_sat:'#60a5fa',cuenta_por_cobrar:'#fbbf24'};
+const CAT_LABELS = {venta:'Venta',cobranza:'Cobranza',gasto:'Gasto',compra:'Compra',cuenta_por_cobrar:'Cuenta por cobrar',manual:'Manual'};
+const CAT_BADGE  = {venta:'bv',cobranza:'bc',gasto:'bg',compra:'bg',cuenta_por_cobrar:'bx'};
 
 // ── Helpers ──────────────────────────────────────────────
 function fmt(n){var a=Math.abs(Math.round(n));return(n<0?'-':'')+'$'+a.toLocaleString('es-MX');}
@@ -3196,9 +3273,130 @@ async function loadCartera(){
   }catch(e){console.error('Cartera:',e);}
 }
 
+// ── Empleados ─────────────────────────────────────────────
+var empleados=[], allEmpleados=[];
+
+async function loadEmpleados(){
+  try{
+    var {data,error}=await sb.from('empleados').select('*').order('nombre',{ascending:true});
+    if(error){
+      document.getElementById('empleados-list').innerHTML='<div class="empty-state" style="color:#f87171;">Tabla <code>empleados</code> no encontrada. Créala en Supabase primero.</div>';
+      return;
+    }
+    empleados=data||[]; allEmpleados=empleados;
+    var activos=empleados.filter(function(e){return e.estatus==='Activo';}).length;
+    var nomina=empleados.filter(function(e){return e.estatus==='Activo';}).reduce(function(a,e){return a+Number(e.salario_mensual||0);},0);
+    var areas=new Set(empleados.map(function(e){return e.area;}).filter(Boolean)).size;
+    document.getElementById('emp-k-total').textContent=empleados.length;
+    document.getElementById('emp-k-activos').textContent=activos;
+    document.getElementById('emp-k-nomina').textContent=fmt(nomina);
+    document.getElementById('emp-k-areas').textContent=areas;
+    document.getElementById('empleados-count').textContent=empleados.length+' empleado'+(empleados.length!==1?'s':'');
+    renderEmpleados(empleados);
+  }catch(e){console.error('Empleados:',e);}
+}
+
+function filtrarEmpleados(q){
+  var ql=q.toLowerCase();
+  var f=!q?allEmpleados:allEmpleados.filter(function(e){
+    return (e.nombre||'').toLowerCase().includes(ql)||(e.cargo||'').toLowerCase().includes(ql)||(e.area||'').toLowerCase().includes(ql);
+  });
+  renderEmpleados(f);
+}
+
+function renderEmpleados(list){
+  var el=document.getElementById('empleados-list');
+  if(!list.length){el.innerHTML='<div class="empty-state">Sin empleados</div>';return;}
+  var statusColor={'Activo':'#34d399','Inactivo':'#fbbf24','Baja':'#f87171'};
+  el.innerHTML=list.map(function(e){
+    var nombre=(e.nombre||'')+(e.apellido?' '+e.apellido:'');
+    var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
+    var sc=statusColor[e.estatus]||'#475569';
+    return '<div class="cliente-card">'+
+      '<div class="cliente-avatar" style="background:#12172a;color:'+sc+';">'+esc(ini)+'</div>'+
+      '<div class="cliente-info">'+
+        '<div class="cliente-nombre">'+esc(nombre)+'</div>'+
+        '<div class="cliente-meta" style="display:flex;gap:10px;flex-wrap:wrap;">'+
+          (e.cargo?'<span>'+esc(e.cargo)+'</span>':'')+
+          (e.area?'<span style="color:#60a5fa;">'+esc(e.area)+'</span>':'')+
+          (e.salario_mensual?'<span>'+fmt(Number(e.salario_mensual))+'</span>':'')+
+          '<span style="color:'+sc+';">'+esc(e.estatus||'Activo')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;">'+
+        '<button class="btn-sm" onclick="editarEmpleado(\''+esc(e.id)+'\')">Editar</button>'+
+        '<button class="btn-sm" style="color:#f87171;border-color:#f87171;" onclick="eliminarEmpleado(\''+esc(e.id)+'\')">×</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function abrirNuevoEmpleado(){
+  ['emp-nombre','emp-apellido','emp-cargo','emp-area','emp-email','emp-tel'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('emp-salario').value='';
+  document.getElementById('emp-ingreso').value='';
+  document.getElementById('emp-estatus').value='Activo';
+  document.getElementById('empleado-id-edit').value='';
+  document.getElementById('empleado-modal-title').textContent='Nuevo empleado';
+  document.getElementById('empleado-modal').style.display='block';
+}
+
+function editarEmpleado(id){
+  var e=empleados.find(function(x){return String(x.id)===String(id);});
+  if(!e)return;
+  document.getElementById('empleado-id-edit').value=e.id;
+  document.getElementById('empleado-modal-title').textContent='Editar empleado';
+  document.getElementById('emp-nombre').value=e.nombre||'';
+  document.getElementById('emp-apellido').value=e.apellido||'';
+  document.getElementById('emp-cargo').value=e.cargo||'';
+  document.getElementById('emp-area').value=e.area||'';
+  document.getElementById('emp-salario').value=e.salario_mensual||'';
+  document.getElementById('emp-ingreso').value=e.fecha_ingreso||'';
+  document.getElementById('emp-email').value=e.email||'';
+  document.getElementById('emp-tel').value=e.telefono||'';
+  document.getElementById('emp-estatus').value=e.estatus||'Activo';
+  document.getElementById('empleado-modal').style.display='block';
+}
+
+async function guardarEmpleado(){
+  var nombre=document.getElementById('emp-nombre').value.trim();
+  if(!nombre){alert('El nombre es obligatorio.');return;}
+  var btn=document.getElementById('btn-save-empleado');
+  btn.disabled=true; btn.textContent='Guardando...';
+  var idEdit=document.getElementById('empleado-id-edit').value;
+  var rec={
+    nombre:nombre,
+    apellido:document.getElementById('emp-apellido').value.trim()||null,
+    cargo:document.getElementById('emp-cargo').value.trim()||null,
+    area:document.getElementById('emp-area').value.trim()||null,
+    salario_mensual:parseFloat(document.getElementById('emp-salario').value)||null,
+    fecha_ingreso:document.getElementById('emp-ingreso').value||null,
+    email:document.getElementById('emp-email').value.trim()||null,
+    telefono:document.getElementById('emp-tel').value.trim()||null,
+    estatus:document.getElementById('emp-estatus').value
+  };
+  if(idEdit)rec.id=idEdit;
+  try{
+    var {error}=await sb.from('empleados').upsert([rec]);
+    if(error)throw error;
+    document.getElementById('empleado-modal').style.display='none';
+    showStatus('✓ Empleado guardado');
+    loadEmpleados();
+  }catch(e){showError('Error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Guardar';}
+}
+
+async function eliminarEmpleado(id){
+  var e=empleados.find(function(x){return String(x.id)===String(id);});
+  if(!confirm('¿Eliminar '+(e?e.nombre:id)+'?'))return;
+  try{await sb.from('empleados').delete().eq('id',id);loadEmpleados();}
+  catch(err){showError('Error: '+err.message);}
+}
+
+
 // ── switchTab updated ────────────────────────────────────
 function switchTab(tab, btn){
-  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','sat'];
+  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat'];
   all.forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if(el)el.style.display='none';
@@ -3217,6 +3415,7 @@ function switchTab(tab, btn){
   if(tab==='clientes'){loadClientes();loadClientesKPIs();}
   if(tab==='proveedores'){loadProveedores();loadProveedoresKPIs();}
   if(tab==='contactos')loadContactos();
+  if(tab==='empleados')loadEmpleados();
   if(tab==='sat')initSATTab();
 }
 

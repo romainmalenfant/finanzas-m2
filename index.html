@@ -267,7 +267,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </button>
     <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Clientes">
       <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
-      <span class="s-tooltip">Clientes</span>
+      <span class="s-tooltip">Empresas</span>
     </button>
     <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
       <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
@@ -311,7 +311,6 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     <div class="topbar-right">
       <div class="sync-indicator" id="sync-indicator"><span class="dot-live"></span> En línea</div>
       <span class="user-badge" id="user-badge">–</span>
-      <button class="btn-sm" onclick="changeName()">Cambiar nombre</button>
       <button class="btn-sm" onclick="cerrarSesion()" style="color:#f87171;border-color:#f87171;">Salir</button>
     </div>
   </div>
@@ -374,9 +373,9 @@ textarea:focus{outline:none;border-color:#3B82F6;}
         <div class="form-group" id="campo-cliente">
           <label>Cliente *</label>
           <div style="position:relative;">
-            <input type="text" id="mvmt-cliente-search" placeholder="Buscar cliente..." autocomplete="off"
+            <input type="text" id="mvmt-cliente-search" placeholder="Buscar empresa..." autocomplete="off"
               oninput="buscarCliente(this.value)" style="width:100%;">
-            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:.5px solid #d3d1c7;border-radius:8px;z-index:10;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.08);"></div>
+            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-cliente-id">
           <div id="cliente-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;align-items:center;justify-content:space-between;">
@@ -384,7 +383,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
             <button onclick="limpiarCliente()" style="background:none;border:none;cursor:pointer;color:#888780;font-size:14px;">×</button>
           </div>
           <div style="margin-top:6px;">
-            <button class="btn-sm" onclick="abrirNuevoCliente(true)" style="font-size:11px;">+ Nuevo cliente</button>
+            <button class="btn-sm" onclick="abrirNuevoCliente(true)" style="font-size:11px;">+ Nueva empresa</button>
           </div>
         </div>
 
@@ -394,7 +393,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
           <div style="position:relative;">
             <input type="text" id="mvmt-prov-search" placeholder="Buscar proveedor..." autocomplete="off"
               oninput="buscarProveedor(this.value)" style="width:100%;">
-            <div id="prov-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:.5px solid #d3d1c7;border-radius:8px;z-index:10;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.08);"></div>
+            <div id="prov-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-prov-id">
           <div id="prov-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;align-items:center;justify-content:space-between;">
@@ -493,11 +492,11 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </div>
   </div>
 
-  <!-- Modal nuevo cliente (desde formulario de movimiento) -->
+  <!-- Modal nueva empresa (desde formulario de movimiento) -->
   <div class="modal-overlay" id="cliente-modal" style="z-index:200;">
     <div class="modal-box" style="max-width:440px;">
       <div class="modal-hdr">
-        <div class="modal-title" id="cliente-modal-title">Nuevo cliente</div>
+        <div class="modal-title" id="cliente-modal-title">Nueva empresa</div>
         <button class="modal-close" onclick="cerrarModalCliente()">×</button>
       </div>
       <div class="modal-body">
@@ -530,7 +529,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       </div>
       <div class="modal-footer">
         <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarModalCliente()">Cancelar</button>
-        <button class="btn-primary" id="btn-save-cliente" onclick="guardarCliente()">Guardar cliente</button>
+        <button class="btn-primary" id="btn-save-cliente" onclick="guardarCliente()">Guardar empresa</button>
       </div>
     </div>
   </div>
@@ -675,10 +674,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     <!-- Registrar movimiento — ABAJO -->
     <div class="input-card" style="margin-top:0.5rem;">
       <div class="sec-title">Registrar movimiento</div>
-      <div style="margin-bottom:10px;font-size:12px;color:#475569;" id="user-name-row">
-        Registrado por: <input type="text" id="user-name-input" placeholder="Tu nombre" oninput="saveName(this.value)"
-          style="padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;font-family:inherit;font-size:12px;background:#12172a;color:#e2e8f0;width:140px;margin-left:6px;">
-      </div>
+      <input type="hidden" id="user-name-input">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
         <button class="mvmt-type-btn" onclick="abrirFormMovimiento('venta')">
           <span style="font-size:22px;">📋</span>Venta
@@ -699,9 +695,14 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div style="font-size:13px;color:#475569;" id="contactos-count">0 contactos</div>
       <button class="btn-primary" onclick="abrirNuevoContacto()">+ Nuevo contacto</button>
     </div>
-    <div style="margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
       <input type="text" id="contactos-search" placeholder="Buscar por nombre, empresa o cargo..." oninput="filtrarContactos(this.value)"
-        style="width:100%;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+      <select id="contactos-activo-filter" onchange="filtrarContactos(document.getElementById('contactos-search').value)"
+        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        <option value="activo">Solo activos</option>
+        <option value="todos">Todos</option>
+      </select>
     </div>
     <div id="contactos-list"><div class="empty-state">Sin contactos registrados</div></div>
   </div>
@@ -720,7 +721,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
           <div class="form-group"><label>Apellido</label><input type="text" id="contacto-apellido" placeholder="García"></div>
         </div>
         <div class="form-group">
-          <label>Empresa (cliente)</label>
+          <label>Empresa</label>
           <select id="contacto-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
             <option value="">— Sin empresa —</option>
           </select>
@@ -733,6 +734,12 @@ textarea:focus{outline:none;border-color:#3B82F6;}
           <div class="form-group"><label>Teléfono</label><input type="tel" id="contacto-tel" placeholder="+52 442 000 0000"></div>
           <div class="form-group"><label>Notas</label><input type="text" id="contacto-notas" placeholder="Notas adicionales"></div>
         </div>
+      </div>
+      <div style="padding:0 1.25rem 1rem;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <input type="checkbox" id="contacto-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
+          Contacto activo
+        </label>
       </div>
       <div class="modal-footer">
         <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarModalContacto()">Cancelar</button>
@@ -753,9 +760,14 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="mcard"><div class="mlabel">Nómina mensual</div><div class="mvalue c-amber" id="emp-k-nomina">$0</div></div>
       <div class="mcard"><div class="mlabel">Áreas</div><div class="mvalue" id="emp-k-areas" style="color:#94a3b8;">0</div></div>
     </div>
-    <div style="margin-bottom:1rem;">
+    <div style="display:flex;gap:8px;margin-bottom:1rem;">
       <input type="text" id="empleados-search" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarEmpleados(this.value)"
-        style="width:100%;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+      <select id="empleados-activo-filter" onchange="filtrarEmpleados(document.getElementById('empleados-search').value)"
+        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        <option value="activo">Solo activos</option>
+        <option value="todos">Todos</option>
+      </select>
     </div>
     <div id="empleados-list"><div class="empty-state">Sin empleados registrados. Primero crea la tabla <code>empleados</code> en Supabase.</div></div>
   </div>
@@ -793,6 +805,12 @@ textarea:focus{outline:none;border-color:#3B82F6;}
             <option value="Baja">Baja</option>
           </select>
         </div>
+      </div>
+      <div style="padding:0 1.25rem 1rem;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <input type="checkbox" id="emp-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
+          Empleado activo
+        </label>
       </div>
       <div class="modal-footer">
         <button class="btn-sm" style="padding:8px 16px;" onclick="document.getElementById('empleado-modal').style.display='none'">Cancelar</button>
@@ -868,17 +886,22 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <div id="tab-clientes" style="display:none;">
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:1fr 1fr 2fr 2fr;gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Total clientes</div><div class="mvalue c-blue" id="cli-k-total">0</div></div>
-      <div class="mcard"><div class="mlabel">Activos (90d)</div><div class="mvalue c-green" id="cli-k-activos">0</div></div>
-      <div class="mcard"><div class="mlabel">Top facturadores YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
-      <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudores</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard"><div class="mlabel">Total empresas</div><div class="mvalue c-blue" id="cli-k-total">0</div></div>
+      <div class="mcard"><div class="mlabel">Activas (90d)</div><div class="mvalue c-green" id="cli-k-activos">0</div></div>
+      <div class="mcard"><div class="mlabel">Top facturadoras YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudoras</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
-      <input type="text" id="clientes-search" placeholder="Buscar por nombre o RFC..." oninput="filtrarClientes(this.value)"
+      <input type="text" id="clientes-search" placeholder="Buscar empresa por nombre o RFC..." oninput="filtrarClientes(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
-      <span style="font-size:12px;color:#475569;flex-shrink:0;" id="clientes-count">0 clientes</span>
-      <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nuevo cliente</button>
+      <select id="clientes-activo-filter" onchange="filtrarClientes(document.getElementById('clientes-search').value)"
+        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        <option value="activo">Solo activos</option>
+        <option value="todos">Todos</option>
+      </select>
+      <span style="font-size:12px;color:#475569;flex-shrink:0;" id="clientes-count">0 empresas</span>
+      <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>
     </div>
     <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
   </div>
@@ -895,6 +918,11 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
       <input type="text" id="proveedores-search" placeholder="Buscar por nombre o RFC..." oninput="filtrarProveedores(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+      <select id="proveedores-activo-filter" onchange="filtrarProveedores(document.getElementById('proveedores-search').value)"
+        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        <option value="activo">Solo activos</option>
+        <option value="todos">Todos</option>
+      </select>
       <span style="font-size:12px;color:#475569;flex-shrink:0;" id="prov-count">0 proveedores</span>
       <button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
     </div>
@@ -945,6 +973,12 @@ textarea:focus{outline:none;border-color:#3B82F6;}
             </select>
           </div>
         </div>
+      </div>
+      <div style="padding:0 1.25rem 1rem;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <input type="checkbox" id="prov-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
+          Proveedor activo
+        </label>
       </div>
       <div class="modal-footer">
         <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarModalProveedor()">Cancelar</button>
@@ -1211,9 +1245,13 @@ function initApiKeyBanner(){
   if(!banner)return;
   if(getApiKey()){banner.style.display='none';}
 }
-function getUserName(){return localStorage.getItem('m2_username')||'';}
-function saveName(v){localStorage.setItem('m2_username',v);document.getElementById('user-badge').textContent=v||'–';}
-function changeName(){var n=prompt('¿Cómo te llamas?',getUserName());if(n&&n.trim()){saveName(n.trim());document.getElementById('user-name-input').value=n.trim();}}
+function getUserName(){
+  // Use logged-in user email (before @) as name
+  var session=null;
+  try{var s=localStorage.getItem('sb-iycqlbvywwogcfftciil-auth-token');if(s){var p=JSON.parse(s);session=p&&p.user&&p.user.email;}}catch(e){}
+  return session?session.split('@')[0]:localStorage.getItem('m2_username')||'';
+}
+function saveName(v){localStorage.setItem('m2_username',v);}
 function showError(msg){var b=document.getElementById('error-banner');b.textContent=msg;b.style.display='block';setTimeout(function(){b.style.display='none';},5000);}
 function showStatus(msg,dur){var s=document.getElementById('status-msg');if(!s)return;s.textContent=msg;if(dur!==0)setTimeout(function(){if(s.textContent===msg)s.textContent='';},dur||3500);}
 function setSyncState(online){var el=document.getElementById('sync-indicator');el.innerHTML=online?'<span class="dot-live"></span> En línea':'<span class="dot-sync"></span> Sin conexión';}
@@ -1252,6 +1290,7 @@ async function insertMovement(mv){
   if(error)throw error;
 }
 
+function invalidateMovementCache(){cacheInvalidate('ytd_'+new Date().getFullYear());_ytdMvmts=null;_cxcRows=null;_cxpRows=null;}
 async function deleteRow(id){
   var {error}=await sb.from(TABLE).delete().eq('id',id);
   if(error)throw error;
@@ -2082,6 +2121,7 @@ function abrirNuevoProveedor(){
   document.getElementById('prov-ciudad').value='';
   document.getElementById('prov-tipo').value='general';
   document.getElementById('prov-pago').value='30';
+  document.getElementById('prov-activo').checked=(p.activo!==false);
   document.getElementById('prov-modal').style.display='block';
 }
 
@@ -2111,7 +2151,8 @@ async function guardarProveedor(){
     rfc:document.getElementById('prov-rfc').value.trim().toUpperCase()||null,
     ciudad:document.getElementById('prov-ciudad').value.trim()||null,
     tipo:document.getElementById('prov-tipo').value,
-    condiciones_pago:document.getElementById('prov-pago').value
+    condiciones_pago:document.getElementById('prov-pago').value,
+    activo:document.getElementById('prov-activo').checked
   };
   try{
     await upsertProveedor(p);
@@ -2119,7 +2160,8 @@ async function guardarProveedor(){
     proveedores.push(p);
     proveedores.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
     cerrarModalProveedor();
-    await loadProveedores();
+    cacheInvalidate('proveedores');
+    await loadProveedores(true);
     showStatus('✓ Proveedor guardado');
   }catch(e){showError('Error: '+e.message);}
   finally{btn.disabled=false; btn.textContent='Guardar';}
@@ -2216,11 +2258,24 @@ function toggleProj(id){
   if(body)body.style.display=body.style.display==='none'?'block':'none';
 }
 
+// ── Cache layer ───────────────────────────────────────────
+var _cache={};
+var CACHE_TTL=5*60*1000; // 5 minutos
+
+function cacheSet(key,data){_cache[key]={data:data,ts:Date.now()};}
+function cacheGet(key){var c=_cache[key];return(c&&Date.now()-c.ts<CACHE_TTL)?c.data:null;}
+function cacheInvalidate(key){delete _cache[key];}
+function cacheInvalidateAll(){_cache={};}
+
+// Shared CxC/CxP data — populated by loadCxC/loadCxP, reused by Claude
+var _cxcRows=null, _cxpRows=null, _ytdMvmts=null;
+
 // ── Finanzas KPIs ─────────────────────────────────────────
+// Derives from in-memory movements — no extra query needed
 async function loadFinanzasKPIs(){
   try{
-    var {data:mvmts}=await sb.from('movimientos_v2').select('categoria,tipo,monto,origen,conciliado').eq('year',curYear).eq('month',curMonth+1);
-    var rows=mvmts||[];
+    // Use already-loaded movements array (from loadMovements)
+    var rows=movements||[];
     var ventas=rows.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
     var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
     var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
@@ -2232,9 +2287,11 @@ async function loadFinanzasKPIs(){
     setV('fin-cobr',cobr,'c-blue');
     setV('fin-gasto',gastos,'c-red');
     setV('fin-flujo',flujo,flujo>=0?'c-util-pos':'c-util-neg');
-    // Por cobrar — facturas emitidas sin conciliar
-    var {data:cxcData}=await sb.from('movimientos_v2').select('monto').eq('origen','sat_emitida').eq('conciliado',false).eq('year',curYear).eq('month',curMonth+1);
-    var cxc=(cxcData||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    // CxC del mes — from cache or quick filter of cxcRows
+    var cxc=(_cxcRows||[]).filter(function(m){
+      var d=new Date(m.fecha);
+      return d.getFullYear()===curYear&&d.getMonth()===curMonth;
+    }).reduce(function(a,m){return a+Number(m.monto);},0);
     setV('fin-cxc',cxc,'c-amber');
     var ventasEl=document.getElementById('fin-ventas-sub');
     if(ventasEl)ventasEl.textContent=MONTHS[curMonth]+' '+curYear;
@@ -2387,10 +2444,18 @@ async function responderConsulta(){
     var MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
     // Todos los movimientos del año — base de todo
-    var {data:allMvmts}=await sb.from('movimientos_v2')
-      .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
-      .eq('year',año).order('fecha',{ascending:false});
-    var mvmts=allMvmts||[];
+    var mvmts;
+    var cachedYTD=cacheGet('ytd_'+año);
+    if(cachedYTD){
+      mvmts=cachedYTD;
+    }else{
+      var {data:allMvmts}=await sb.from('movimientos_v2')
+        .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
+        .eq('year',año).order('fecha',{ascending:false});
+      mvmts=allMvmts||[];
+      cacheSet('ytd_'+año,mvmts);
+    }
+    _ytdMvmts=mvmts;
 
     // YTD resumen
     var ventasYTD=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
@@ -2432,7 +2497,8 @@ async function responderConsulta(){
       .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
       .eq('origen','sat_emitida').eq('conciliado',false)
       .order('fecha',{ascending:true});
-    var cxcTotal=(cxcRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    _cxcRows=cxcRows||[];
+    var cxcTotal=_cxcRows.reduce(function(a,m){return a+Number(m.monto);},0);
     var hoy=new Date();
     var cxcDetalle=(cxcRows||[]).map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
@@ -2447,7 +2513,8 @@ async function responderConsulta(){
       .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
       .eq('origen','sat_recibida').eq('conciliado',false)
       .order('fecha',{ascending:true});
-    var cxpTotal=(cxpRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    _cxpRows=cxpRows||[];
+    var cxpTotal=_cxpRows.reduce(function(a,m){return a+Number(m.monto);},0);
     var cxpDetalle=(cxpRows||[]).map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return (m.contraparte||m.rfc_contraparte||'?')+
@@ -2543,8 +2610,8 @@ function renderClientes(){
   var el=document.getElementById('clientes-list');
   var ct=document.getElementById('clientes-count');
   if(!el)return;
-  ct.textContent=clientes.length+' cliente'+(clientes.length!==1?'s':'');
-  if(!clientes.length){el.innerHTML='<div class="empty-state">Sin clientes. Agrega el primero con el botón de arriba.</div>';return;}
+  ct.textContent=clientes.length+' empresa'+(clientes.length!==1?'s':'');
+  if(!clientes.length){el.innerHTML='<div class="empty-state">Sin empresas registradas.</div>';return;}
   var condLabels={'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
   el.innerHTML=clientes.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
@@ -2568,11 +2635,12 @@ function renderClientes(){
 function abrirNuevoCliente(fromForm){
   clienteModalFromForm=fromForm;
   document.getElementById('cliente-id-edit').value='';
-  document.getElementById('cliente-modal-title').textContent='Nuevo cliente';
+  document.getElementById('cliente-modal-title').textContent='Nueva empresa';
   document.getElementById('cliente-nombre').value='';
   document.getElementById('cliente-rfc').value='';
   document.getElementById('cliente-ciudad').value='';
   document.getElementById('cliente-pago').value='30';
+  document.getElementById('cliente-activo').checked=(c.activo!==false);
   document.getElementById('cliente-modal').style.display='block';
 }
 
@@ -2603,7 +2671,8 @@ async function guardarCliente(){
     id:id, nombre:nombre,
     rfc:document.getElementById('cliente-rfc').value.trim().toUpperCase()||null,
     ciudad:document.getElementById('cliente-ciudad').value.trim()||null,
-    condiciones_pago:document.getElementById('cliente-pago').value
+    condiciones_pago:document.getElementById('cliente-pago').value,
+    activo:document.getElementById('cliente-activo').checked
   };
   try{
     await upsertCliente(c);
@@ -2611,7 +2680,8 @@ async function guardarCliente(){
     clientes.push(c);
     clientes.sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
     cerrarModalCliente();
-    await loadClientes();
+    cacheInvalidate('clientes');
+    await loadClientes(true);
     if(clienteModalFromForm){ seleccionarCliente(c); }
     showStatus('✓ Cliente guardado');
   }catch(e){showError('Error al guardar cliente: '+e.message);}
@@ -2678,16 +2748,16 @@ function buscarCliente(q){
   }).slice(0,6);
   if(!matches.length){
     dd.style.display='block';
-    dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#888780;">Sin resultados — <button onclick="abrirNuevoCliente(true)" class="btn-sm" style="display:inline;">+ crear cliente</button></div>';
+    dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#475569;">Sin resultados — <button onclick="abrirNuevoCliente(true)" class="btn-sm" style="display:inline;">+ crear empresa</button></div>';
     return;
   }
   dd.style.display='block';
   dd.innerHTML=matches.map(function(c){
-    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:.5px solid #eeecea;" '+
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;" '+
       'onmousedown="seleccionarCliente('+JSON.stringify(c).replace(/"/g,'&quot;')+')" '+
-      'onmouseover="this.style.background=\'#F5F4F0\'" onmouseout="this.style.background=\'\'">'+
+      'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+
       '<span style="font-weight:500;">'+esc(c.nombre)+'</span>'+
-      (c.rfc?'<span style="color:#888780;font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
+      (c.rfc?'<span style="color:#475569;font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
     '</div>';
   }).join('');
 }
@@ -2739,11 +2809,11 @@ function buscarProveedor(q){
   }
   dd.style.display='block';
   dd.innerHTML=matches.map(function(p){
-    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:.5px solid #eeecea;" '+
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;" '+
       'onmousedown="seleccionarProveedor('+JSON.stringify(p).replace(/"/g,'&quot;')+')" '+
-      'onmouseover="this.style.background=\'#F5F4F0\'" onmouseout="this.style.background=\'\'">'+
+      'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+
       '<span style="font-weight:500;">'+esc(p.nombre)+'</span>'+
-      (p.rfc?'<span style="color:#888780;font-size:11px;margin-left:6px;">'+esc(p.rfc)+'</span>':'')+
+      (p.rfc?'<span style="color:#475569;font-size:11px;margin-left:6px;">'+esc(p.rfc)+'</span>':'')+
     '</div>';
   }).join('');
 }
@@ -3484,8 +3554,12 @@ async function loadEmpleados(){
 }
 
 function filtrarEmpleados(q){
-  var ql=q.toLowerCase();
-  var f=!q?allEmpleados:allEmpleados.filter(function(e){
+  var ql=(q||'').toLowerCase();
+  var filtroActivo=document.getElementById('empleados-activo-filter');
+  var soloActivos=!filtroActivo||filtroActivo.value==='activo';
+  var f=allEmpleados.filter(function(e){
+    if(soloActivos&&e.activo===false)return false;
+    if(!ql)return true;
     return (e.nombre||'').toLowerCase().includes(ql)||(e.cargo||'').toLowerCase().includes(ql)||(e.area||'').toLowerCase().includes(ql);
   });
   renderEmpleados(f);
@@ -3542,6 +3616,7 @@ function editarEmpleado(id){
   document.getElementById('emp-email').value=e.email||'';
   document.getElementById('emp-tel').value=e.telefono||'';
   document.getElementById('emp-estatus').value=e.estatus||'Activo';
+  document.getElementById('emp-activo').checked=(e.activo!==false);
   document.getElementById('empleado-modal').style.display='block';
 }
 
@@ -3560,7 +3635,8 @@ async function guardarEmpleado(){
     fecha_ingreso:document.getElementById('emp-ingreso').value||null,
     email:document.getElementById('emp-email').value.trim()||null,
     telefono:document.getElementById('emp-tel').value.trim()||null,
-    estatus:document.getElementById('emp-estatus').value
+    estatus:document.getElementById('emp-estatus').value,
+    activo:document.getElementById('emp-activo').checked
   };
   if(idEdit)rec.id=idEdit;
   try{
@@ -3873,8 +3949,12 @@ async function loadClientesKPIs(){
 
 var allClientes=[];
 function filtrarClientes(q){
-  var ql=q.toLowerCase();
-  var filtered=!q?allClientes:allClientes.filter(function(c){
+  var ql=(q||'').toLowerCase();
+  var filtroActivo=document.getElementById('clientes-activo-filter');
+  var soloActivos=!filtroActivo||filtroActivo.value==='activo';
+  var filtered=allClientes.filter(function(c){
+    if(soloActivos&&c.activo===false)return false;
+    if(!ql)return true;
     return (c.nombre||'').toLowerCase().includes(ql)||(c.rfc||'').toLowerCase().includes(ql);
   });
   renderClientesList(filtered);
@@ -3883,8 +3963,8 @@ function filtrarClientes(q){
 function renderClientesList(list){
   var el=document.getElementById('clientes-list');
   var ct=document.getElementById('clientes-count');
-  ct.textContent=list.length+' cliente'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin clientes</div>';return;}
+  ct.textContent=list.length+' empresa'+(list.length!==1?'s':'');
+  if(!list.length){el.innerHTML='<div class="empty-state">Sin empresas</div>';return;}
   var condLabels={'inmediato':'Pago inm.','15':'15d','30':'30d','45':'45d','60':'60d','90':'90d'};
   el.innerHTML=list.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
@@ -3906,12 +3986,21 @@ function renderClientesList(list){
 
 // Override loadClientes to also store allClientes
 var _origLoadClientes=null;
-async function loadClientes(){
+async function loadClientes(forceRefresh){
+  if(!forceRefresh){
+    var cached=cacheGet('clientes');
+    if(cached){
+      clientes=cached; allClientes=cached;
+      var kt=document.getElementById('cli-k-total'); if(kt)kt.textContent=clientes.length;
+      renderClientesList(clientes); return;
+    }
+  }
   try{
     var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
     if(error)throw error;
-    clientes=data||[];allClientes=clientes;
-    document.getElementById('cli-k-total').textContent=clientes.length;
+    clientes=data||[]; allClientes=clientes;
+    cacheSet('clientes',clientes);
+    var kt=document.getElementById('cli-k-total'); if(kt)kt.textContent=clientes.length;
     renderClientesList(clientes);
   }catch(e){console.error('Clientes:',e);}
 }
@@ -3951,8 +4040,12 @@ async function loadProveedoresKPIs(){
 
 var allProveedores=[];
 function filtrarProveedores(q){
-  var ql=q.toLowerCase();
-  var filtered=!q?allProveedores:allProveedores.filter(function(p){
+  var ql=(q||'').toLowerCase();
+  var filtroActivo=document.getElementById('proveedores-activo-filter');
+  var soloActivos=!filtroActivo||filtroActivo.value==='activo';
+  var filtered=allProveedores.filter(function(p){
+    if(soloActivos&&p.activo===false)return false;
+    if(!ql)return true;
     return (p.nombre||'').toLowerCase().includes(ql)||(p.rfc||'').toLowerCase().includes(ql);
   });
   renderProveedoresList(filtered);
@@ -3979,12 +4072,21 @@ function renderProveedoresList(list){
   }).join('');
 }
 
-async function loadProveedores(){
+async function loadProveedores(forceRefresh){
+  if(!forceRefresh){
+    var cached=cacheGet('proveedores');
+    if(cached){
+      proveedores=cached; allProveedores=cached;
+      var kt=document.getElementById('prov-k-total'); if(kt)kt.textContent=proveedores.length;
+      renderProveedoresList(proveedores); return;
+    }
+  }
   try{
     var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
     if(error)throw error;
-    proveedores=data||[];allProveedores=proveedores;
-    document.getElementById('prov-k-total').textContent=proveedores.length;
+    proveedores=data||[]; allProveedores=proveedores;
+    cacheSet('proveedores',proveedores);
+    var kt=document.getElementById('prov-k-total'); if(kt)kt.textContent=proveedores.length;
     renderProveedoresList(proveedores);
   }catch(e){console.error('Proveedores:',e);}
 }
@@ -4010,8 +4112,12 @@ async function loadContactos(){
 }
 
 function filtrarContactos(q){
-  var ql=q.toLowerCase();
-  var filtered=!q?allContactos:allContactos.filter(function(c){
+  var ql=(q||'').toLowerCase();
+  var filtroActivo=document.getElementById('contactos-activo-filter');
+  var soloActivos=!filtroActivo||filtroActivo.value==='activo';
+  var filtered=allContactos.filter(function(c){
+    if(soloActivos&&c.activo===false)return false;
+    if(!ql)return true;
     return (c.nombre||'').toLowerCase().includes(ql)||
            (c.apellido||'').toLowerCase().includes(ql)||
            (c.cargo||'').toLowerCase().includes(ql)||
@@ -4064,6 +4170,7 @@ function abrirNuevoContacto(){
     sel.innerHTML='<option value="">— Sin empresa —</option>';
     clientes.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   }
+  document.getElementById('contacto-activo').checked=(c.activo!==false);
   document.getElementById('contacto-modal').style.display='block';
 }
 
@@ -4101,7 +4208,8 @@ async function guardarContacto(){
     email:document.getElementById('contacto-email').value.trim()||null,
     telefono:document.getElementById('contacto-tel').value.trim()||null,
     notas:document.getElementById('contacto-notas').value.trim()||null,
-    cliente_id:document.getElementById('contacto-cliente-sel').value||null
+    cliente_id:document.getElementById('contacto-cliente-sel').value||null,
+    activo:document.getElementById('contacto-activo').checked
   };
   try{
     var {error}=await sb.from('contactos').upsert([c]);
@@ -4127,10 +4235,13 @@ async function loadProyectos(){
   var status=document.getElementById('proj-status-filter').value;
   try{
     var q=sb.from('proyectos').select('*').order('fecha_entrega',{ascending:true});
-    // No filter if empty — show all. If year selected, include null-year rows too for backward compat
     var {data,error}=await q;
     if(error)throw error;
-    var all=data||[];
+    // Apply year filter client-side (null-year projects show under current year)
+    var all=(data||[]).filter(function(p){
+      if(!año)return true;
+      return !p.year||String(p.year)===String(año);
+    });
     var {data:entregas}=await sb.from('entregas').select('*').in('proyecto_id',all.map(function(p){return p.id;}));
     entregasByProyecto={};
     (entregas||[]).forEach(function(e){if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];entregasByProyecto[e.proyecto_id].push(e);});

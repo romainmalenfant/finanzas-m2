@@ -211,6 +211,38 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 </style>
 </head>
 <body style="display:flex;flex-direction:row;">
+  <!-- ── Login screen ─────────────────────────────────── -->
+  <div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#08090f;display:flex;align-items:center;justify-content:center;z-index:9999;">
+    <div style="width:100%;max-width:360px;padding:0 1.5rem;">
+      <div style="text-align:center;margin-bottom:2rem;">
+        <div style="width:56px;height:56px;background:#3B82F6;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;overflow:hidden;padding:4px;">
+          <img src="data:image/png;base64,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" alt="M2" style="width:100%;height:100%;object-fit:contain;">
+        </div>
+        <div style="font-size:20px;font-weight:600;color:#e2e8f0;">Grupo M2</div>
+        <div style="font-size:13px;color:#475569;margin-top:4px;">Maquinado Industrial · Finanzas</div>
+      </div>
+
+      <div id="login-error" style="display:none;background:#2a0d0d;border:0.5px solid #f87171;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px;color:#f87171;"></div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div>
+          <label style="display:block;font-size:12px;color:#475569;margin-bottom:6px;">Correo electrónico</label>
+          <input type="email" id="login-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')hacerLogin()"
+            style="width:100%;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:14px;background:#12172a;color:#e2e8f0;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;color:#475569;margin-bottom:6px;">Contraseña</label>
+          <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLogin()"
+            style="width:100%;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:14px;background:#12172a;color:#e2e8f0;box-sizing:border-box;">
+        </div>
+        <button id="login-btn" onclick="hacerLogin()"
+          style="width:100%;padding:11px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;margin-top:4px;">
+          Entrar
+        </button>
+      </div>
+    </div>
+  </div>
+
 <div class="app">
 
   <div id="error-banner" class="error-banner"></div>
@@ -280,7 +312,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
       <div class="sync-indicator" id="sync-indicator"><span class="dot-live"></span> En línea</div>
       <span class="user-badge" id="user-badge">–</span>
       <button class="btn-sm" onclick="changeName()">Cambiar nombre</button>
-      <button class="btn-export" onclick="abrirReportes()">Reportes</button>
+      <button class="btn-sm" onclick="cerrarSesion()" style="color:#f87171;border-color:#f87171;">Salir</button>
     </div>
   </div>
 
@@ -4133,23 +4165,70 @@ async function loadProyectos(){
   }catch(e){console.error('Proyectos:',e);}
 }
 
-// ── Init ─────────────────────────────────────────────────
-(function init(){
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  var name=getUserName();
-  if(name){
-    document.getElementById('user-name-input').value=name;
-    document.getElementById('user-badge').textContent=name;
-  }
+// ── Auth ─────────────────────────────────────────────────
+async function hacerLogin(){
+  var email=document.getElementById('login-email').value.trim();
+  var pass=document.getElementById('login-password').value;
+  var btn=document.getElementById('login-btn');
+  var errEl=document.getElementById('login-error');
+  if(!email||!pass){errEl.textContent='Ingresa tu correo y contraseña.';errEl.style.display='block';return;}
+  btn.textContent='Entrando...';btn.disabled=true;errEl.style.display='none';
+  try{
+    var {data,error}=await sb.auth.signInWithPassword({email:email,password:pass});
+    if(error)throw error;
+    mostrarApp(data.user);
+  }catch(e){
+    errEl.textContent=e.message==='Invalid login credentials'?'Correo o contraseña incorrectos.':e.message;
+    errEl.style.display='block';
+  }finally{btn.textContent='Entrar';btn.disabled=false;}
+}
+
+function mostrarApp(user){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('user-badge').textContent=user.email.split('@')[0];
+  // Run init if not already done
+  if(!window._appInited){window._appInited=true;iniciarApp();}
+}
+
+async function iniciarApp(){
   switchTab('dashboard', document.getElementById('sb-dashboard'));
   initApiKeyBanner();
+  var name=getUserName();
+  if(name){
+    var ni=document.getElementById('user-name-input');
+    if(ni)ni.value=name;
+  }
   loadMovements();
   loadClientes();
   startPolling();
+}
+
+async function cerrarSesion(){
+  await sb.auth.signOut();
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-email').value='';
+  document.getElementById('login-password').value='';
+}
+
+async function checkSession(){
+  var {data:{session}}=await sb.auth.getSession();
+  if(session&&session.user){
+    mostrarApp(session.user);
+    return true;
+  }
+  return false;
+}
+
+// ── Init ─────────────────────────────────────────────────
+(async function init(){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // Check existing session — if valid, mostrarApp calls iniciarApp
+  var hasSession=await checkSession();
+  if(!hasSession)return; // wait for login
 })();
+
+// rest of app boot is in iniciarApp() called from mostrarApp()
 </script>
-  </div><!-- /content -->
-  </div><!-- /main-area -->
   </div><!-- /content -->
   </div><!-- /main-area -->
 </body>

@@ -4570,6 +4570,34 @@ async function iniciarApp(){
   loadMovements();
   loadClientes();
   startPolling();
+  // Load badge data immediately on startup
+  loadBadgeData();
+}
+
+async function loadBadgeData(){
+  try{
+    var hoy=new Date();
+    // CxC — facturas emitidas sin cobrar
+    var {data:cxc}=await sb.from('movimientos_v2')
+      .select('contraparte,monto,fecha,numero_factura,rfc_contraparte')
+      .eq('origen','sat_emitida').eq('conciliado',false);
+    _cxcRows=cxc||[];
+
+    // CxP — facturas recibidas sin pagar
+    var {data:cxp}=await sb.from('movimientos_v2')
+      .select('contraparte,monto,fecha,numero_factura,rfc_contraparte')
+      .eq('origen','sat_recibida').eq('conciliado',false);
+    _cxpRows=cxp||[];
+
+    // Proyectos atrasados
+    var {data:projs}=await sb.from('proyectos').select('*').eq('year',new Date().getFullYear());
+    var {data:ents}=await sb.from('entregas').select('*').in('proyecto_id',(projs||[]).map(function(p){return p.id;}));
+    entregasByProyecto={};
+    (ents||[]).forEach(function(e){if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];entregasByProyecto[e.proyecto_id].push(e);});
+    proyectos=(projs||[]);
+
+    updateBadges();
+  }catch(e){console.error('loadBadgeData:',e);}
 }
 
 async function cerrarSesion(){

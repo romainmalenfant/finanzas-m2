@@ -708,6 +708,13 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 
   <!-- Tab Finanzas -->
   <div id="tab-finanzas" style="display:none;">
+    <!-- KPIs del mes -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="fin-ventas">$0</div><div class="mytd">Año: <span id="fin-ytd-ventas">$0</span></div></div>
+      <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="fin-cobr">$0</div><div class="mytd">Año: <span id="fin-ytd-cobr">$0</span></div></div>
+      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="fin-gasto">$0</div><div class="mytd">Año: <span id="fin-ytd-gasto">$0</span></div></div>
+      <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="fin-util">$0</div><div class="mytd">Año: <span id="fin-ytd-util">$0</span></div></div>
+    </div>
     <div class="chart-card">
       <div class="sec-title">Resumen visual del mes</div>
       <div style="position:relative;height:200px;"><canvas id="myChart"></canvas></div>
@@ -763,11 +770,10 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <!-- Tab Clientes -->
   <div id="tab-clientes" style="display:none;">
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total clientes</div><div class="mvalue c-blue" id="cli-k-total">0</div></div>
-      <div class="mcard"><div class="mlabel">Activos (90d)</div><div class="mvalue c-green" id="cli-k-activos">0</div></div>
       <div class="mcard"><div class="mlabel">Mayor facturador YTD</div><div class="mvalue-sm" id="cli-k-top" style="font-size:13px;font-weight:600;color:#94a3b8;margin-top:4px;">—</div></div>
-      <div class="mcard"><div class="mlabel">Mayor deudor</div><div class="mvalue-sm" id="cli-k-deudor" style="font-size:13px;font-weight:600;color:#fbbf24;margin-top:4px;">—</div></div>
+      <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores deudores</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
@@ -782,11 +788,10 @@ textarea:focus{outline:none;border-color:#3B82F6;}
   <!-- Tab Proveedores -->
   <div id="tab-proveedores" style="display:none;">
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total proveedores</div><div class="mvalue c-blue" id="prov-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Cuentas por pagar</div><div class="mvalue c-red" id="prov-k-cxp">$0</div></div>
-      <div class="mcard"><div class="mlabel">Mayor proveedor YTD</div><div class="mvalue-sm" id="prov-k-top" style="font-size:13px;font-weight:600;color:#94a3b8;margin-top:4px;">—</div></div>
-      <div class="mcard"><div class="mlabel">Facturas pendientes</div><div class="mvalue c-amber" id="prov-k-pendientes">0</div></div>
+      <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores proveedores YTD</div><div id="prov-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
@@ -980,7 +985,10 @@ textarea:focus{outline:none;border-color:#3B82F6;}
         <div class="form-row">
           <div class="form-group">
             <label>Cliente *</label>
-            <input type="text" id="proj-cliente" placeholder="Nombre del cliente">
+            <select id="proj-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              <option value="">— Seleccionar cliente —</option>
+            </select>
+            <input type="hidden" id="proj-cliente">
           </div>
           <div class="form-group">
             <label>Nombre / No. de pedido *</label>
@@ -1399,6 +1407,7 @@ function render(){
   fel.className='mvalue '+(m.flujo>=0?'c-util-pos':'c-util-neg');
   renderChart(m);
   renderMovements();
+  loadFinanzasKPIs();
 }
 
 function renderChart(m){
@@ -2115,13 +2124,55 @@ function toggleProj(id){
   if(body)body.style.display=body.style.display==='none'?'block':'none';
 }
 
+// ── Finanzas KPIs ─────────────────────────────────────────
+async function loadFinanzasKPIs(){
+  try{
+    var {data:mvmts}=await sb.from('movimientos_v2').select('categoria,tipo,monto,origen,conciliado').eq('year',curYear).eq('month',curMonth+1);
+    var rows=mvmts||[];
+    var ventas=rows.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var util=ventas-gastos;
+    var flujo=cobr-gastos;
+    var setV=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);el.className='mvalue-hero '+(cls||'');};
+    setV('fin-ventas',ventas,'c-green');
+    setV('fin-util',util,util>=0?'c-util-pos':'c-util-neg');
+    setV('fin-cobr',cobr,'c-blue');
+    setV('fin-gasto',gastos,'c-red');
+    setV('fin-flujo',flujo,flujo>=0?'c-util-pos':'c-util-neg');
+    // Por cobrar — facturas emitidas sin conciliar
+    var {data:cxcData}=await sb.from('movimientos_v2').select('monto').eq('origen','sat_emitida').eq('conciliado',false).eq('year',curYear).eq('month',curMonth+1);
+    var cxc=(cxcData||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    setV('fin-cxc',cxc,'c-amber');
+    var ventasEl=document.getElementById('fin-ventas-sub');
+    if(ventasEl)ventasEl.textContent=MONTHS[curMonth]+' '+curYear;
+  }catch(e){console.error('Finanzas KPIs:',e);}
+}
+
+// ── abrirNuevoProyecto — populate cliente dropdown ────────
+function poblarClientesEnProyecto(valorActual){
+  var sel=document.getElementById('proj-cliente-sel');
+  if(!sel)return;
+  sel.innerHTML='<option value="">— Seleccionar cliente —</option>';
+  clientes.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c.nombre; o.textContent=c.nombre;
+    if(c.nombre===valorActual)o.selected=true;
+    sel.appendChild(o);
+  });
+  sel.onchange=function(){document.getElementById('proj-cliente').value=this.value;};
+  document.getElementById('proj-cliente').value=valorActual||'';
+}
+
 function abrirNuevoProyecto(){
+  if(!clientes.length)loadClientes();
   document.getElementById('proj-id').value='';
   document.getElementById('proj-modal-title').textContent='Nuevo proyecto';
-  ['cliente','pedido','tipo-pieza','notas'].forEach(function(f){document.getElementById('proj-'+f).value='';});
+  ['pedido','tipo-pieza','notas'].forEach(function(f){document.getElementById('proj-'+f).value='';});
   ['total-piezas','monto'].forEach(function(f){document.getElementById('proj-'+f).value='';});
   document.getElementById('proj-fecha-pedido').value=new Date().toISOString().split('T')[0];
   document.getElementById('proj-fecha-entrega').value='';
+  poblarClientesEnProyecto('');
   document.getElementById('proj-modal').style.display='block';
 }
 
@@ -2130,7 +2181,7 @@ function editarProyecto(id){
   if(!p)return;
   document.getElementById('proj-id').value=p.id;
   document.getElementById('proj-modal-title').textContent='Editar proyecto';
-  document.getElementById('proj-cliente').value=p.nombre_cliente||'';
+  poblarClientesEnProyecto(p.nombre_cliente||'');
   document.getElementById('proj-pedido').value=p.nombre_pedido||'';
   document.getElementById('proj-tipo-pieza').value=p.tipo_pieza||'';
   document.getElementById('proj-total-piezas').value=p.total_piezas||0;
@@ -2790,7 +2841,11 @@ function initSATTab(){
 async function loadSATData(){
   var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
   var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
+  // Sync global month so finanzas KPIs stay in sync
+  curMonth=mes-1; curYear=año;
+  document.getElementById('month-label').textContent=MONTHS[curMonth]+' '+curYear;
   document.getElementById('sat-periodo').textContent=MONTHS[mes-1]+' '+año;
+  loadFinanzasKPIs();
   try{
     var {data,error}=await sb.from('movimientos_v2').select('*')
       .eq('year',año).eq('month',mes)
@@ -3531,27 +3586,39 @@ async function loadClientesKPIs(){
     var hace90=new Date(); hace90.setDate(hace90.getDate()-90);
     var f90=hace90.toISOString().split('T')[0];
 
-    // Activos en últimos 90 días
-    var {data:activos}=await sb.from('movimientos_v2').select('cliente_id,rfc_contraparte').eq('tipo','ingreso').gte('fecha',f90).not('cliente_id','is',null);
-    var rfcsActivos=new Set((activos||[]).map(function(m){return m.cliente_id;}).filter(Boolean));
-    document.getElementById('cli-k-activos').textContent=rfcsActivos.size;
+    // Activos en últimos 90 días — usar rfc_contraparte (SAT no siempre tiene cliente_id)
+    var {data:activos}=await sb.from('movimientos_v2').select('rfc_contraparte,cliente_id').eq('tipo','ingreso').gte('fecha',f90);
+    var activosSet=new Set();
+    (activos||[]).forEach(function(m){
+      if(m.cliente_id)activosSet.add('id:'+m.cliente_id);
+      else if(m.rfc_contraparte)activosSet.add('rfc:'+m.rfc_contraparte);
+    });
+    document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 
     // Top por ventas YTD
-    var {data:ytdVentas}=await sb.from('movimientos_v2').select('contraparte,monto,cliente_id').eq('categoria','venta').eq('year',año);
+    var {data:ytdVentas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('categoria','venta').eq('year',año);
     var byCliente={};
     (ytdVentas||[]).forEach(function(m){
-      var k=m.contraparte||'Sin nombre';
+      var k=(m.contraparte||'Sin nombre').trim();
       byCliente[k]=(byCliente[k]||0)+Number(m.monto);
     });
-    var topArr=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];});
-    if(topArr.length)document.getElementById('cli-k-top').textContent=topArr[0][0].slice(0,20)+' '+fmt(topArr[0][1]);
+    var topArr=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,1);
+    if(topArr.length)document.getElementById('cli-k-top').textContent=topArr[0][0].slice(0,22)+' · '+fmt(topArr[0][1]);
 
-    // Mayor deudor
+    // Top 5 deudores
     var {data:deudas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_emitida').eq('conciliado',false);
     var byDeudor={};
-    (deudas||[]).forEach(function(m){var k=m.contraparte||'Sin nombre';byDeudor[k]=(byDeudor[k]||0)+Number(m.monto);});
-    var deudorArr=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];});
-    if(deudorArr.length)document.getElementById('cli-k-deudor').textContent=deudorArr[0][0].slice(0,20)+' '+fmt(deudorArr[0][1]);
+    (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+Number(m.monto);});
+    var top5=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var deudorEl=document.getElementById('cli-k-deudor');
+    if(top5.length){
+      deudorEl.innerHTML=top5.map(function(d,i){
+        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
+          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:#fbbf24;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+        '</div>';
+      }).join('');
+    }else{deudorEl.textContent='Sin facturas pendientes';}
   }catch(e){console.error('Clientes KPIs:',e);}
 }
 
@@ -3616,13 +3683,21 @@ async function loadProveedoresKPIs(){
     var {data:cxp}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_recibida').eq('conciliado',false);
     var totalCXP=(cxp||[]).reduce(function(a,m){return a+Number(m.monto);},0);
     document.getElementById('prov-k-cxp').textContent=fmt(totalCXP);
-    document.getElementById('prov-k-pendientes').textContent=(cxp||[]).length;
+    document.getElementById('prov-k-pendientes') && (document.getElementById('prov-k-pendientes').textContent=(cxp||[]).length);
 
-    var {data:ytdCompras}=await sb.from('movimientos_v2').select('contraparte,monto').eq('categoria','compra').eq('year',año);
+    var {data:ytdCompras}=await sb.from('movimientos_v2').select('contraparte,monto').eq('tipo','egreso').eq('year',año);
     var byProv={};
-    (ytdCompras||[]).forEach(function(m){var k=m.contraparte||'Sin nombre';byProv[k]=(byProv[k]||0)+Number(m.monto);});
-    var topProv=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];});
-    if(topProv.length)document.getElementById('prov-k-top').textContent=topProv[0][0].slice(0,20)+' '+fmt(topProv[0][1]);
+    (ytdCompras||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+Number(m.monto);});
+    var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+    var topEl=document.getElementById('prov-k-top');
+    if(top5.length){
+      topEl.innerHTML=top5.map(function(d,i){
+        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
+          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:#94a3b8;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+        '</div>';
+      }).join('');
+    }else{topEl.textContent='Sin compras registradas';}
   }catch(e){console.error('Proveedores KPIs:',e);}
 }
 

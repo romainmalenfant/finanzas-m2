@@ -2361,11 +2361,76 @@ async function responderConsulta(){
   if(t.match(/\brenta\b/))etiqBuscada='Renta';
   if(t.match(/\bmutuo\b/))etiqBuscada='Mutuo';
 
+  // Detectar cliente o proveedor mencionado en la pregunta
+  var clienteBuscado=null, proveedorBuscado=null;
+  var tSinAcentos=t;
+  // Buscar en lista de clientes cargados
+  clientes.forEach(function(c){
+    var cn=c.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if(cn.length>3&&tSinAcentos.includes(cn))clienteBuscado=c;
+  });
+  // Buscar en lista de proveedores cargados
+  if(!clienteBuscado){
+    proveedores.forEach(function(p){
+      var pn=p.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      if(pn.length>3&&tSinAcentos.includes(pn))proveedorBuscado=p;
+    });
+  }
+
   try{
     var respText='';
 
+    // ── Consulta con cliente/proveedor específico ──────────
+    if(clienteBuscado||proveedorBuscado){
+      var entidad=clienteBuscado||proveedorBuscado;
+      var esCliente=!!clienteBuscado;
+      // Fetch data
+      var qDB=sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte,rfc_contraparte');
+      if(esCliente){
+        // Match por cliente_id o por nombre/RFC
+        var {data:d1}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
+          .eq('cliente_id',entidad.id);
+        var {data:d2}=entidad.rfc?await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
+          .ilike('rfc_contraparte',entidad.rfc):{data:[]};
+        var {data:d3}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
+          .ilike('contraparte','%'+entidad.nombre+'%');
+        var seen={}; var dataEnt=[];
+        [d1||[],d2||[],d3||[]].forEach(function(arr){arr.forEach(function(r){if(!seen[r.fecha+r.monto]){seen[r.fecha+r.monto]=true;dataEnt.push(r);}});});
+      } else {
+        var {data:d3}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
+          .ilike('contraparte','%'+entidad.nombre+'%');
+        var {data:d4}=entidad.rfc?await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
+          .ilike('rfc_contraparte',entidad.rfc):{data:[]};
+        var seen={}; var dataEnt=[];
+        [d3||[],d4||[]].forEach(function(arr){arr.forEach(function(r){if(!seen[r.fecha+r.monto]){seen[r.fecha+r.monto]=true;dataEnt.push(r);}});});
+      }
+      // Filter by month/year if specified
+      if(mesPregunta!==null){
+        dataEnt=dataEnt.filter(function(r){
+          var d=new Date(r.fecha); return d.getFullYear()===añoPregunta&&d.getMonth()===mesPregunta.idx;
+        });
+      }
+      var totalVentas=dataEnt.filter(function(r){return r.categoria==='venta';}).reduce(function(a,r){return a+Number(r.monto);},0);
+      var totalCobr=dataEnt.filter(function(r){return r.categoria==='cobranza';}).reduce(function(a,r){return a+Number(r.monto);},0);
+      var totalGastos=dataEnt.filter(function(r){return r.tipo==='egreso';}).reduce(function(a,r){return a+Number(r.monto);},0);
+      var periodo=mesPregunta?(mesPregunta.nombre+' '+añoPregunta):'todos los períodos';
+      var nombreEnt='<b>'+esc(entidad.nombre)+'</b>';
+      if(!dataEnt.length){
+        respText='No encontré movimientos de '+nombreEnt+(mesPregunta?' en '+periodo:'')+'.';
+      } else if(esVenta||(!esGasto&&!esCobranza)){
+        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': '+
+          '<b style="color:#34d399">'+fmt(totalVentas)+'</b> facturado en '+
+          dataEnt.filter(function(r){return r.categoria==='venta';}).length+' facturas.'+
+          (totalCobr?'<br>Cobranza cobrada: <b style="color:#60a5fa">'+fmt(totalCobr)+'</b>':'');
+      } else if(esCobranza){
+        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': cobranza cobrada <b style="color:#60a5fa">'+fmt(totalCobr)+'</b>.';
+      } else {
+        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': egresos <b style="color:#f87171">'+fmt(totalGastos)+'</b>.';
+      }
+    }
+
     // Consulta por etiqueta específica (nómina, impuestos, renta, etc.)
-    if(etiqBuscada){
+    else if(etiqBuscada){
       // Buscar en mes actual o en año si no especifica mes
       var dataEtiq= mesPregunta ? await fetchMes(añoPregunta,mesPregunta.idx+1) : movements;
       if(!mesPregunta && t.match(/este año|año|acumulado/)){

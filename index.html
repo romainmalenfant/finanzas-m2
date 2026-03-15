@@ -1316,7 +1316,8 @@ const CAT_BADGE  = {venta:'bv',cobranza:'bc',gasto:'bg',compra:'bg',cuenta_por_c
 
 // ── Helpers ──────────────────────────────────────────────
 function fmt(n){var a=Math.abs(Math.round(n));return(n<0?'-':'')+'$'+a.toLocaleString('es-MX');}
-function fmtDate(iso){return new Date(iso+'T12:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'});}
+function fmtDate(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');var hoy=new Date();var base=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return d.getFullYear()===hoy.getFullYear()?base:base+' '+d.getFullYear();}
+function fmtDateFull(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]+' '+d.getFullYear();}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getApiKey(){return localStorage.getItem('m2_anthropic_key')||'';}
 function saveApiKey(){
@@ -2210,7 +2211,7 @@ function renderProveedores(){
   el.innerHTML=proveedores.map(function(p){
     var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
     var tipoBadge=p.tipo&&p.tipo!=='general'?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(tipoLabels[p.tipo]||p.tipo)+'</span>':'';
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')">'+
       '<div class="cliente-avatar" style="background:#e8e6e0;">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+
@@ -4048,6 +4049,9 @@ document.addEventListener('keydown',function(e){
     if(overlay.style.display==='flex')cerrarKBar();
     else abrirKBar();
   }
+  if(e.key==='Escape'){
+    var dm=document.getElementById('detail-modal');if(dm&&dm.style.display==='block'){dm.style.display='none';return;}
+  }
   if(e.key==='Escape'&&document.getElementById('kbar-overlay').style.display==='flex'){
     cerrarKBar();
   }
@@ -4582,7 +4586,8 @@ function renderClientesList(list){
   var condLabels={'inmediato':'Pago inm.','15':'15d','30':'30d','45':'45d','60':'60d','90':'90d'};
   el.innerHTML=list.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')">'+
+
       '<div class="cliente-avatar">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(c.nombre)+'</div>'+

@@ -202,6 +202,18 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 .detail-list-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid #1a2035;font-size:12px;}
 .detail-list-item:last-child{border-bottom:none;}
 .detail-avatar{width:44px;height:44px;border-radius:50%;background:#1a2035;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#60a5fa;flex-shrink:0;}
+
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{min-width:260px;max-width:380px;background:#0f1420;border:0.5px solid #1a2035;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);pointer-events:all;transform:translateX(120%);transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.toast.show{transform:translateX(0);}
+.toast.hide{transform:translateX(120%);transition:transform .2s ease-in;}
+.toast-content{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.toast-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:700;}
+.toast-msg{font-size:13px;font-weight:500;color:#e2e8f0;flex:1;}
+.toast-close{background:none;border:none;color:#475569;cursor:pointer;font-size:16px;line-height:1;padding:0;flex-shrink:0;}
+.toast-close:hover{color:#94a3b8;}
+.toast-bar{height:3px;width:100%;transform-origin:left;border-radius:0 0 10px 10px;}
+@keyframes toast-progress{from{transform:scaleX(1);}to{transform:scaleX(0);}}
 .kbar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;}
 .kbar-box{background:#0f1420;border:0.5px solid #1a2035;border-radius:14px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);}
 .kbar-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:0.5px solid #1a2035;}
@@ -268,6 +280,7 @@ textarea:focus{outline:none;border-color:#3B82F6;}
     </div>
   </div>
 
+  <div id="toast-container"></div>
   <!-- ── Login screen ─────────────────────────────────── -->
   <div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#08090f;display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="width:100%;max-width:360px;padding:0 1.5rem;">
@@ -1340,8 +1353,40 @@ function getUserName(){
   return session?session.split('@')[0]:localStorage.getItem('m2_username')||'';
 }
 function saveName(v){localStorage.setItem('m2_username',v);}
-function showError(msg){var b=document.getElementById('error-banner');b.textContent=msg;b.style.display='block';setTimeout(function(){b.style.display='none';},5000);}
-function showStatus(msg,dur){var s=document.getElementById('status-msg');if(!s)return;s.textContent=msg;if(dur!==0)setTimeout(function(){if(s.textContent===msg)s.textContent='';},dur||3500);}
+function showToast(msg, type, dur){
+  var colors={success:'#34d399',error:'#f87171',warn:'#fbbf24',info:'#60a5fa'};
+  var icons={success:'✓',error:'✗',warn:'⚠',info:'i'};
+  var t=type||'success'; var ms=dur||3500;
+  var color=colors[t]||colors.success;
+  var icon=icons[t]||icons.success;
+  var id='toast-'+Date.now();
+  var el=document.createElement('div');
+  el.className='toast'; el.id=id;
+  el.innerHTML=
+    '<div class="toast-content">'+
+      '<div class="toast-icon" style="background:'+color+'22;color:'+color+';">'+icon+'</div>'+
+      '<div class="toast-msg">'+msg+'</div>'+
+      '<button class="toast-close" onclick="removeToast(\''+id+'\')" >×</button>'+
+    '</div>'+
+    '<div class="toast-bar" style="background:'+color+';animation:toast-progress '+ms+'ms linear forwards;"></div>';
+  var container=document.getElementById('toast-container');
+  container.appendChild(el);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){el.classList.add('show');});});
+  setTimeout(function(){removeToast(id);},ms);
+}
+function removeToast(id){
+  var el=document.getElementById(id);
+  if(!el)return;
+  el.classList.remove('show'); el.classList.add('hide');
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},250);
+}
+function showError(msg){showToast(msg,'error',5000);}
+function showStatus(msg,dur){
+  if(!msg||msg==='Procesando...')return; // skip processing placeholder
+  var type=msg.startsWith('✓')||msg.startsWith('Guardado')||msg.startsWith('guard')?'success':
+           msg.startsWith('Error')||msg.startsWith('error')?'error':'info';
+  showToast(msg.replace(/^[✓✗] */,''),type,dur||3500);
+}
 function setSyncState(online){var el=document.getElementById('sync-indicator');el.innerHTML=online?'<span class="dot-live"></span> En línea':'<span class="dot-sync"></span> Sin conexión';}
 
 // ── Supabase SDK ─────────────────────────────────────────
@@ -4107,7 +4152,7 @@ async function verDetalleEmpresa(id){
     var {data:conts}=await sb.from('contactos').select('*').eq('cliente_id',id).order('nombre');
 
     var ventas=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cxcTotal=cxcFacturas.reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxcTotal=cxcFacturas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var condLabels={'inmediato':'Pago inmediato','15':'15 días','30':'30 días','45':'45 días','60':'60 días','90':'90 días'};
 
     var body=
@@ -4132,7 +4177,7 @@ async function verDetalleEmpresa(id){
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
           return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
             '<div style="font-size:10px;color:#475569;">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
-            '<span style="font-weight:600;color:#fbbf24;">'+fmt(f.monto)+'</span></div>';
+            '<span style="font-weight:600;color:#fbbf24;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')  +
       ((projs||[]).length?'<div class="detail-section"><div class="detail-section-title">Proyectos '+año+'</div>'+
         projs.map(function(p){
@@ -4196,7 +4241,7 @@ async function verDetalleProveedor(id){
     [(cx1||[])].concat(cx2data).forEach(function(m){var k=m.fecha+m.monto;if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
 
     var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cxpTotal=cxp.reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxpTotal=cxp.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     var body=
       '<div class="detail-section"><div class="detail-kpi-grid">'+

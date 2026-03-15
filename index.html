@@ -544,6 +544,11 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 
     <!-- Consulta NL — SIEMPRE ARRIBA -->
     <div class="input-card" style="margin-bottom:1.5rem;">
+      <div id="apikey-banner" style="margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <input type="password" id="apikey-input" placeholder="API key de Anthropic (sk-ant-...)"
+          style="flex:1;padding:7px 10px;border:0.5px solid #1a2035;border-radius:7px;font-family:inherit;font-size:12px;background:#12172a;color:#e2e8f0;">
+        <button class="btn-primary" onclick="saveApiKey()" style="font-size:12px;padding:6px 14px;">Guardar key</button>
+      </div>
       <div style="display:flex;gap:8px;">
         <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
         <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
@@ -1161,7 +1166,19 @@ function fmt(n){var a=Math.abs(Math.round(n));return(n<0?'-':'')+'$'+a.toLocaleS
 function fmtDate(iso){return new Date(iso+'T12:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'});}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function getApiKey(){return localStorage.getItem('m2_anthropic_key')||'';}
-function saveApiKey(){var k=document.getElementById('apikey-input').value.trim();if(k){localStorage.setItem('m2_anthropic_key',k);document.getElementById('apikey-banner').style.display='none';showStatus('✓ API key guardada');}}
+function saveApiKey(){
+  var k=document.getElementById('apikey-input').value.trim();
+  if(k){
+    localStorage.setItem('m2_anthropic_key',k);
+    document.getElementById('apikey-banner').style.display='none';
+    showStatus('✓ API key guardada');
+  }
+}
+function initApiKeyBanner(){
+  var banner=document.getElementById('apikey-banner');
+  if(!banner)return;
+  if(getApiKey()){banner.style.display='none';}
+}
 function getUserName(){return localStorage.getItem('m2_username')||'';}
 function saveName(v){localStorage.setItem('m2_username',v);document.getElementById('user-badge').textContent=v||'–';}
 function changeName(){var n=prompt('¿Cómo te llamas?',getUserName());if(n&&n.trim()){saveName(n.trim());document.getElementById('user-name-input').value=n.trim();}}
@@ -2323,228 +2340,134 @@ async function responderConsulta(){
   var q=inp.value.trim();
   if(!q)return;
   var resp=document.getElementById('query-result');
-  resp.style.display='block';
-  resp.innerHTML='<span style="color:#888780">Buscando...</span>';
+  resp.innerHTML='<span style="color:#60a5fa;font-size:12px;">Consultando...</span>';
 
-  var t=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-
-  // Detectar mes mencionado en la pregunta
-  var mesNombres=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  var mesPregunta=null;
-  mesNombres.forEach(function(m,i){if(t.includes(m))mesPregunta={idx:i,nombre:MONTHS[i]};});
-
-  // Detectar año mencionado
-  var añoMatch=t.match(/20[2-3][0-9]/);
-  var añoPregunta=añoMatch?parseInt(añoMatch[0]):curYear;
-
-  // Determinar qué tipo de consulta es
-  var esVenta=t.match(/vend|factur|ventas/);
-  var esCobranza=t.match(/cobr|deposit|pagaron|ingreso/);
-  var esGasto=t.match(/gast|egreso|pag[ue]|nómin|nomina|compra/);
-  var esCxC=t.match(/deben|por cobrar|cuenta.*cobrar|pendiente/);
-  var esUtilidad=t.match(/utilidad|gananci|margin|resultado/);
-  var esFlujo=t.match(/flujo|caja|efectivo|liquidez/);
-  var esResumen=t.match(/resumen|total|todo|como vamo|cuanto|cuánto/);
-  var esMejor=t.match(/mejor|mayor|mas alto|más alto|maximo|máximo/);
-  var esPeor=t.match(/peor|menor|mas bajo|más bajo|minimo|mínimo/);
-  var esComparacion=t.match(/compar|versus|vs\.?|contra/);
-
-  // Detectar si pregunta por etiqueta específica
-  var etiqNames=['Nómina','Utilidades','Renta','Mutuo','Material','Herramienta','Mantenimiento','Transporte','Impuestos'];
-  var etiqBuscada=null;
-  etiqNames.forEach(function(e){
-    if(t.includes(e.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')))etiqBuscada=e;
-  });
-  // Alias comunes
-  if(t.match(/\biva\b|\bisr\b|impuesto/))etiqBuscada='Impuestos';
-  if(t.match(/nomin|sueldo/))etiqBuscada='Nómina';
-  if(t.match(/\brenta\b/))etiqBuscada='Renta';
-  if(t.match(/\bmutuo\b/))etiqBuscada='Mutuo';
-
-  // Detectar cliente o proveedor mencionado en la pregunta
-  var clienteBuscado=null, proveedorBuscado=null;
-  var tSinAcentos=t;
-  // Buscar en lista de clientes cargados
-  clientes.forEach(function(c){
-    var cn=c.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    if(cn.length>3&&tSinAcentos.includes(cn))clienteBuscado=c;
-  });
-  // Buscar en lista de proveedores cargados
-  if(!clienteBuscado){
-    proveedores.forEach(function(p){
-      var pn=p.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if(pn.length>3&&tSinAcentos.includes(pn))proveedorBuscado=p;
-    });
+  var apiKey=getApiKey();
+  if(!apiKey){
+    resp.innerHTML='<span style="color:#f87171;">Necesitas configurar tu API key de Anthropic. '+
+      'Guárdala en la pantalla de configuración (ícono ⚙ o ajustes).</span>';
+    return;
   }
 
   try{
-    var respText='';
+    // Recopilar contexto de la BD para pasarle a Claude
+    var año=new Date().getFullYear();
+    var mes=new Date().getMonth()+1;
+    var MONTHS_ES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-    // ── Consulta con cliente/proveedor específico ──────────
-    if(clienteBuscado||proveedorBuscado){
-      var entidad=clienteBuscado||proveedorBuscado;
-      var esCliente=!!clienteBuscado;
-      // Fetch data
-      var qDB=sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte,rfc_contraparte');
-      if(esCliente){
-        // Match por cliente_id o por nombre/RFC
-        var {data:d1}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
-          .eq('cliente_id',entidad.id);
-        var {data:d2}=entidad.rfc?await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
-          .ilike('rfc_contraparte',entidad.rfc):{data:[]};
-        var {data:d3}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
-          .ilike('contraparte','%'+entidad.nombre+'%');
-        var seen={}; var dataEnt=[];
-        [d1||[],d2||[],d3||[]].forEach(function(arr){arr.forEach(function(r){if(!seen[r.fecha+r.monto]){seen[r.fecha+r.monto]=true;dataEnt.push(r);}});});
-      } else {
-        var {data:d3}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
-          .ilike('contraparte','%'+entidad.nombre+'%');
-        var {data:d4}=entidad.rfc?await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte')
-          .ilike('rfc_contraparte',entidad.rfc):{data:[]};
-        var seen={}; var dataEnt=[];
-        [d3||[],d4||[]].forEach(function(arr){arr.forEach(function(r){if(!seen[r.fecha+r.monto]){seen[r.fecha+r.monto]=true;dataEnt.push(r);}});});
-      }
-      // Filter by month/year if specified
-      if(mesPregunta!==null){
-        dataEnt=dataEnt.filter(function(r){
-          var d=new Date(r.fecha); return d.getFullYear()===añoPregunta&&d.getMonth()===mesPregunta.idx;
-        });
-      }
-      var totalVentas=dataEnt.filter(function(r){return r.categoria==='venta';}).reduce(function(a,r){return a+Number(r.monto);},0);
-      var totalCobr=dataEnt.filter(function(r){return r.categoria==='cobranza';}).reduce(function(a,r){return a+Number(r.monto);},0);
-      var totalGastos=dataEnt.filter(function(r){return r.tipo==='egreso';}).reduce(function(a,r){return a+Number(r.monto);},0);
-      var periodo=mesPregunta?(mesPregunta.nombre+' '+añoPregunta):'todos los períodos';
-      var nombreEnt='<b>'+esc(entidad.nombre)+'</b>';
-      if(!dataEnt.length){
-        respText='No encontré movimientos de '+nombreEnt+(mesPregunta?' en '+periodo:'')+'.';
-      } else if(esVenta||(!esGasto&&!esCobranza)){
-        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': '+
-          '<b style="color:#34d399">'+fmt(totalVentas)+'</b> facturado en '+
-          dataEnt.filter(function(r){return r.categoria==='venta';}).length+' facturas.'+
-          (totalCobr?'<br>Cobranza cobrada: <b style="color:#60a5fa">'+fmt(totalCobr)+'</b>':'');
-      } else if(esCobranza){
-        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': cobranza cobrada <b style="color:#60a5fa">'+fmt(totalCobr)+'</b>.';
-      } else {
-        respText=nombreEnt+(mesPregunta?' en <b>'+periodo+'</b>':'')+': egresos <b style="color:#f87171">'+fmt(totalGastos)+'</b>.';
-      }
+    // YTD metrics
+    var {data:ytdRows}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month,year,contraparte,descripcion').eq('year',año);
+    var ytd=ytdRows||[];
+    var ventasYTD=ytd.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+
+    // CxC pendiente
+    var {data:cxcRows}=await sb.from('movimientos_v2').select('contraparte,monto,fecha').eq('origen','sat_emitida').eq('conciliado',false);
+    var cxcTotal=(cxcRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxcByCliente={};
+    (cxcRows||[]).forEach(function(m){var k=m.contraparte||'Sin nombre';cxcByCliente[k]=(cxcByCliente[k]||0)+Number(m.monto);});
+    var topDeudores=Object.entries(cxcByCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,10)
+      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join(', ');
+
+    // CxP pendiente
+    var {data:cxpRows}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_recibida').eq('conciliado',false);
+    var cxpTotal=(cxpRows||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+
+    // Top clientes por ventas YTD
+    var byClienteYTD={};
+    ytd.filter(function(m){return m.categoria==='venta';}).forEach(function(m){var k=m.contraparte||'?';byClienteYTD[k]=(byClienteYTD[k]||0)+Number(m.monto);});
+    var topClientes=Object.entries(byClienteYTD).sort(function(a,b){return b[1]-a[1];}).slice(0,10)
+      .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join(', ');
+
+    // Ventas por mes YTD
+    var ventasPorMes={};
+    ytd.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
+      var k=MONTHS_ES[(m.month||1)-1]; ventasPorMes[k]=(ventasPorMes[k]||0)+Number(m.monto);
+    });
+    var resumenMeses=Object.entries(ventasPorMes).map(function(e){return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');}).join(', ');
+
+    // Clientes registrados
+    var listaClientes=clientes.slice(0,50).map(function(c){return c.nombre+(c.ciudad?' ('+c.ciudad+')':'')+(c.rfc?' RFC:'+c.rfc:'');}).join(', ');
+
+    // Proveedores registrados
+    var listaProveedores=proveedores.slice(0,30).map(function(p){return p.nombre+(p.ciudad?' ('+p.ciudad+')':'');}).join(', ');
+
+    // Proyectos
+    var {data:projRows}=await sb.from('proyectos').select('nombre_cliente,nombre_pedido,monto_total,fecha_entrega,total_piezas').eq('year',año);
+    var resumenProyectos=(projRows||[]).slice(0,20).map(function(p){
+      return p.nombre_cliente+' | '+p.nombre_pedido+' | $'+(p.monto_total||0)+' | entrega:'+p.fecha_entrega;
+    }).join('\n');
+
+    // Empleados
+    var {data:empRows}=await sb.from('empleados').select('nombre,apellido,cargo,area,estatus,salario_mensual').order('nombre');
+    var resumenEmpleados=(empRows||[]).slice(0,30).map(function(e){
+      return (e.nombre||'')+(e.apellido?' '+e.apellido:'')+' | '+( e.cargo||'')+'  | '+(e.area||'')+(e.estatus?' | '+e.estatus:'');
+    }).join('\n');
+
+    // Contactos
+    var {data:contRows}=await sb.from('contactos').select('nombre,apellido,cargo,email,telefono,clientes(nombre)').order('nombre');
+    var resumenContactos=(contRows||[]).slice(0,30).map(function(c){
+      return (c.nombre||'')+(c.apellido?' '+c.apellido:'')+' | '+(c.cargo||'')+' | '+(c.clientes&&c.clientes.nombre||'sin empresa')+' | '+(c.email||'')+(c.telefono?' | '+c.telefono:'');
+    }).join('\n');
+
+    // Construir prompt
+    var contextStr=
+      'Empresa: Grupo M2 — Maquinado Industrial, Querétaro, México.\n'+
+      'Fecha actual: '+new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})+'.\n\n'+
+      '## Finanzas '+año+' (YTD)\n'+
+      'Ventas: $'+Math.round(ventasYTD).toLocaleString('es-MX')+
+      ' | Cobranza: $'+Math.round(cobrYTD).toLocaleString('es-MX')+
+      ' | Gastos: $'+Math.round(gastoYTD).toLocaleString('es-MX')+
+      ' | Utilidad: $'+Math.round(ventasYTD-gastoYTD).toLocaleString('es-MX')+'\n'+
+      'Ventas por mes: '+resumenMeses+'\n\n'+
+      '## Cuentas por cobrar (facturas SAT sin conciliar)\n'+
+      'Total CxC: $'+Math.round(cxcTotal).toLocaleString('es-MX')+' | Top deudores: '+topDeudores+'\n\n'+
+      '## Cuentas por pagar\n'+
+      'Total CxP: $'+Math.round(cxpTotal).toLocaleString('es-MX')+'\n\n'+
+      '## Top clientes por ventas YTD\n'+topClientes+'\n\n'+
+      '## Clientes registrados\n'+listaClientes+'\n\n'+
+      '## Proveedores registrados\n'+listaProveedores+'\n\n'+
+      '## Proyectos '+año+'\n'+(resumenProyectos||'Sin proyectos registrados')+'\n\n'+
+      '## Empleados\n'+(resumenEmpleados||'Sin empleados registrados')+'\n\n'+
+      '## Contactos\n'+(resumenContactos||'Sin contactos registrados');
+
+    var payload={
+      model:'claude-sonnet-4-5-20251001',
+      max_tokens:400,
+      system:'Eres el asistente financiero de Grupo M2, una empresa de maquinado industrial en Querétaro, México. '+
+        'Responde en español, de forma directa y concisa (máximo 3 líneas). '+
+        'Usa los datos del contexto para responder con precisión. '+
+        'Si la pregunta involucra un cliente, proveedor, empleado o contacto específico, filtra solo esa entidad. '+
+        'Formatea montos como $X,XXX,XXX MXN. '+
+        'Si no tienes suficiente información para responder con certeza, dilo claramente.',
+      messages:[
+        {role:'user', content:'Contexto financiero actual:\n\n'+contextStr+'\n\n---\nPregunta: '+q}
+      ]
+    };
+
+    var apiResp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(payload)
+    });
+
+    if(!apiResp.ok){
+      var err=await apiResp.json().catch(function(){return {};});
+      throw new Error(err.error&&err.error.message||'API error '+apiResp.status);
     }
 
-    // Consulta por etiqueta específica (nómina, impuestos, renta, etc.)
-    else if(etiqBuscada){
-      // Buscar en mes actual o en año si no especifica mes
-      var dataEtiq= mesPregunta ? await fetchMes(añoPregunta,mesPregunta.idx+1) : movements;
-      if(!mesPregunta && t.match(/este año|año|acumulado/)){
-        var allData=[];
-        for(var mm=1;mm<=12;mm++){var d2=await fetchMes(curYear,mm);allData=allData.concat(d2);}
-        dataEtiq=allData;
-      }
-      var filtrados=dataEtiq.filter(function(mv){return mv.etiqueta===etiqBuscada;});
-      var totalEtiq=filtrados.reduce(function(a,mv){return a+Number(mv.monto);},0);
-      var periodo=mesPregunta?(mesPregunta.nombre+' '+añoPregunta):('hasta ahora en '+MONTHS[curMonth]+' '+curYear);
-      if(!filtrados.length){
-        respText='No encontré gastos con etiqueta <b>'+etiqBuscada+'</b> en '+periodo+'.';
-      } else {
-        respText='Gastos de <b>'+etiqBuscada+'</b> '+periodo+': <b style="color:#A32D2D">'+fmt(totalEtiq)+'</b> en '+filtrados.length+' movimiento'+(filtrados.length!==1?'s':'')+'.<br>'+
-          '<small style="color:#73726c">'+filtrados.slice(0,5).map(function(mv){return fmtDate(mv.fecha)+': '+mv.descripcion.slice(0,40)+' → '+fmt(mv.monto);}).join('<br>')+'</small>';
-      }
-    }
-
-    // Consulta de mes específico
-    else if(mesPregunta!==null){
-      var data=await fetchMes(añoPregunta,mesPregunta.idx+1);
-      var m=calcMetrics(data);
-      if(esVenta){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> las ventas facturadas fueron de <b>'+fmt(m.ventas)+'</b> en '+data.filter(function(x){return x.categoria==='venta';}).length+' operaciones.';
-      } else if(esCobranza){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> la cobranza cobrada fue de <b>'+fmt(m.cobr)+'</b>.';
-      } else if(esGasto){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> los gastos fueron de <b>'+fmt(m.gastos)+'</b> en '+data.filter(function(x){return x.categoria==='gasto';}).length+' movimientos.';
-      } else if(esCxC){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> las cuentas por cobrar registradas fueron de <b>'+fmt(m.cxc)+'</b>.';
-      } else if(esUtilidad){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> la utilidad operativa fue de <b style="color:'+(m.util>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.util)+'</b> (Ventas '+fmt(m.ventas)+' − Gastos '+fmt(m.gastos)+').';
-      } else if(esFlujo){
-        respText='En <b>'+mesPregunta.nombre+' '+añoPregunta+'</b> el flujo de caja fue de <b style="color:'+(m.flujo>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.flujo)+'</b> (Cobranza '+fmt(m.cobr)+' − Gastos '+fmt(m.gastos)+').';
-      } else {
-        // Resumen del mes
-        respText='<b>'+mesPregunta.nombre+' '+añoPregunta+'</b> ('+data.length+' movimientos):<br>'+
-          '• Ventas: <b style="color:#3B6D11">'+fmt(m.ventas)+'</b><br>'+
-          '• Cobranza: <b style="color:#185FA5">'+fmt(m.cobr)+'</b><br>'+
-          '• Gastos: <b style="color:#A32D2D">'+fmt(m.gastos)+'</b><br>'+
-          '• CxC: <b style="color:#854F0B">'+fmt(m.cxc)+'</b><br>'+
-          '• Utilidad: <b style="color:'+(m.util>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.util)+'</b><br>'+
-          '• Flujo de caja: <b style="color:'+(m.flujo>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.flujo)+'</b>';
-      }
-
-    // Consulta del año completo o comparaciones
-    } else if(t.match(/este año|año actual|año completo|acumulado|todo el año|anual/)||esComparacion||esMejor||esPeor){
-      var mesesData=[];
-      for(var mes=1;mes<=12;mes++){
-        var d=await fetchMes(añoPregunta,mes);
-        if(d.length)mesesData.push({mes:mes,nombre:MONTHS[mes-1],data:d,metrics:calcMetrics(d)});
-      }
-      if(!mesesData.length){respText='No hay datos registrados para '+añoPregunta+'.';} 
-      else if(esMejor&&esVenta){
-        var mejor=mesesData.reduce(function(a,b){return b.metrics.ventas>a.metrics.ventas?b:a;});
-        respText='El mes con <b>más ventas</b> en '+añoPregunta+' fue <b>'+mejor.nombre+'</b> con <b style="color:#3B6D11">'+fmt(mejor.metrics.ventas)+'</b>.';
-      } else if(esMejor&&esUtilidad){
-        var mejor=mesesData.reduce(function(a,b){return b.metrics.util>a.metrics.util?b:a;});
-        respText='El mes con <b>mayor utilidad</b> en '+añoPregunta+' fue <b>'+mejor.nombre+'</b> con <b style="color:#3B6D11">'+fmt(mejor.metrics.util)+'</b>.';
-      } else if(esPeor&&(esGasto||esUtilidad)){
-        var peor=mesesData.reduce(function(a,b){return b.metrics.gastos>a.metrics.gastos?b:a;});
-        respText='El mes con <b>más gastos</b> en '+añoPregunta+' fue <b>'+peor.nombre+'</b> con <b style="color:#A32D2D">'+fmt(peor.metrics.gastos)+'</b>.';
-      } else {
-        // Totales del año
-        var tot=mesesData.reduce(function(acc,m){
-          acc.ventas+=m.metrics.ventas;acc.cobr+=m.metrics.cobr;acc.gastos+=m.metrics.gastos;
-          acc.cxc+=m.metrics.cxc;acc.util+=m.metrics.util;acc.flujo+=m.metrics.flujo;return acc;
-        },{ventas:0,cobr:0,gastos:0,cxc:0,util:0,flujo:0});
-        respText='<b>Acumulado '+añoPregunta+'</b> ('+mesesData.length+' meses con actividad):<br>'+
-          '• Ventas: <b style="color:#3B6D11">'+fmt(tot.ventas)+'</b><br>'+
-          '• Cobranza: <b style="color:#185FA5">'+fmt(tot.cobr)+'</b><br>'+
-          '• Gastos: <b style="color:#A32D2D">'+fmt(tot.gastos)+'</b><br>'+
-          '• CxC: <b style="color:#854F0B">'+fmt(tot.cxc)+'</b><br>'+
-          '• Utilidad acumulada: <b style="color:'+(tot.util>=0?'#3B6D11':'#A32D2D')+'">'+fmt(tot.util)+'</b><br>'+
-          '• Flujo acumulado: <b style="color:'+(tot.flujo>=0?'#3B6D11':'#A32D2D')+'">'+fmt(tot.flujo)+'</b>';
-      }
-
-    // Consulta del mes actual (default)
-    } else {
-      var m=calcMetrics(movements);
-      var mesActual=MONTHS[curMonth]+' '+curYear;
-      if(esVenta){
-        var ops=movements.filter(function(x){return x.categoria==='venta';});
-        respText='En <b>'+mesActual+'</b> las ventas son <b style="color:#3B6D11">'+fmt(m.ventas)+'</b> en '+ops.length+' operación'+(ops.length!==1?'es':'')+'.'+(ops.length?'<br><small style="color:#73726c">'+ops.slice(0,3).map(function(o){return o.descripcion.slice(0,40)+(o.contraparte?' ('+o.contraparte+')':'')+': '+fmt(o.monto);}).join(' · ')+'</small>':'');
-      } else if(esCobranza){
-        respText='En <b>'+mesActual+'</b> la cobranza es <b style="color:#185FA5">'+fmt(m.cobr)+'</b>.';
-      } else if(esGasto){
-        var ops=movements.filter(function(x){return x.categoria==='gasto';});
-        respText='En <b>'+mesActual+'</b> los gastos son <b style="color:#A32D2D">'+fmt(m.gastos)+'</b> en '+ops.length+' movimiento'+(ops.length!==1?'s':'')+'.'+(ops.length?'<br><small style="color:#73726c">'+ops.slice(0,3).map(function(o){return o.descripcion.slice(0,40)+': '+fmt(o.monto);}).join(' · ')+'</small>':'');
-      } else if(esCxC){
-        var ops=movements.filter(function(x){return x.categoria==='cuenta_por_cobrar';});
-        respText='En <b>'+mesActual+'</b> tienes <b style="color:#854F0B">'+fmt(m.cxc)+'</b> pendiente de cobro'+(ops.length?' de '+ops.length+' cliente'+(ops.length!==1?'s':''):'')+'.'+(ops.length?'<br><small style="color:#73726c">'+ops.slice(0,3).map(function(o){return (o.contraparte||o.descripcion.slice(0,30))+': '+fmt(o.monto);}).join(' · ')+'</small>':'');
-      } else if(esUtilidad){
-        respText='En <b>'+mesActual+'</b> la utilidad operativa es <b style="color:'+(m.util>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.util)+'</b> (Ventas '+fmt(m.ventas)+' − Gastos '+fmt(m.gastos)+').';
-      } else if(esFlujo){
-        respText='En <b>'+mesActual+'</b> el flujo de caja es <b style="color:'+(m.flujo>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.flujo)+'</b> (Cobranza '+fmt(m.cobr)+' − Gastos '+fmt(m.gastos)+').';
-      } else {
-        respText='<b>Resumen de '+mesActual+'</b>:<br>'+
-          '• Ventas: <b style="color:#3B6D11">'+fmt(m.ventas)+'</b><br>'+
-          '• Cobranza: <b style="color:#185FA5">'+fmt(m.cobr)+'</b><br>'+
-          '• Gastos: <b style="color:#A32D2D">'+fmt(m.gastos)+'</b><br>'+
-          '• CxC pendiente: <b style="color:#854F0B">'+fmt(m.cxc)+'</b><br>'+
-          '• Utilidad: <b style="color:'+(m.util>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.util)+'</b><br>'+
-          '• Flujo de caja: <b style="color:'+(m.flujo>=0?'#3B6D11':'#A32D2D')+'">'+fmt(m.flujo)+'</b>';
-      }
-    }
-
-    resp.innerHTML=respText||'No entendí la pregunta. Intenta con: "¿cuánto vendí en marzo?", "gastos de este año", "¿cuánto me deben?".';
+    var result=await apiResp.json();
+    var answer=(result.content&&result.content[0]&&result.content[0].text)||'Sin respuesta.';
+    // Format answer — bold for numbers
+    answer=answer.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
+    resp.innerHTML='<span style="color:#e2e8f0;line-height:1.7;">'+answer.replace(/\n/g,'<br>')+'</span>';
 
   }catch(e){
-    resp.innerHTML='Error al consultar: '+e.message;
+    console.error('Consulta error:',e);
+    resp.innerHTML='<span style="color:#f87171;">Error: '+esc(e.message)+'</span>';
   }
 }
-
 // ── Clientes UI ──────────────────────────────────────────
 var clienteModalFromForm=false;
 
@@ -4183,6 +4106,7 @@ async function loadProyectos(){
     document.getElementById('user-badge').textContent=name;
   }
   switchTab('dashboard', document.getElementById('sb-dashboard'));
+  initApiKeyBanner();
   loadMovements();
   loadClientes();
   startPolling();

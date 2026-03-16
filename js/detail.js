@@ -47,7 +47,7 @@ async function verDetalleEmpresa(id){
     var {data:projs}=await sb.from('proyectos').select('*').ilike('nombre_cliente','%'+c.nombre+'%').eq('year',año);
     var {data:conts}=await sb.from('contactos').select('*').eq('cliente_id',id).order('nombre');
 
-    var ventas=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventas=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cxcTotal=cxcFacturas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var condLabels={'inmediato':'Pago inmediato','15':'15 días','30':'30 días','45':'45 días','60':'60 días','90':'90 días'};
 
@@ -136,7 +136,7 @@ async function verDetalleProveedor(id){
     var seenC={}; var cxp=[];
     [(cx1||[])].concat(cx2data).forEach(function(m){var k=m.fecha+m.monto;if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
 
-    var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cxpTotal=cxp.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     var body=
@@ -162,7 +162,7 @@ async function verDetalleProveedor(id){
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
           return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
-            '<span style="font-weight:600;color:#f87171;">'+fmt(f.monto)+'</span></div>';
+            '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos</div>'+
         mvmts.slice(0,6).map(function(m){

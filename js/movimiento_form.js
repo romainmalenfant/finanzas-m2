@@ -51,16 +51,14 @@ function buscarCliente(q){
   }).slice(0,6);
   if(!matches.length){
     dd.style.display='block';
-    dd.innerHTML='<div style="padding:10px 12px;font-size:13px;color:#475569;">Sin resultados — <button onclick="abrirNuevoCliente(true)" class="btn-sm" style="display:inline;">+ crear empresa</button></div>';
+    dd.innerHTML='<div class="ac-item"><span class="ac-item-name" style="color:var(--text-3);">Sin resultados</span><span class="ac-item-sub"><button onclick="abrirNuevoCliente(true)" class="btn-sm">+ crear empresa</button></span></div>';
     return;
   }
   dd.style.display='block';
   dd.innerHTML=matches.map(function(c){
-    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;" '+
-      'onmousedown="seleccionarCliente('+JSON.stringify(c).replace(/"/g,'&quot;')+')" '+
-      'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+
-      '<span style="font-weight:500;">'+esc(c.nombre)+'</span>'+
-      (c.rfc?'<span style="color:#475569;font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
+    return '<div class="ac-item" onmousedown="seleccionarCliente('+JSON.stringify(c).replace(/"/g,'&quot;')+')">' +
+      '<span class="ac-item-name">'+esc(c.nombre)+'</span>'+
+      (c.rfc?'<span class="ac-item-sub">'+esc(c.rfc)+'</span>':'')+
     '</div>';
   }).join('');
 }
@@ -112,11 +110,9 @@ function buscarProveedor(q){
   }
   dd.style.display='block';
   dd.innerHTML=matches.map(function(p){
-    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;" '+
-      'onmousedown="seleccionarProveedor('+JSON.stringify(p).replace(/"/g,'&quot;')+')" '+
-      'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+
-      '<span style="font-weight:500;">'+esc(p.nombre)+'</span>'+
-      (p.rfc?'<span style="color:#475569;font-size:11px;margin-left:6px;">'+esc(p.rfc)+'</span>':'')+
+    return '<div class="ac-item" onmousedown="seleccionarProveedor('+JSON.stringify(p).replace(/"/g,'&quot;')+')">' +
+      '<span class="ac-item-name">'+esc(p.nombre)+'</span>'+
+      (p.rfc?'<span class="ac-item-sub">'+esc(p.rfc)+'</span>':'')+
     '</div>';
   }).join('');
 }

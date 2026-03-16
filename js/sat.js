@@ -384,35 +384,86 @@ async function confirmarImportSAT(){
   var btn=document.getElementById('btn-confirmar-sat');
   btn.disabled=true;btn.textContent='Importando...';
   try{
-    var rows=[];
+    // ── Build facturas rows (new table) ──────────────────
+    var factRows=[];
+
+    // Auto-match clientes por RFC para emitidas
+    var rfcsE=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
+    var rfcToClienteId={};
+    if(rfcsE.length){
+      var {data:cliMatch}=await sb.from('clientes').select('id,rfc').in('rfc',rfcsE);
+      (cliMatch||[]).forEach(function(c){rfcToClienteId[c.rfc]=c.id;});
+    }
+
+    // Auto-match proveedores por RFC para recibidas
+    var rfcsR=[...new Set(satPendingRecibidas.map(function(f){return f.rfc_emisor;}).filter(Boolean))];
+    var rfcToProvId={};
+    if(rfcsR.length){
+      var {data:provMatch}=await sb.from('proveedores').select('id,rfc').in('rfc',rfcsR);
+      (provMatch||[]).forEach(function(p){rfcToProvId[p.rfc]=p.id;});
+    }
+
     satPendingEmitidas.forEach(function(f){
       if(!f.uuid||f.total<=0)return;
-      rows.push({id:'sat_e_'+f.uuid.replace(/-/g,'').slice(0,22),fecha:f.fecha_emision,descripcion:f.nombre_receptor||f.rfc_receptor||'',contraparte:f.nombre_receptor||'',monto:f.total,tipo:'ingreso',categoria:'venta',origen:'sat_emitida',uuid_sat:f.uuid,rfc_contraparte:f.rfc_receptor||null,conciliado:false,year:f.year,month:f.month,usuario:'SAT',numero_factura:f.uuid.slice(0,8).toUpperCase()});
+      var fechaD=new Date((f.fecha_emision||'')+'T12:00');
+      factRows.push({
+        uuid_sat:f.uuid,
+        numero_factura:f.uuid.slice(0,8).toUpperCase(),
+        tipo:'emitida',
+        fecha:f.fecha_emision,
+        emisor_rfc:null, // empresa propia
+        emisor_nombre:null,
+        receptor_rfc:f.rfc_receptor||null,
+        receptor_nombre:f.nombre_receptor||null,
+        subtotal:parseFloat(f.subtotal)||0,
+        iva:parseFloat(f.iva)||0,
+        total:parseFloat(f.total)||0,
+        metodo_pago:f.metodo_pago||'PUE',
+        forma_pago:f.forma_pago||null,
+        uso_cfdi:f.uso_cfdi||null,
+        concepto:f.concepto||f.nombre_receptor||null,
+        estatus:'vigente',
+        conciliado:false,
+        complemento_requerido:(f.metodo_pago==='PPD'),
+        cliente_id:rfcToClienteId[f.rfc_receptor]||null,
+        year:isNaN(fechaD.getFullYear())?null:fechaD.getFullYear(),
+        month:isNaN(fechaD.getMonth())?null:fechaD.getMonth()+1,
+        origen:'sat'
+      });
     });
+
     satPendingRecibidas.forEach(function(f){
       if(!f.uuid||f.total<=0)return;
-      rows.push({id:'sat_r_'+f.uuid.replace(/-/g,'').slice(0,22),fecha:f.fecha_emision,descripcion:f.nombre_emisor||f.rfc_emisor||'',contraparte:f.nombre_emisor||'',monto:f.total,tipo:'egreso',categoria:'compra',origen:'sat_recibida',uuid_sat:f.uuid,rfc_contraparte:f.rfc_emisor||null,conciliado:false,year:f.year,month:f.month,usuario:'SAT'});
+      var fechaD=new Date((f.fecha_emision||'')+'T12:00');
+      factRows.push({
+        uuid_sat:f.uuid,
+        tipo:'recibida',
+        fecha:f.fecha_emision,
+        emisor_rfc:f.rfc_emisor||null,
+        emisor_nombre:f.nombre_emisor||null,
+        receptor_rfc:null,
+        receptor_nombre:null,
+        subtotal:parseFloat(f.subtotal)||0,
+        iva:parseFloat(f.iva)||0,
+        total:parseFloat(f.total)||0,
+        metodo_pago:f.metodo_pago||'PUE',
+        forma_pago:f.forma_pago||null,
+        uso_cfdi:f.uso_cfdi||null,
+        concepto:f.concepto||f.nombre_emisor||null,
+        estatus:'vigente',
+        conciliado:false,
+        complemento_requerido:false,
+        proveedor_id:rfcToProvId[f.rfc_emisor]||null,
+        year:isNaN(fechaD.getFullYear())?null:fechaD.getFullYear(),
+        month:isNaN(fechaD.getMonth())?null:fechaD.getMonth()+1,
+        origen:'sat'
+      });
     });
-    if(rows.length){var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:true});if(error)throw error;}
 
-    // Auto-vincular cliente_id por RFC en facturas emitidas
-    try{
-      var allRfcs=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
-      if(allRfcs.length){
-        var {data:cliMatch}=await sb.from('clientes').select('id,rfc').in('rfc',allRfcs);
-        var rfcToId={};
-        (cliMatch||[]).forEach(function(c){rfcToId[c.rfc]=c.id;});
-        // Update each movimiento with its cliente_id
-        for(var ri=0;ri<satPendingEmitidas.length;ri++){
-          var f=satPendingEmitidas[ri];
-          var cid=rfcToId[f.rfc_receptor];
-          if(cid){
-            var movId='sat_e_'+f.uuid.replace(/-/g,'').slice(0,22);
-            await sb.from('movimientos_v2').update({cliente_id:cid}).eq('id',movId);
-          }
-        }
-      }
-    }catch(linkErr){console.warn('Auto-link cliente_id:',linkErr);}
+    if(factRows.length){
+      var {error}=await sb.from('facturas').upsert(factRows,{onConflict:'uuid_sat',ignoreDuplicates:true});
+      if(error)throw error;
+    }
 
     // Auto-crear clientes
     var clientesNuevos=0,proveedoresNuevos=0;
@@ -439,7 +490,7 @@ async function confirmarImportSAT(){
       }
     }
     cerrarSATPreview();
-    var msg='✓ '+satPendingEmitidas.length+' ventas, '+satPendingRecibidas.length+' compras importadas';
+    var msg='✓ '+satPendingEmitidas.length+' emitidas, '+satPendingRecibidas.length+' recibidas importadas';
     if(clientesNuevos)msg+=' · '+clientesNuevos+' clientes creados';
     if(proveedoresNuevos)msg+=' · '+proveedoresNuevos+' proveedores creados';
     showStatus(msg);

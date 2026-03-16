@@ -123,23 +123,33 @@ function makeAutocomplete(inputId, hiddenId, dropdownId, getItems, onSelect){
   var dd  = document.getElementById(dropdownId);
   if(!inp||!hid||!dd) return;
 
+  var _matches = [];
+
+  // Delegation on dropdown — mousedown fires before blur on input
+  dd.addEventListener('mousedown', function(e){
+    e.preventDefault();
+    var el = e.target.closest('[data-idx]');
+    if(!el) return;
+    var item = _matches[parseInt(el.getAttribute('data-idx'))];
+    if(!item) return;
+    hid.value = item.id;
+    inp.value = item.label;
+    dd.style.display = 'none';
+    if(onSelect) onSelect(item);
+  });
+
   inp.addEventListener('input', function(){
-    var q = this.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    hid.value = ''; // clear id when typing
+    var q = this.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+    hid.value = '';
     if(!q.trim()){dd.style.display='none';return;}
-    var matches = getItems().filter(function(item){
-      return item.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q)||
+    _matches = getItems().filter(function(item){
+      return item.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q)||
              (item.sub||'').toLowerCase().includes(q);
     }).slice(0,7);
-    if(!matches.length){dd.style.display='none';return;}
-    dd.style.display='block';
-    dd.innerHTML = matches.map(function(item){
-      return '<div class="ac-item" onmousedown="event.preventDefault()" onclick="(function(){'+
-        'document.getElementById(\''+hiddenId+'\').value=\''+item.id.replace(/'/g,"\\'")+'\''+';'+
-        'document.getElementById(\''+inputId+'\').value=\''+item.label.replace(/'/g,"\\'")+'\';'+
-        'document.getElementById(\''+dropdownId+'\').style.display=\'none\';'+
-        (onSelect?'('+onSelect.toString()+')('+JSON.stringify(item)+');':'')+
-      '})()">'+
+    if(!_matches.length){dd.style.display='none';return;}
+    dd.style.display = 'block';
+    dd.innerHTML = _matches.map(function(item, i){
+      return '<div class="ac-item" data-idx="'+i+'">'+
         '<span class="ac-item-name">'+esc(item.label)+'</span>'+
         (item.sub?'<span class="ac-item-sub">'+esc(item.sub)+'</span>':'')+
       '</div>';
@@ -147,12 +157,9 @@ function makeAutocomplete(inputId, hiddenId, dropdownId, getItems, onSelect){
   });
 
   inp.addEventListener('blur', function(){
-    setTimeout(function(){dd.style.display='none';},200);
-    // If no id selected, clear input
-    if(!hid.value) inp.value='';
-  });
-
-  document.addEventListener('click', function(e){
-    if(!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+    setTimeout(function(){
+      dd.style.display = 'none';
+      if(!hid.value) inp.value = '';
+    }, 150);
   });
 }

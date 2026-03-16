@@ -1,6 +1,8 @@
 // ── Cotizaciones ──────────────────────────────────────────
 var cotizaciones = [], allCotizaciones = [];
 var cotView = 'lista'; // 'lista' | 'kanban'
+var cotYearFilter = new Date().getFullYear();
+var cotHistorialOpen = false;
 var cotItemsTemp = []; // items in current form
 var cotEditId = null;
 
@@ -12,6 +14,20 @@ async function loadCotizaciones(){
       .order('created_at',{ascending:false});
     if(error)throw error;
     cotizaciones = data||[]; allCotizaciones = cotizaciones;
+    // Init year filter
+    var yearSel = document.getElementById('cot-year-filter');
+    if(yearSel && yearSel.options.length===0){
+      var años = [...new Set(cotizaciones.map(function(c){return new Date(c.fecha||c.created_at).getFullYear();}))];
+      var currentYear = new Date().getFullYear();
+      if(!años.includes(currentYear)) años.push(currentYear);
+      años.sort(function(a,b){return b-a;});
+      años.forEach(function(y){
+        var o=document.createElement('option');
+        o.value=y; o.textContent=y;
+        if(y===cotYearFilter)o.selected=true;
+        yearSel.appendChild(o);
+      });
+    }
     renderCotizacionesKPIs();
     filtrarCotizaciones('');
   }catch(e){console.error('Cotizaciones:',e); showError('Error cargando cotizaciones');}
@@ -36,30 +52,52 @@ function filtrarCotizaciones(q){
   var ql = (q||'').toLowerCase();
   var filtroEstatus = document.getElementById('cot-estatus-filter');
   var estatus = filtroEstatus ? filtroEstatus.value : '';
+  var hoy = new Date();
+  var hace90 = new Date(hoy); hace90.setDate(hace90.getDate()-90);
+
   var filtered = allCotizaciones.filter(function(c){
+    // Year filter
+    var d = new Date(c.fecha||c.created_at);
+    if(d.getFullYear() !== cotYearFilter) return false;
     if(estatus && c.estatus !== estatus) return false;
     if(!ql) return true;
     return (c.numero||'').toLowerCase().includes(ql) ||
            (c.cliente_nombre||'').toLowerCase().includes(ql);
   });
-  renderCotizacionesList(filtered);
+
+  // Split: activas = borrador/enviada/en_negociacion OR cerradas/perdidas <90 días
+  var activas = filtered.filter(function(c){
+    if(c.estatus==='borrador'||c.estatus==='enviada'||c.estatus==='en_negociacion') return true;
+    var d = new Date(c.fecha||c.created_at);
+    return d >= hace90;
+  });
+  var historial = filtered.filter(function(c){
+    if(c.estatus==='borrador'||c.estatus==='enviada'||c.estatus==='en_negociacion') return false;
+    var d = new Date(c.fecha||c.created_at);
+    return d < hace90;
+  });
+
+  renderCotizacionesList(activas, historial);
 }
 
 var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociación', cerrada:'Cerrada ✓', perdida:'Perdida'};
 var EST_COLORS = {borrador:'#64748b', enviada:'#60a5fa', en_negociacion:'#a78bfa', cerrada:'#34d399', perdida:'#f87171'};
 
-function renderCotizacionesList(list){
+function renderCotizacionesList(list, historial){
+  var wrap = document.getElementById('cot-lista-wrap');
+  if(!wrap) return;
   var el = document.getElementById('cotizaciones-list');
   if(!el){
-    // Create it inside lista-wrap if missing
-    var wrap = document.getElementById('cot-lista-wrap');
-    if(wrap){ wrap.innerHTML='<div id="cotizaciones-list"></div>'; el=wrap.firstChild; }
-    else return;
+    wrap.innerHTML='<div id="cotizaciones-list"></div>';
+    el=wrap.querySelector('#cotizaciones-list');
   }
   var ct = document.getElementById('cot-count');
-  if(ct) ct.textContent = list.length + ' cotizaci' + (list.length===1?'ón':'ones');
-  if(!list.length){
-    el.innerHTML = '<div class="empty-state">Sin cotizaciones. Crea la primera con el botón de arriba.</div>';
+  var total = list.length + (historial?historial.length:0);
+  if(ct) ct.textContent = total + ' cotizaci' + (total===1?'ón':'ones');
+  if(!list.length && !(historial&&historial.length)){
+    el.innerHTML = '<div class="empty-state">Sin cotizaciones para '+cotYearFilter+'.</div>';
+    // Render empty historial section
+    renderHistorialCotizaciones(wrap, []);
     return;
   }
   el.innerHTML = list.map(function(c){
@@ -87,6 +125,55 @@ function renderCotizacionesList(list){
 }
 
 // ── Form ──────────────────────────────────────────────────
+function renderHistorialCotizaciones(wrap, list){
+  var existing = document.getElementById('cot-historial-section');
+  if(existing) existing.remove();
+  if(!wrap || !list.length) return;
+
+  var section = document.createElement('div');
+  section.id = 'cot-historial-section';
+  section.style.marginTop = '20px';
+
+  // Header toggle
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;cursor:pointer;user-select:none;';
+  hdr.innerHTML = '<span style="font-size:12px;font-weight:600;color:#475569;">📦 Historial archivado (>90 días) — '+list.length+' cotizaci'+(list.length===1?'ón':'ones')+'</span>'+
+    '<span id="hst-arrow" style="font-size:10px;color:#475569;">'+(cotHistorialOpen?'▲':'▼')+'</span>';
+
+  // Body
+  var body = document.createElement('div');
+  body.id = 'cot-historial-body';
+  body.style.display = cotHistorialOpen ? 'block' : 'none';
+  body.style.marginTop = '8px';
+  body.innerHTML = list.map(function(c){
+    var color = EST_COLORS[c.estatus]||'#475569';
+    var label = EST_LABELS[c.estatus]||c.estatus;
+    return '<div class="proj-card" style="cursor:pointer;opacity:.7;" onclick="verDetalleCotizacion(\''+c.id+'\')">'+
+      '<div class="proj-hdr">'+
+        '<div class="proj-title">'+
+          '<div class="proj-nombre">'+esc(c.numero||'COT')+'</div>'+
+          '<div class="proj-cliente">'+esc(c.cliente_nombre||'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:12px;">'+
+          '<span style="font-size:15px;font-weight:600;color:#94a3b8;">'+fmt(c.total||0)+'</span>'+
+          '<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:'+color+'22;color:'+color+';">'+label+'</span>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  hdr.addEventListener('click', function(){
+    cotHistorialOpen = !cotHistorialOpen;
+    body.style.display = cotHistorialOpen ? 'block' : 'none';
+    var arrow = document.getElementById('hst-arrow');
+    if(arrow) arrow.textContent = cotHistorialOpen ? '▲' : '▼';
+  });
+
+  section.appendChild(hdr);
+  section.appendChild(body);
+  wrap.appendChild(section);
+}
+
 function abrirNuevaCotizacion(){
   cotEditId = null;
   cotItemsTemp = [];

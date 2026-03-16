@@ -94,13 +94,14 @@ async function verDetalleEmpresa(id){
       '</div>'+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos '+año+'</div>'+
         mvmts.slice(0,6).map(function(m){
-          var desc=(m.descripcion&&m.descripcion!=='undefined'&&m.descripcion!=='null')?m.descripcion:
-                   (m.contraparte&&m.contraparte!=='undefined'&&m.contraparte!=='null')?m.contraparte:null;
-          if(!desc&&!(parseFloat(m.monto)||0))return '';
+          var desc=(['undefined','null',''].indexOf(String(m.descripcion||''))>=0)?null:m.descripcion;
+          if(!desc)desc=(['undefined','null',''].indexOf(String(m.contraparte||''))>=0)?null:m.contraparte;
+          if(!desc)return '';
+          var cat=CAT_LABELS[m.categoria]||m.categoria||'';
           var col=CAT_COLORS[m.categoria]||'var(--text-3)';
           return '<div class="detail-list-item"><div>'+
-            '<div style="font-size:12px;color:var(--text-1);">'+(desc||'Sin descripción').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+(m.fecha?' · '+(CAT_LABELS[m.categoria]||m.categoria||''):'')+'</div>'+
+            '<div style="font-size:12px;color:var(--text-1);">'+esc(desc.slice(0,40))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+(m.fecha&&cat?' · '+cat:'')+'</div>'+
             '</div><span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).filter(Boolean).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
@@ -164,14 +165,19 @@ async function verDetalleProveedor(id){
         cxp.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
           var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
+          var fdesc=(f.numero_factura||f.descripcion||'').replace(/undefined|null/g,'').trim()||'Sin desc.';
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+esc(fdesc.slice(0,40))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha||'')+(f.fecha?' · <span style="color:'+color+';">'+dias+'d</span>':'')+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos</div>'+
         mvmts.slice(0,6).map(function(m){
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||'').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
+          var desc=(['undefined','null',''].indexOf(String(m.descripcion||''))>=0)?null:m.descripcion;
+          if(!desc)desc=(['undefined','null',''].indexOf(String(m.contraparte||''))>=0)?null:m.contraparte;
+          if(!desc)return '';
+          return '<div class="detail-list-item"><div>'+
+            '<div style="font-size:12px;color:var(--text-1);">'+esc(desc.slice(0,40))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;

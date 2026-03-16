@@ -203,16 +203,38 @@ async function verDetalleEmpleado(id){
   if(!e)return;
   var nombre=(e.nombre||'')+(e.apellido?' '+e.apellido:'');
   var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
+  var sc=e.estatus==='Activo'?'#34d399':e.estatus==='Inactivo'?'#fbbf24':'#f87171';
   var body=
-    '<div class="detail-section"><div class="detail-grid">'+
+    '<div class="detail-section"><div class="detail-kpi-grid">'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">Salario mensual</div><div class="detail-kpi-value c-green">'+(e.salario_mensual?fmt(e.salario_mensual):'—')+'</div></div>'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">Vacaciones</div><div class="detail-kpi-value c-blue">'+(e.dias_vacaciones||0)+' días</div></div>'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">Estatus</div><div class="detail-kpi-value" style="font-size:13px;color:'+sc+';">'+(e.estatus||'Activo')+'</div></div>'+
+    '</div></div>'+
+    '<div class="detail-section"><div class="detail-section-title">Datos generales</div><div class="detail-grid">'+
       '<div class="detail-field"><div class="detail-field-label">Cargo</div><div class="detail-field-value">'+(e.cargo||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Área</div><div class="detail-field-value">'+(e.area||'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Salario mensual</div><div class="detail-field-value c-green">'+(e.salario_mensual?fmt(e.salario_mensual):'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Tipo contrato</div><div class="detail-field-value">'+(e.tipo_contrato||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Fecha ingreso</div><div class="detail-field-value">'+(e.fecha_ingreso?fmtDateFull(e.fecha_ingreso):'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(e.email?'<a href="mailto:'+esc(e.email)+'" style="color:#60a5fa;">'+esc(e.email)+'</a>':'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.telefono||'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(e.estatus==='Activo'?'#34d399':e.estatus==='Inactivo'?'#fbbf24':'#f87171')+';">'+(e.estatus||'Activo')+'</div></div>'+
-    '</div></div>';
+    '</div></div>'+
+    '<div class="detail-section"><div class="detail-section-title">Fiscal y bancario</div><div class="detail-grid">'+
+      '<div class="detail-field"><div class="detail-field-label">RFC</div><div class="detail-field-value">'+(e.rfc||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">IMSS / NSS</div><div class="detail-field-value">'+(e.imss||'—')+'</div></div>'+
+      '<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">CLABE bancaria</div><div class="detail-field-value">'+(e.clabe||'—')+'</div></div>'+
+    '</div></div>'+
+    '<div class="detail-section"><div class="detail-section-title">Documentos</div>'+
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;">'+
+        '<span style="padding:4px 12px;border-radius:6px;font-size:12px;background:'+(e.tiene_contrato?'#0d2a1422':'#2a0d0d22')+';color:'+(e.tiene_contrato?'#34d399':'#f87171')+';">'+(e.tiene_contrato?'✓':'✗')+' Contrato firmado</span>'+
+        '<span style="padding:4px 12px;border-radius:6px;font-size:12px;background:'+(e.imss_activo?'#0d2a1422':'#2a0d0d22')+';color:'+(e.imss_activo?'#34d399':'#f87171')+';">'+(e.imss_activo?'✓':'✗')+' IMSS activo</span>'+
+      '</div>'+
+    '</div>'+
+    ((e.contacto_emergencia_nombre||e.contacto_emergencia_tel)?
+      '<div class="detail-section"><div class="detail-section-title">Contacto de emergencia</div><div class="detail-grid">'+
+        '<div class="detail-field"><div class="detail-field-label">Nombre</div><div class="detail-field-value">'+(e.contacto_emergencia_nombre||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.contacto_emergencia_tel||'—')+'</div></div>'+
+      '</div></div>':'')+
+    (e.notas?'<div class="detail-section"><div class="detail-section-title">Notas</div><div style="color:#94a3b8;font-size:13px;line-height:1.6;">'+esc(e.notas)+'</div></div>':'');
   abrirDetail(nombre,e.cargo||(e.area||''),ini,body,function(){cerrarDetail();editarEmpleado(id);});
 }
 

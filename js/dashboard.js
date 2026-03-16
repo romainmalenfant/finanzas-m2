@@ -16,9 +16,9 @@ async function loadFinanzasKPIs(){
   try{
     // Use already-loaded movements array (from loadMovements)
     var rows=movements||[];
-    var ventas=rows.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventas=rows.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var util=ventas-gastos;
     var flujo=cobr-gastos;
     var setV=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);el.className='mvalue-hero '+(cls||'');};
@@ -31,7 +31,7 @@ async function loadFinanzasKPIs(){
     var cxc=(_cxcRows||[]).filter(function(m){
       var d=new Date(m.fecha);
       return d.getFullYear()===curYear&&d.getMonth()===curMonth;
-    }).reduce(function(a,m){return a+Number(m.monto);},0);
+    }).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     setV('fin-cxc',cxc,'c-amber');
     var ventasEl=document.getElementById('fin-ventas-sub');
     if(ventasEl)ventasEl.textContent=MONTHS[curMonth]+' '+curYear;
@@ -67,9 +67,9 @@ async function responderConsulta(){
     _ytdMvmts=mvmts;
 
     // YTD resumen
-    var ventasYTD=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobrYTD=mvmts.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastoYTD=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventasYTD=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobrYTD=mvmts.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoYTD=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var utilYTD=ventasYTD-gastoYTD;
     var flujoYTD=cobrYTD-gastoYTD;
 
@@ -77,7 +77,7 @@ async function responderConsulta(){
     var ventasMes={};
     mvmts.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
       var k=MONTHS_ES[(m.month||1)-1];
-      ventasMes[k]=(ventasMes[k]||0)+Number(m.monto);
+      ventasMes[k]=(ventasMes[k]||0)+(parseFloat(m.monto)||0);
     });
     var resumenMeses=Object.entries(ventasMes).map(function(e){
       return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');
@@ -87,7 +87,7 @@ async function responderConsulta(){
     var ventasByCliente={};
     mvmts.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
       var k=(m.contraparte||'Sin nombre').trim();
-      ventasByCliente[k]=(ventasByCliente[k]||0)+Number(m.monto);
+      ventasByCliente[k]=(ventasByCliente[k]||0)+(parseFloat(m.monto)||0);
     });
     var topVentasCliente=Object.entries(ventasByCliente).sort(function(a,b){return b[1]-a[1];})
       .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
@@ -96,7 +96,7 @@ async function responderConsulta(){
     var gastosByProv={};
     mvmts.filter(function(m){return m.tipo==='egreso';}).forEach(function(m){
       var k=(m.contraparte||m.etiqueta||'Sin clasificar').trim();
-      gastosByProv[k]=(gastosByProv[k]||0)+Number(m.monto);
+      gastosByProv[k]=(gastosByProv[k]||0)+(parseFloat(m.monto)||0);
     });
     var topGastos=Object.entries(gastosByProv).sort(function(a,b){return b[1]-a[1];}).slice(0,15)
       .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
@@ -107,13 +107,13 @@ async function responderConsulta(){
       .eq('origen','sat_emitida').eq('conciliado',false)
       .order('fecha',{ascending:true});
     _cxcRows=cxcRows||[]; updateBadges();
-    var cxcTotal=_cxcRows.reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxcTotal=_cxcRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var hoy=new Date();
     var cxcDetalle=(cxcRows||[]).map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return (m.contraparte||m.rfc_contraparte||'?')+
         (m.numero_factura?' | folio:'+m.numero_factura:'')+
-        ' | $'+Math.round(Number(m.monto)).toLocaleString('es-MX')+
+        ' | $'+Math.round((parseFloat(m.monto)||0)).toLocaleString('es-MX')+
         ' | fecha:'+m.fecha+' | '+dias+'d sin cobrar';
     }).join('\n');
 
@@ -123,12 +123,12 @@ async function responderConsulta(){
       .eq('origen','sat_recibida').eq('conciliado',false)
       .order('fecha',{ascending:true});
     _cxpRows=cxpRows||[]; updateBadges();
-    var cxpTotal=_cxpRows.reduce(function(a,m){return a+Number(m.monto);},0);
+    var cxpTotal=_cxpRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cxpDetalle=(cxpRows||[]).map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return (m.contraparte||m.rfc_contraparte||'?')+
         (m.numero_factura?' | folio:'+m.numero_factura:'')+
-        ' | $'+Math.round(Number(m.monto)).toLocaleString('es-MX')+
+        ' | $'+Math.round((parseFloat(m.monto)||0)).toLocaleString('es-MX')+
         ' | fecha:'+m.fecha+' | '+dias+'d sin pagar';
     }).join('\n');
 
@@ -219,7 +219,7 @@ async function loadCxC(){
       .select('contraparte,monto,fecha')
       .eq('origen','sat_emitida').eq('conciliado',false);
     var rows=data||[];
-    var total=rows.reduce(function(a,m){return a+Number(m.monto);},0);
+    var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxc-total').textContent=fmt(total);
     document.getElementById('cxc-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
 
@@ -227,10 +227,10 @@ async function loadCxC(){
     var hoy=new Date(); var b=[0,0,0,0];
     rows.forEach(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
-      if(dias<=30)b[0]+=Number(m.monto);
-      else if(dias<=60)b[1]+=Number(m.monto);
-      else if(dias<=90)b[2]+=Number(m.monto);
-      else b[3]+=Number(m.monto);
+      if(dias<=30)b[0]+=(parseFloat(m.monto)||0);
+      else if(dias<=60)b[1]+=(parseFloat(m.monto)||0);
+      else if(dias<=90)b[2]+=(parseFloat(m.monto)||0);
+      else b[3]+=(parseFloat(m.monto)||0);
     });
     ['cxc-b0','cxc-b1','cxc-b2','cxc-b3'].forEach(function(id,i){
       document.getElementById(id).textContent=fmt(b[i]);
@@ -238,7 +238,7 @@ async function loadCxC(){
 
     // Top 5 deudores
     var byCliente={};
-    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byCliente[k]=(byCliente[k]||0)+Number(m.monto);});
+    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byCliente[k]=(byCliente[k]||0)+(parseFloat(m.monto)||0);});
     var top5=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var el=document.getElementById('cxc-top5');
     el.innerHTML=top5.map(function(d,i){
@@ -256,7 +256,7 @@ async function loadCxP(){
       .select('contraparte,monto,fecha')
       .eq('origen','sat_recibida').eq('conciliado',false);
     var rows=data||[];
-    var total=rows.reduce(function(a,m){return a+Number(m.monto);},0);
+    var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxp-total').textContent=fmt(total);
     document.getElementById('cxp-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
 
@@ -267,7 +267,7 @@ async function loadCxP(){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return dias>30;
     });
-    var montoVence=vence30.reduce(function(a,m){return a+Number(m.monto);},0);
+    var montoVence=vence30.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var montoResto=total-montoVence;
     document.getElementById('cxp-vence30').textContent=fmt(montoVence);
     document.getElementById('cxp-vence30-num').textContent=vence30.length+' factura'+(vence30.length!==1?'s':'');
@@ -275,7 +275,7 @@ async function loadCxP(){
 
     // Top 5 proveedores
     var byProv={};
-    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+Number(m.monto);});
+    rows.forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+(parseFloat(m.monto)||0);});
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var el=document.getElementById('cxp-top5');
     el.innerHTML=top5.map(function(d,i){
@@ -304,9 +304,9 @@ async function loadDashboard(){
     var {data:ytdData}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año);
     var ytd=ytdData||[];
 
-    var ventasYTD=ytd.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventasYTD=ytd.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var utilYTD=ventasYTD-gastoYTD;
     var flujoYTD=cobrYTD-gastoYTD;
 
@@ -319,19 +319,19 @@ async function loadDashboard(){
 
     // Por cobrar
     var {data:pending}=await sb.from('movimientos_v2').select('monto').eq('origen','sat_emitida').eq('conciliado',false);
-    var porCobrar=(pending||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
 
     // MoM comparación
-    var ventasMes=ytd.filter(function(m){return m.categoria==='venta'&&m.month===mesActual;}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobrMes=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventasMes=ytd.filter(function(m){return m.categoria==='venta'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobrMes=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     var {data:lastYearData}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior);
     var ly=lastYearData||[];
-    var ventasLY=ly.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var cobrLY=ly.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var gastoLY=ly.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var ventasLY=ly.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobrLY=ly.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoLY=ly.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     function momBadge(actual,anterior,label){
       if(!anterior)return '<span style="color:var(--text-3);">'+label+': '+fmt(actual)+'</span>';
@@ -359,8 +359,8 @@ async function loadDashboard(){
       allChartData=allChartData.concat(prevYearData||[]);
     }
     meses12.forEach(function(mo){
-      var ventasMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='venta';}).reduce(function(a,m){return a+Number(m.monto);},0);
-      var cobrMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+Number(m.monto);},0);
+      var ventasMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+      var cobrMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
       vData.push(ventasMo); cData.push(cobrMo);
     });
 
@@ -401,7 +401,7 @@ async function loadDashboard(){
           '<div class="mvmt-meta"><span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||m.categoria)+'</span>'+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span></div>'+
         '</div>'+
-        '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+';font-size:13px;">'+(m.tipo==='egreso'?'−':'+')+fmt(m.monto)+'</div>'+
+        '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+';font-size:13px;">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</div>'+
       '</div>';
     }).join('');
   }catch(e){console.error('Dashboard error:',e);}

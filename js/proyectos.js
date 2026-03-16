@@ -13,10 +13,10 @@ function renderProyectos(){
   el.innerHTML=proyectos.map(function(p){
     var entregas=entregasByProyecto[p.id]||[];
     var total=Number(p.total_piezas)||0;
-    var entregadas=entregas.reduce(function(a,e){return a+Number(e.piezas);},0);
+    var entregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
     var faltantes=Math.max(0,total-entregadas);
     var pct=total>0?Math.round((entregadas/total)*100):0;
-    var monto=Number(p.monto_total)||0;
+    var monto=(parseFloat(p.monto_total)||0)||0;
     var montoEntregado=entregas.reduce(function(a,e){return a+Number(e.factura_monto||0);},0);
     var est=estadoProyecto(p,entregadas);
 
@@ -32,7 +32,7 @@ function renderProyectos(){
             '<span style="color:#73726c;">'+fmtDate(e.fecha)+'</span>'+
             '<span style="font-weight:500;">'+e.piezas+' pz</span>'+
             '<span style="color:#185FA5;font-weight:500;">'+(e.factura_numero?esc(e.factura_numero):'-')+'</span>'+
-            '<span style="color:#3B6D11;font-weight:500;text-align:right;">'+(e.factura_monto?fmt(Number(e.factura_monto)):'-')+'</span>'+
+            '<span style="color:#3B6D11;font-weight:500;text-align:right;">'+(e.factura_monto?fmt(parseFloat(e.factura_monto)||0):'-')+'</span>'+
           '</div>';
         }).join('')+
         '</div>'+
@@ -82,17 +82,18 @@ function toggleProj(id){
 
 // ── abrirNuevoProyecto — populate cliente dropdown ────────
 function poblarClientesEnProyecto(valorActual){
-  var sel=document.getElementById('proj-cliente-sel');
-  if(!sel)return;
-  sel.innerHTML='<option value="">— Seleccionar cliente —</option>';
-  clientes.forEach(function(c){
-    var o=document.createElement('option');
-    o.value=c.nombre; o.textContent=c.nombre;
-    if(c.nombre===valorActual)o.selected=true;
-    sel.appendChild(o);
-  });
-  sel.onchange=function(){document.getElementById('proj-cliente').value=this.value;};
+  var inp=document.getElementById('proj-cliente-search');
+  var hid=document.getElementById('proj-cliente-sel');
+  if(!inp)return;
+  // Find nombre for current value
+  var c=clientes.find(function(x){return x.nombre===valorActual||x.id===valorActual;});
+  inp.value=c?c.nombre:(valorActual||'');
+  if(hid) hid.value=c?c.id:'';
   document.getElementById('proj-cliente').value=valorActual||'';
+  makeAutocomplete('proj-cliente-search','proj-cliente-sel','proj-cliente-dd',
+    function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
+    function(item){document.getElementById('proj-cliente').value=item.label;}
+  );
 }
 
 function poblarContactosEnProyecto(valorActual){
@@ -180,7 +181,7 @@ async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
             '<span style="color:var(--text-3);margin-left:8px;">'+fmtDate(f.fecha)+'</span>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:8px;">'+
-            '<span style="color:#34d399;font-weight:600;">'+fmt(f.monto)+'</span>'+
+            '<span style="color:#34d399;font-weight:600;">'+fmt(parseFloat(f.monto)||0)+'</span>'+
             '<button class="btn-sm" style="color:#f87171;font-size:10px;padding:1px 7px;" '+
               'onclick="desvincularFactModalProyecto(\''+f.id+'\',\''+proyId+'\')">×</button>'+
           '</div>'+
@@ -207,7 +208,7 @@ async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
               '<span style="color:var(--text-3);margin-left:8px;">'+fmtDate(f.fecha)+'</span>'+
             '</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+
-              '<span style="color:var(--text-2);">'+fmt(f.monto)+'</span>'+
+              '<span style="color:var(--text-2);">'+fmt(parseFloat(f.monto)||0)+'</span>'+
               '<button class="btn-sm" style="font-size:10px;padding:1px 7px;" '+
                 'onclick="vincularFactModalProyecto(\''+f.id+'\',\''+proyId+'\',\''+clienteId+'\',\''+esc(nombreCliente||'')+'\')">+ Vincular</button>'+
             '</div>'+
@@ -240,7 +241,7 @@ async function desvincularFactModalProyecto(factId, proyId){
 function cerrarProyecto(){document.getElementById('proj-modal').style.display='none';}
 
 async function guardarProyecto(){
-  var cliente=document.getElementById('proj-cliente').value.trim();
+  var cliente=document.getElementById('proj-cliente').value.trim()||document.getElementById('proj-cliente-search').value.trim();
   var pedido=document.getElementById('proj-pedido').value.trim();
   if(!cliente||!pedido){alert('Cliente y nombre de pedido son obligatorios.');return;}
   var btn=document.getElementById('btn-save-proj');
@@ -282,7 +283,7 @@ function abrirEntrega(id){
   var p=proyectos.find(function(x){return x.id===id;});
   if(!p)return;
   var entregas=entregasByProyecto[p.id]||[];
-  var yaEntregadas=entregas.reduce(function(a,e){return a+Number(e.piezas);},0);
+  var yaEntregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
   var faltantes=Math.max(0,(p.total_piezas||0)-yaEntregadas);
   document.getElementById('entrega-proj-id').value=id;
   document.getElementById('entrega-info').textContent=p.nombre_cliente+' · '+p.nombre_pedido+' · Faltan '+faltantes+' pieza'+(faltantes!==1?'s':'');

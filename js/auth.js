@@ -25,7 +25,6 @@ function mostrarApp(user){
 
 async function iniciarApp(){
   switchTab('dashboard', document.getElementById('sb-dashboard'));
-  initApiKeyBanner();
   var name=getUserName();
   if(name){
     var ni=document.getElementById('user-name-input');
@@ -39,29 +38,39 @@ async function iniciarApp(){
 }
 
 async function loadBadgeData(){
+  // Load each independently so one failure doesn't block others
   try{
-    var hoy=new Date();
-    // CxC — facturas emitidas sin cobrar
     var {data:cxc}=await sb.from('movimientos_v2')
-      .select('contraparte,monto,fecha,numero_factura,rfc_contraparte')
+      .select('contraparte,monto,fecha')
       .eq('origen','sat_emitida').eq('conciliado',false);
     _cxcRows=cxc||[];
+  }catch(e){console.warn('Badge CxC:',e); _cxcRows=[];}
 
-    // CxP — facturas recibidas sin pagar
+  try{
     var {data:cxp}=await sb.from('movimientos_v2')
-      .select('contraparte,monto,fecha,numero_factura,rfc_contraparte')
+      .select('contraparte,monto,fecha')
       .eq('origen','sat_recibida').eq('conciliado',false);
     _cxpRows=cxp||[];
+  }catch(e){console.warn('Badge CxP:',e); _cxpRows=[];}
 
-    // Proyectos atrasados
-    var {data:projs}=await sb.from('proyectos').select('*').eq('year',new Date().getFullYear());
-    var {data:ents}=await sb.from('entregas').select('*').in('proyecto_id',(projs||[]).map(function(p){return p.id;}));
+  try{
+    var año=new Date().getFullYear();
+    var {data:projs}=await sb.from('proyectos').select('*').eq('year',año);
+    var ids=(projs||[]).map(function(p){return p.id;});
+    var ents=[];
+    if(ids.length){
+      var {data:ed}=await sb.from('entregas').select('*').in('proyecto_id',ids);
+      ents=ed||[];
+    }
     entregasByProyecto={};
-    (ents||[]).forEach(function(e){if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];entregasByProyecto[e.proyecto_id].push(e);});
-    proyectos=(projs||[]);
+    ents.forEach(function(e){
+      if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];
+      entregasByProyecto[e.proyecto_id].push(e);
+    });
+    if(typeof proyectos==='undefined'||!proyectos.length) proyectos=projs||[];
+  }catch(e){console.warn('Badge proyectos:',e);}
 
-    updateBadges();
-  }catch(e){console.error('loadBadgeData:',e);}
+  updateBadges();
 }
 
 async function cerrarSesion(){

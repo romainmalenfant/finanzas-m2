@@ -111,3 +111,48 @@ async function insertMovement(mv){
   if(error)throw error;
 }
 
+
+// ── Autocomplete helper ───────────────────────────────────
+// Creates a validated autocomplete on an input.
+// inputId: text input, hiddenId: hidden id field, dropdownId: dropdown div
+// getItems(): returns array of {id, label, sub}
+// onSelect(item): callback when item selected
+function makeAutocomplete(inputId, hiddenId, dropdownId, getItems, onSelect){
+  var inp = document.getElementById(inputId);
+  var hid = document.getElementById(hiddenId);
+  var dd  = document.getElementById(dropdownId);
+  if(!inp||!hid||!dd) return;
+
+  inp.addEventListener('input', function(){
+    var q = this.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    hid.value = ''; // clear id when typing
+    if(!q.trim()){dd.style.display='none';return;}
+    var matches = getItems().filter(function(item){
+      return item.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(q)||
+             (item.sub||'').toLowerCase().includes(q);
+    }).slice(0,7);
+    if(!matches.length){dd.style.display='none';return;}
+    dd.style.display='block';
+    dd.innerHTML = matches.map(function(item){
+      return '<div class="ac-item" onmousedown="event.preventDefault()" onclick="(function(){'+
+        'document.getElementById(\''+hiddenId+'\').value=\''+item.id.replace(/'/g,"\\'")+'\''+';'+
+        'document.getElementById(\''+inputId+'\').value=\''+item.label.replace(/'/g,"\\'")+'\';'+
+        'document.getElementById(\''+dropdownId+'\').style.display=\'none\';'+
+        (onSelect?'('+onSelect.toString()+')('+JSON.stringify(item)+');':'')+
+      '})()">'+
+        '<span class="ac-item-name">'+esc(item.label)+'</span>'+
+        (item.sub?'<span class="ac-item-sub">'+esc(item.sub)+'</span>':'')+
+      '</div>';
+    }).join('');
+  });
+
+  inp.addEventListener('blur', function(){
+    setTimeout(function(){dd.style.display='none';},200);
+    // If no id selected, clear input
+    if(!hid.value) inp.value='';
+  });
+
+  document.addEventListener('click', function(e){
+    if(!dd.contains(e.target)&&e.target!==inp) dd.style.display='none';
+  });
+}

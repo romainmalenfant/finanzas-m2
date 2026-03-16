@@ -46,7 +46,7 @@ function renderContactosList(list){
     var initials=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
     var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';
     return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleContacto(\''+esc(c.id)+'\')">'+
-      '<div class="cliente-avatar" style="background:#1a2035;color:#60a5fa;">'+esc(initials)+'</div>'+
+      '<div class="cliente-avatar" style="background:var(--bg-hover);color:#60a5fa;">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(nombre)+'</div>'+
         '<div class="cliente-meta" style="display:flex;gap:10px;flex-wrap:wrap;">'+

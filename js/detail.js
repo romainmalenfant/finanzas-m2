@@ -190,7 +190,11 @@ async function verDetalleProveedor(id){
 
 async function verDetalleContacto(id){
   var c=contactos.find(function(x){return x.id===id;});
-  if(!c)return;
+  if(!c){
+    var {data}=await sb.from('contactos').select('*,clientes(nombre)').eq('id',id).maybeSingle();
+    if(!data)return;
+    c=data;
+  }
   var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
   var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
   var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';

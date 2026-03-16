@@ -190,19 +190,22 @@ function renderFacturasEmitidas(list){
   var ct=document.getElementById('emit-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 100px 90px 80px 70px;"><span>Cliente / RFC</span><span>No. Factura</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+  el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+    '<th>Cliente / RFC</th><th>No. Factura</th><th>Fecha</th><th style="text-align:right;">Total</th><th>Estado</th>'+
+    '</tr></thead><tbody>'+
     sorted.map(function(f){
-      var pill=f.conciliado?'<span class="pill-azul">Cobrada</span>':'<span class="pill-verde">Vigente</span>';
+      var cobrada=f.conciliado;
       var numFac=f.numero_factura||'—';
-      return '<div class="sat-row" style="grid-template-columns:1fr 100px 90px 80px 70px;">'+
-        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||'-').slice(0,35))+'</div>'+
-        '<div style="font-size:10px;color:#888780;">'+esc(f.rfc_contraparte||'')+'</div></div>'+
-        '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
-        '<div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(f.monto))+'</div>'+
-        '<div style="color:#73726c;font-size:11px;">'+fmtDate(f.fecha)+'</div>'+
-        '<div>'+pill+'</div>'+
-      '</div>';
-    }).join('');
+      return '<tr>'+
+        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||'-').slice(0,40))+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
+        '<td class="muted">'+esc(numFac)+'</td>'+
+        '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
+        '<td class="monto" style="color:#16a34a;">'+fmt(Number(f.monto))+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(cobrada?'#dbeafe':'#dcfce7')+';color:'+(cobrada?'#1d4ed8':'#16a34a')+';">'+(cobrada?'Cobrada':'Vigente')+'</span></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
 }
 
 function renderMovsBanco(list){
@@ -213,16 +216,19 @@ function renderMovsBanco(list){
   var ct=document.getElementById('banco-count');
   ct.textContent=sorted.length+' movimiento'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin movimientos bancarios importados</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:80px 1fr 100px 80px;"><span>Fecha</span><span>Descripción</span><span style="text-align:right">Importe</span><span>Tipo</span></div>'+
+  el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+    '<th>Fecha</th><th>Descripción</th><th style="text-align:right;">Importe</th><th>Tipo</th>'+
+    '</tr></thead><tbody>'+
     sorted.map(function(m){
       var esAbono=m.origen==='banco_abono';
-      return '<div class="sat-row" style="grid-template-columns:80px 1fr 100px 80px;">'+
-        '<div style="color:#73726c;">'+fmtDate(m.fecha)+'</div>'+
-        '<div style="font-size:12px;">'+esc((m.descripcion||'-').slice(0,50))+'</div>'+
-        '<div style="text-align:right;font-weight:500;color:'+(esAbono?'#3B6D11':'#A32D2D')+'">'+(esAbono?'+':'-')+fmt(Number(m.monto))+'</div>'+
-        '<div><span class="'+(esAbono?'pill-verde':'pill-rojo')+'">'+(esAbono?'Abono':'Cargo')+'</span></div>'+
-      '</div>';
-    }).join('');
+      return '<tr>'+
+        '<td class="muted">'+fmtDate(m.fecha)+'</td>'+
+        '<td style="font-size:12px;color:var(--text-1);">'+esc((m.descripcion||'-').slice(0,55))+'</td>'+
+        '<td class="monto" style="color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'+':'−')+fmt(Number(m.monto))+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(esAbono?'#dcfce7':'#fee2e2')+';color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'Abono':'Cargo')+'</span></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
 }
 
 function renderFacturasRecibidas(list){
@@ -233,17 +239,20 @@ function renderFacturasRecibidas(list){
   var ct=document.getElementById('recib-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
-  el.innerHTML='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 70px;"><span>Proveedor / RFC</span><span style="text-align:right">Total</span><span>Fecha</span><span>Estado</span></div>'+
+  el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+    '<th>Proveedor / RFC</th><th>Fecha</th><th style="text-align:right;">Total</th><th>Estado</th>'+
+    '</tr></thead><tbody>'+
     sorted.map(function(f){
-      var pill=f.conciliado?'<span class="pill-azul">Pagada</span>':'<span class="pill-verde">Vigente</span>';
-      return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 70px;">'+
-        '<div><div style="font-size:12px;font-weight:500;">'+esc((f.contraparte||'-').slice(0,35))+'</div>'+
-        '<div style="font-size:10px;color:#888780;">'+esc(f.rfc_contraparte||'')+'</div></div>'+
-        '<div style="text-align:right;font-weight:500;color:#A32D2D;">'+fmt(Number(f.monto))+'</div>'+
-        '<div style="color:#73726c;font-size:11px;">'+fmtDate(f.fecha)+'</div>'+
-        '<div>'+pill+'</div>'+
-      '</div>';
-    }).join('');
+      var pagada=f.conciliado;
+      return '<tr>'+
+        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||'-').slice(0,40))+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
+        '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
+        '<td class="monto" style="color:#dc2626;">'+fmt(Number(f.monto))+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(pagada?'#dbeafe':'#fef3c7')+';color:'+(pagada?'#1d4ed8':'#d97706')+';">'+(pagada?'Pagada':'Vigente')+'</span></td>'+
+      '</tr>';
+    }).join('')+
+    '</tbody></table></div>';
 }
 
 // ── SAT Excel Import ──────────────────────────────────────

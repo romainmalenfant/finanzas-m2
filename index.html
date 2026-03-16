@@ -924,6 +924,9 @@
       <input type="text" id="cotizaciones-search" placeholder="Buscar por número o cliente..."
         oninput="filtrarCotizaciones(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+      <select id="cot-year-filter" onchange="cotYearFilter=parseInt(this.value);filtrarCotizaciones(document.getElementById('cotizaciones-search').value);"
+        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;">
+      </select>
       <select id="cot-estatus-filter" onchange="filtrarCotizaciones(document.getElementById('cotizaciones-search').value)"
         style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
         <option value="">Todos los estados</option>

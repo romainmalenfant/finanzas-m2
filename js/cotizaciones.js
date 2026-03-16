@@ -111,12 +111,12 @@ function renderCotizacionesList(list, historial){
             ' · Vigencia: '+(c.vigencia_dias||15)+' días</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:12px;">'+
-          '<div style="font-size:16px;font-weight:700;color:#e2e8f0;">'+fmt(c.total||0)+'</div>'+
+          '<div style="font-size:16px;font-weight:700;color:var(--text-1);">'+fmt(c.total||0)+'</div>'+
           '<span style="padding:3px 10px;border-radius:5px;font-size:11px;font-weight:600;background:'+color+'22;color:'+color+';">'+label+'</span>'+
           '<button class="btn-sm" onclick="event.stopPropagation();editarCotizacion(\''+c.id+'\')" style="flex-shrink:0;">Editar</button>'+
         '</div>'+
       '</div>'+
-      '<div style="padding:8px 1.25rem;display:flex;gap:16px;font-size:11px;color:#475569;">'+
+      '<div style="padding:8px 1.25rem;display:flex;gap:16px;font-size:11px;color:var(--text-3);">'+
         '<span>Fecha: '+fmtDate(c.fecha)+'</span>'+
         (c.notas?'<span>'+esc(c.notas.slice(0,60))+'</span>':'')+
       '</div>'+
@@ -136,9 +136,9 @@ function renderHistorialCotizaciones(wrap, list){
 
   // Header toggle
   var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;cursor:pointer;user-select:none;';
-  hdr.innerHTML = '<span style="font-size:12px;font-weight:600;color:#475569;">📦 Historial archivado (>90 días) — '+list.length+' cotizaci'+(list.length===1?'ón':'ones')+'</span>'+
-    '<span id="hst-arrow" style="font-size:10px;color:#475569;">'+(cotHistorialOpen?'▲':'▼')+'</span>';
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;';
+  hdr.innerHTML = '<span style="font-size:12px;font-weight:600;color:var(--text-3);">📦 Historial archivado (>90 días) — '+list.length+' cotizaci'+(list.length===1?'ón':'ones')+'</span>'+
+    '<span id="hst-arrow" style="font-size:10px;color:var(--text-3);">'+(cotHistorialOpen?'▲':'▼')+'</span>';
 
   // Body
   var body = document.createElement('div');
@@ -155,7 +155,7 @@ function renderHistorialCotizaciones(wrap, list){
           '<div class="proj-cliente">'+esc(c.cliente_nombre||'')+'</div>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:12px;">'+
-          '<span style="font-size:15px;font-weight:600;color:#94a3b8;">'+fmt(c.total||0)+'</span>'+
+          '<span style="font-size:15px;font-weight:600;color:var(--text-2);">'+fmt(c.total||0)+'</span>'+
           '<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:'+color+'22;color:'+color+';">'+label+'</span>'+
         '</div>'+
       '</div>'+
@@ -244,14 +244,14 @@ function eliminarCotItem(tempId){
 function renderCotItemsForm(){
   var el = document.getElementById('cot-items-list');
   if(!cotItemsTemp.length){
-    el.innerHTML = '<div style="color:#475569;font-size:12px;padding:12px 0;text-align:center;">Sin items. Agrega uno abajo.</div>';
+    el.innerHTML = '<div style="color:var(--text-3);font-size:12px;padding:12px 0;text-align:center;">Sin items. Agrega uno abajo.</div>';
     return;
   }
   el.innerHTML = cotItemsTemp.map(function(item){
     var tid = item._tempId||item.id;
     var isMaq = item.tipo==='maquinado';
     var isSvc = item.tipo==='servicio';
-    return '<div style="background:#12172a;border-radius:8px;padding:12px;margin-bottom:8px;border:0.5px solid #1a2035;" id="cot-item-'+tid+'">'+
+    return '<div style="background:var(--bg-card-2);border-radius:8px;padding:12px;margin-bottom:8px;border:0.5px solid var(--border);" id="cot-item-'+tid+'">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
         '<span style="font-size:10px;font-weight:600;color:#60a5fa;text-transform:uppercase;">'+
           (isMaq?'🔩 Maquinado':isSvc?'⚙️ Servicio':'📦 Producto')+
@@ -280,7 +280,7 @@ function renderCotItemsForm(){
         '</div>'+
         '<div class="form-group">'+
           '<label>Subtotal</label>'+
-          '<div id="sub-'+tid+'" style="padding:8px 10px;background:#0b0e17;border-radius:8px;font-size:14px;font-weight:600;color:#34d399;">'+fmt((item.cantidad||0)*(item.precio_unitario||0))+'</div>'+
+          '<div id="sub-'+tid+'" style="padding:8px 10px;background:var(--bg-card);border-radius:8px;font-size:14px;font-weight:600;color:#34d399;">'+fmt((item.cantidad||0)*(item.precio_unitario||0))+'</div>'+
         '</div>'+
       '</div>'+
       '<div class="form-group">'+
@@ -323,11 +323,11 @@ function buscarClienteCot(q){
   if(!matches.length){dd.style.display='none';return;}
   dd.style.display='block';
   dd.innerHTML = matches.map(function(c){
-    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;" '+
+    return '<div style="padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);color:var(--text-1);" '+
       'onmousedown="selClienteCot(\''+c.id+'\',\''+esc(c.nombre)+'\')" '+
       'onmouseover="this.style.background=\'#1a2035\'" onmouseout="this.style.background=\'\'">'+
       '<span style="font-weight:500;">'+esc(c.nombre)+'</span>'+
-      (c.rfc?'<span style="color:#475569;font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
+      (c.rfc?'<span style="color:var(--text-3);font-size:11px;margin-left:6px;">'+esc(c.rfc)+'</span>':'')+
     '</div>';
   }).join('');
 }
@@ -540,7 +540,7 @@ async function verDetalleCotizacion(id){
   var label = EST_LABELS[c.estatus]||c.estatus;
 
   abrirDetail(c.numero||'Cotización', c.cliente_nombre, ini,
-    '<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',
+    '<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',
     function(){cerrarDetail();editarCotizacion(id);}
   );
 
@@ -570,18 +570,18 @@ async function verDetalleCotizacion(id){
     var itemsHTML = items.map(function(item){
       var isMaq=item.tipo==='maquinado', isSvc=item.tipo==='servicio';
       return '<tr>'+
-        '<td style="padding:8px 12px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;">'+
+        '<td style="padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--text-1);">'+
           '<div style="font-weight:500;">'+esc(item.descripcion||'')+'</div>'+
-          (item.material?'<div style="font-size:11px;color:#475569;">Material: '+esc(item.material)+'</div>':'')+
-          (item.notas?'<div style="font-size:11px;color:#475569;">'+esc(item.notas)+'</div>':'')+
+          (item.material?'<div style="font-size:11px;color:var(--text-3);">Material: '+esc(item.material)+'</div>':'')+
+          (item.notas?'<div style="font-size:11px;color:var(--text-3);">'+esc(item.notas)+'</div>':'')+
         '</td>'+
-        '<td style="padding:8px 12px;border-bottom:0.5px solid #1a2035;color:#94a3b8;text-align:center;">'+
+        '<td style="padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--text-2);text-align:center;">'+
           '<span style="font-size:10px;background:'+(isMaq?'#1a2035':isSvc?'#0d1f3c':'#12172a')+';color:'+(isMaq?'#60a5fa':isSvc?'#a78bfa':'#94a3b8')+';padding:2px 6px;border-radius:4px;">'+
           (isMaq?'Maquinado':isSvc?'Servicio':'Producto')+'</span>'+
         '</td>'+
-        '<td style="padding:8px 12px;border-bottom:0.5px solid #1a2035;color:#e2e8f0;text-align:right;">'+(item.cantidad||0)+' '+(item.unidad||'')+'</td>'+
-        '<td style="padding:8px 12px;border-bottom:0.5px solid #1a2035;color:#94a3b8;text-align:right;">'+fmt(item.precio_unitario||0)+'</td>'+
-        '<td style="padding:8px 12px;border-bottom:0.5px solid #1a2035;color:#34d399;font-weight:600;text-align:right;">'+fmt(item.subtotal||0)+'</td>'+
+        '<td style="padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--text-1);text-align:right;">'+(item.cantidad||0)+' '+(item.unidad||'')+'</td>'+
+        '<td style="padding:8px 12px;border-bottom:0.5px solid var(--border);color:var(--text-2);text-align:right;">'+fmt(item.precio_unitario||0)+'</td>'+
+        '<td style="padding:8px 12px;border-bottom:0.5px solid var(--border);color:#34d399;font-weight:600;text-align:right;">'+fmt(item.subtotal||0)+'</td>'+
       '</tr>';
     }).join('');
 
@@ -593,26 +593,26 @@ async function verDetalleCotizacion(id){
       '</div>'+
       // KPIs
       '<div class="detail-section"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'+
-        '<div class="detail-kpi"><div class="detail-kpi-label">Subtotal</div><div class="detail-kpi-value" style="font-size:16px;color:#e2e8f0;">'+fmt(c.subtotal||0)+'</div></div>'+
-        '<div class="detail-kpi"><div class="detail-kpi-label">IVA (16%)</div><div class="detail-kpi-value" style="font-size:16px;color:#94a3b8;">'+fmt(c.iva||0)+'</div></div>'+
+        '<div class="detail-kpi"><div class="detail-kpi-label">Subtotal</div><div class="detail-kpi-value" style="font-size:16px;color:var(--text-1);">'+fmt(c.subtotal||0)+'</div></div>'+
+        '<div class="detail-kpi"><div class="detail-kpi-label">IVA (16%)</div><div class="detail-kpi-value" style="font-size:16px;color:var(--text-2);">'+fmt(c.iva||0)+'</div></div>'+
         '<div class="detail-kpi"><div class="detail-kpi-label">Total</div><div class="detail-kpi-value c-green">'+fmt(c.total||0)+'</div></div>'+
       '</div></div>'+
       // Info
       '<div class="detail-section"><div class="detail-grid">'+
         '<div class="detail-field"><div class="detail-field-label">Fecha</div><div class="detail-field-value">'+fmtDateFull(c.fecha)+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Vigencia</div><div class="detail-field-value">'+(c.vigencia_dias||15)+' días</div></div>'+
-        (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:#94a3b8;">'+esc(c.notas)+'</div></div>':'')+
+        (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(c.notas)+'</div></div>':'')+
       '</div></div>'+
       // Items table
       '<div class="detail-section">'+
         '<div class="detail-section-title">Items ('+items.length+')</div>'+
         '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
           '<thead><tr>'+
-            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;border-bottom:0.5px solid #1a2035;">Descripción</th>'+
-            '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;border-bottom:0.5px solid #1a2035;">Tipo</th>'+
-            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;border-bottom:0.5px solid #1a2035;">Cant.</th>'+
-            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;border-bottom:0.5px solid #1a2035;">P.U.</th>'+
-            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;border-bottom:0.5px solid #1a2035;">Subtotal</th>'+
+            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Descripción</th>'+
+            '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Tipo</th>'+
+            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Cant.</th>'+
+            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">P.U.</th>'+
+            '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Subtotal</th>'+
           '</tr></thead>'+
           '<tbody>'+itemsHTML+'</tbody>'+
         '</table></div>'+
@@ -846,11 +846,11 @@ function renderKanban(){
         'ondragstart="kanbanDragStart(event,\''+c.id+'\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
           '<span style="font-size:11px;font-weight:600;color:'+color+';">'+esc(c.numero||'COT')+'</span>'+
-          '<span style="font-size:10px;color:#475569;">'+dias+'d</span>'+
+          '<span style="font-size:10px;color:var(--text-3);">'+dias+'d</span>'+
         '</div>'+
-        '<div style="font-size:12px;font-weight:500;color:#e2e8f0;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.cliente_nombre||'Sin cliente')+'</div>'+
-        '<div style="font-size:13px;font-weight:700;color:#e2e8f0;">'+fmt(c.total||0)+'</div>'+
-        (c.notas?'<div style="font-size:10px;color:#475569;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.notas)+'</div>':'')+
+        '<div style="font-size:12px;font-weight:500;color:var(--text-1);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.cliente_nombre||'Sin cliente')+'</div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--text-1);">'+fmt(c.total||0)+'</div>'+
+        (c.notas?'<div style="font-size:10px;color:var(--text-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.notas)+'</div>':'')+
       '</div>';
     }).join('');
 
@@ -858,12 +858,12 @@ function renderKanban(){
       '<div class="kanban-col-hdr" style="border-top:3px solid '+color+';">'+
         '<span>'+col.icon+' '+col.label+'</span>'+
         '<div style="display:flex;gap:8px;align-items:center;">'+
-          '<span style="font-size:10px;color:#475569;">'+fmt(total)+'</span>'+
+          '<span style="font-size:10px;color:var(--text-3);">'+fmt(total)+'</span>'+
           '<span style="font-size:10px;background:'+color+'22;color:'+color+';padding:2px 7px;border-radius:10px;">'+cards.length+'</span>'+
         '</div>'+
       '</div>'+
       '<div class="kanban-cards" id="kcol-'+col.key+'">'+
-        (cardsHTML||'<div style="color:#334155;font-size:11px;text-align:center;padding:16px 0;">Sin cotizaciones</div>')+
+        (cardsHTML||'<div style="color:var(--text-4);font-size:11px;text-align:center;padding:16px 0;">Sin cotizaciones</div>')+
       '</div>'+
     '</div>';
   }).join('');

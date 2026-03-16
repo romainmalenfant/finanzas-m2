@@ -167,10 +167,10 @@ async function loadSATData(){
     var emitidas=all.filter(function(m){return m.origen==='sat_emitida';});
     var recibidas=all.filter(function(m){return m.origen==='sat_recibida';});
     var banco=all.filter(function(m){return m.origen==='banco_abono'||m.origen==='banco_cargo';});
-    var totalEmitido=emitidas.reduce(function(a,m){return a+Number(m.monto);},0);
-    var totalRecibido=recibidas.reduce(function(a,m){return a+Number(m.monto);},0);
-    var totalAbonos=banco.filter(function(m){return m.origen==='banco_abono';}).reduce(function(a,m){return a+Number(m.monto);},0);
-    var porCobrar=emitidas.filter(function(m){return !m.conciliado;}).reduce(function(a,m){return a+Number(m.monto);},0);
+    var totalEmitido=emitidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var totalRecibido=recibidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var totalAbonos=banco.filter(function(m){return m.origen==='banco_abono';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var porCobrar=emitidas.filter(function(m){return !m.conciliado;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('sat-emitido').textContent=fmt(totalEmitido);
     document.getElementById('sat-cobrado').textContent=fmt(totalAbonos);
     document.getElementById('sat-recibido').textContent=fmt(totalRecibido);
@@ -201,7 +201,7 @@ function renderFacturasEmitidas(list){
           '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
         '<td class="muted">'+esc(numFac)+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
-        '<td class="monto" style="color:#16a34a;">'+fmt(Number(f.monto))+'</td>'+
+        '<td class="monto" style="color:#16a34a;">'+fmt(parseFloat(f.monto)||0)+'</td>'+
         '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(cobrada?'#dbeafe':'#dcfce7')+';color:'+(cobrada?'#1d4ed8':'#16a34a')+';">'+(cobrada?'Cobrada':'Vigente')+'</span></td>'+
       '</tr>';
     }).join('')+
@@ -224,7 +224,7 @@ function renderMovsBanco(list){
       return '<tr>'+
         '<td class="muted">'+fmtDate(m.fecha)+'</td>'+
         '<td style="font-size:12px;color:var(--text-1);">'+esc((m.descripcion||'-').slice(0,55))+'</td>'+
-        '<td class="monto" style="color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'+':'−')+fmt(Number(m.monto))+'</td>'+
+        '<td class="monto" style="color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'+':'−')+fmt(parseFloat(m.monto)||0)+'</td>'+
         '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(esAbono?'#dcfce7':'#fee2e2')+';color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'Abono':'Cargo')+'</span></td>'+
       '</tr>';
     }).join('')+
@@ -248,7 +248,7 @@ function renderFacturasRecibidas(list){
         '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||'-').slice(0,40))+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
         '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
-        '<td class="monto" style="color:#dc2626;">'+fmt(Number(f.monto))+'</td>'+
+        '<td class="monto" style="color:#dc2626;">'+fmt(parseFloat(f.monto)||0)+'</td>'+
         '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(pagada?'#dbeafe':'#fef3c7')+';color:'+(pagada?'#1d4ed8':'#d97706')+';">'+(pagada?'Pagada':'Vigente')+'</span></td>'+
       '</tr>';
     }).join('')+
@@ -556,7 +556,7 @@ async function conciliarMes(){
       var fechaF=new Date(f.fecha+'T12:00');
       var match=abonos.find(function(a){
         if(abonosUsados.has(a.id))return false;
-        var diff=Math.abs(Number(a.monto)-Number(f.monto))/Math.max(Number(f.monto),1);
+        var diff=Math.abs(Number(a.monto)-(parseFloat(f.monto)||0))/Math.max((parseFloat(f.monto)||0),1);
         if(diff>0.05)return false;
         var dias=(new Date(a.fecha+'T12:00')-fechaF)/(1000*60*60*24);
         return dias>=-1&&dias<=60;
@@ -575,7 +575,7 @@ function mostrarPreviewConciliacion(matches,año,mes){
   var total=matches.reduce(function(a,m){return a+Number(m.factura.monto);},0);
   var html='<div style="padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;margin-bottom:14px;"><b>'+matches.length+' coincidencias</b> · <b style="color:#3B6D11">'+fmt(total)+'</b></div>'+
     '<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 1fr 90px;"><span>Factura</span><span>Abono bancario</span><span style="text-align:right">Monto</span></div>'+
-    matches.map(function(m){return '<div class="sat-row" style="grid-template-columns:1fr 1fr 90px;align-items:start;"><div><div style="font-size:12px;font-weight:500;">'+esc((m.factura.contraparte||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.factura.fecha)+'</div></div><div><div style="font-size:12px;font-weight:500;">'+esc((m.abono.descripcion||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.abono.fecha)+'</div></div><div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(Number(m.factura.monto))+'</div></div>';}).join('');
+    matches.map(function(m){return '<div class="sat-row" style="grid-template-columns:1fr 1fr 90px;align-items:start;"><div><div style="font-size:12px;font-weight:500;">'+esc((m.factura.contraparte||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.factura.fecha)+'</div></div><div><div style="font-size:12px;font-weight:500;">'+esc((m.abono.descripcion||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.abono.fecha)+'</div></div><div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(parseFloat(m.factura.monto)||0)+'</div></div>';}).join('');
   document.getElementById('sat-preview-title').textContent='Confirmar conciliación — '+MONTHS[mes-1]+' '+año;
   document.getElementById('sat-preview-body').innerHTML=html;
   document.getElementById('btn-confirmar-sat').textContent='Confirmar';
@@ -611,7 +611,7 @@ async function loadCartera(){
     var el=document.getElementById('cartera-list');
     var ct=document.getElementById('cartera-count');
     if(!pendientes.length){ct.textContent='Sin pendientes';el.innerHTML='<div class="empty-state">No hay facturas pendientes de cobro ✓</div>';return;}
-    var totalPendiente=pendientes.reduce(function(a,f){return a+Number(f.monto);},0);
+    var totalPendiente=pendientes.reduce(function(a,f){return a+(parseFloat(f.monto)||0);},0);
     ct.textContent=pendientes.length+' pendiente'+(pendientes.length!==1?'s':'')+' · '+fmt(totalPendiente);
     var grupos={g0:[],g30:[],g60:[],g90:[]};
     pendientes.forEach(function(f){
@@ -638,7 +638,7 @@ async function loadCartera(){
           '<td class="muted">'+esc(numFac)+'</td>'+
           '<td class="muted">'+fmtDate(i.f.fecha)+'</td>'+
           '<td class="muted">'+i.dias+'d</td>'+
-          '<td class="monto" style="color:'+b.color+';">'+fmt(Number(i.f.monto))+'</td>'+
+          '<td class="monto" style="color:'+b.color+';">'+fmt(parseFloat(i.f.monto)||0)+'</td>'+
         '</tr>';
       }).join('');
     });

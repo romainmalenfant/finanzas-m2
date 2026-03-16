@@ -7,7 +7,7 @@ function abrirDetail(titulo, subtitulo, iniciales, bodyHTML, editFn){
   var eb=document.getElementById('detail-edit-btn');
   if(editFn){eb.style.display='block';eb.onclick=editFn;}
   else eb.style.display='none';
-  document.getElementById('detail-modal').style.display='block';
+  document.getElementById('detail-modal').style.display='flex';
 }
 
 // ── Empresa detail ────────────────────────────────────────

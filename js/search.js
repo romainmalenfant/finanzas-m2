@@ -204,15 +204,20 @@ document.addEventListener('keydown',function(e){
     else abrirKBar();
   }
   if(e.key==='Escape'){
-    var dm=document.getElementById('detail-modal');if(dm&&dm.style.display==='block'){dm.style.display='none';return;}
-    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proj-modal','form-mvmt-modal','cot-modal','conv-modal'];
+    // Close kbar first
+    var kb=document.getElementById('kbar-overlay');
+    if(kb&&kb.style.display==='flex'){cerrarKBar();return;}
+    // Close detail modal
+    var dm=document.getElementById('detail-modal');
+    if(dm&&dm.style.display==='flex'){dm.style.display='none';return;}
+    // Close any open modal (flex = open)
+    var modals=['cot-modal','conv-modal','form-mvmt-modal','proj-modal',
+                'cliente-modal','prov-modal','contacto-modal','empleado-modal',
+                'entrega-modal','sat-preview-modal'];
     for(var i=0;i<modals.length;i++){
       var m=document.getElementById(modals[i]);
-      if(m&&m.style.display==='block'){m.style.display='none';return;}
+      if(m&&m.style.display==='flex'){m.style.display='none';return;}
     }
-  }
-  if(e.key==='Escape'&&document.getElementById('kbar-overlay').style.display==='flex'){
-    cerrarKBar();
   }
 });
 

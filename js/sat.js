@@ -378,13 +378,33 @@ async function confirmarImportSAT(){
     var rows=[];
     satPendingEmitidas.forEach(function(f){
       if(!f.uuid||f.total<=0)return;
-      rows.push({id:'sat_e_'+f.uuid.replace(/-/g,'').slice(0,22),fecha:f.fecha_emision,descripcion:f.nombre_receptor||f.rfc_receptor||'',contraparte:f.nombre_receptor||'',monto:f.total,tipo:'ingreso',categoria:'venta',origen:'sat_emitida',uuid_sat:f.uuid,rfc_contraparte:f.rfc_receptor||null,conciliado:false,year:f.year,month:f.month,usuario:'SAT'});
+      rows.push({id:'sat_e_'+f.uuid.replace(/-/g,'').slice(0,22),fecha:f.fecha_emision,descripcion:f.nombre_receptor||f.rfc_receptor||'',contraparte:f.nombre_receptor||'',monto:f.total,tipo:'ingreso',categoria:'venta',origen:'sat_emitida',uuid_sat:f.uuid,rfc_contraparte:f.rfc_receptor||null,conciliado:false,year:f.year,month:f.month,usuario:'SAT',numero_factura:f.uuid.slice(0,8).toUpperCase()});
     });
     satPendingRecibidas.forEach(function(f){
       if(!f.uuid||f.total<=0)return;
       rows.push({id:'sat_r_'+f.uuid.replace(/-/g,'').slice(0,22),fecha:f.fecha_emision,descripcion:f.nombre_emisor||f.rfc_emisor||'',contraparte:f.nombre_emisor||'',monto:f.total,tipo:'egreso',categoria:'compra',origen:'sat_recibida',uuid_sat:f.uuid,rfc_contraparte:f.rfc_emisor||null,conciliado:false,year:f.year,month:f.month,usuario:'SAT'});
     });
     if(rows.length){var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:true});if(error)throw error;}
+
+    // Auto-vincular cliente_id por RFC en facturas emitidas
+    try{
+      var allRfcs=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
+      if(allRfcs.length){
+        var {data:cliMatch}=await sb.from('clientes').select('id,rfc').in('rfc',allRfcs);
+        var rfcToId={};
+        (cliMatch||[]).forEach(function(c){rfcToId[c.rfc]=c.id;});
+        // Update each movimiento with its cliente_id
+        for(var ri=0;ri<satPendingEmitidas.length;ri++){
+          var f=satPendingEmitidas[ri];
+          var cid=rfcToId[f.rfc_receptor];
+          if(cid){
+            var movId='sat_e_'+f.uuid.replace(/-/g,'').slice(0,22);
+            await sb.from('movimientos_v2').update({cliente_id:cid}).eq('id',movId);
+          }
+        }
+      }
+    }catch(linkErr){console.warn('Auto-link cliente_id:',linkErr);}
+
     // Auto-crear clientes
     var clientesNuevos=0,proveedoresNuevos=0;
     if(satPendingEmitidas.length){

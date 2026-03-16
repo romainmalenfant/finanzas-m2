@@ -933,9 +933,16 @@
         <option value="perdida">Perdida</option>
       </select>
       <span style="font-size:12px;color:#475569;" id="cot-count">0 cotizaciones</span>
+      <div class="view-toggle">
+        <button id="btn-view-lista" class="active" onclick="toggleCotView('lista')">☰ Lista</button>
+        <button id="btn-view-kanban" onclick="toggleCotView('kanban')">⬛ Kanban</button>
+      </div>
       <button class="btn-primary" onclick="abrirNuevaCotizacion()">+ Nueva cotización</button>
     </div>
-    <div id="cotizaciones-list"><div class="empty-state">Sin cotizaciones</div></div>
+    <div id="cot-lista-wrap">
+      <div id="cotizaciones-list"><div class="empty-state">Sin cotizaciones</div></div>
+    </div>
+    <div id="cot-kanban-wrap" style="display:none;"></div>
   </div>
 
   <!-- ── Modal cotización (crear/editar) ───────────────── -->

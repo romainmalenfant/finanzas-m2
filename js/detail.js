@@ -313,7 +313,99 @@ async function verDetalleProyecto(id){
           '</div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
+
+    // Load and render SAT invoices linked to this project
+    await renderFacturasProyecto(id, p.cliente_id||null, p.nombre_cliente||null);
   }catch(e){console.error('Detalle proyecto:',e);document.getElementById('detail-body').innerHTML='<div style="padding:16px;color:#f87171;font-size:12px;">Error: '+esc(String(e.message||e))+'</div>';}
+}
+
+async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
+  try{
+    // Get invoices linked to this project OR to this client (sat_emitida)
+    var queries = [];
+    var {data:byProj} = await sb.from('movimientos_v2')
+      .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
+      .eq('origen','sat_emitida')
+      .eq('proyecto_id', proyId);
+    queries = byProj||[];
+
+    // Also get unlinked invoices for this client (to allow linking)
+    var unlinked = [];
+    if(clienteId){
+      var {data:byClient} = await sb.from('movimientos_v2')
+        .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
+        .eq('origen','sat_emitida')
+        .eq('cliente_id', clienteId)
+        .is('proyecto_id', null);
+      unlinked = byClient||[];
+    }
+
+    var linkedIds = new Set(queries.map(function(f){return f.id;}));
+    var totalFacturado = queries.reduce(function(a,f){return a+(parseFloat(f.monto)||0);},0);
+
+    var html = '<div class="detail-section">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+        '<div class="detail-section-title" style="margin-bottom:0;">Facturas SAT vinculadas</div>'+
+        '<span style="font-size:12px;color:#34d399;font-weight:600;">'+fmt(totalFacturado)+'</span>'+
+      '</div>';
+
+    if(queries.length){
+      html += queries.map(function(f){
+        return '<div class="detail-list-item">'+
+          '<div>'+
+            '<div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
+            '<div style="font-size:10px;color:#475569;">'+fmtDate(f.fecha)+(f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:8px;">'+
+            '<span style="font-weight:600;color:#34d399;">'+fmt(f.monto)+'</span>'+
+            '<button class="btn-sm" style="color:#f87171;font-size:10px;padding:2px 8px;" onclick="desvincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" title="Desvincular">×</button>'+
+          '</div>'+
+        '</div>';
+      }).join('');
+    } else {
+      html += '<div style="color:#334155;font-size:12px;padding:4px 0;">Sin facturas vinculadas</div>';
+    }
+
+    // Unlinked invoices for this client — show button to link
+    if(unlinked.length){
+      html += '<div style="margin-top:10px;">'+
+        '<div style="font-size:11px;color:#475569;margin-bottom:6px;">Facturas de '+esc(nombreCliente||'este cliente')+' sin proyecto:</div>'+
+        unlinked.map(function(f){
+          return '<div class="detail-list-item" style="opacity:.75;">'+
+            '<div>'+
+              '<div style="font-size:12px;color:#94a3b8;">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
+              '<div style="font-size:10px;color:#475569;">'+fmtDate(f.fecha)+'</div>'+
+            '</div>'+
+            '<div style="display:flex;align-items:center;gap:8px;">'+
+              '<span style="font-size:12px;color:#94a3b8;">'+fmt(f.monto)+'</span>'+
+              '<button class="btn-sm" style="font-size:10px;padding:2px 8px;" onclick="vincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" >+ Vincular</button>'+
+            '</div>'+
+          '</div>';
+        }).join('')+
+      '</div>';
+    }
+
+    html += '</div>';
+
+    var body = document.getElementById('detail-body');
+    if(body) body.innerHTML += html;
+  }catch(e){console.warn('Facturas proyecto:',e);}
+}
+
+async function vincularFacturaProyecto(facturaId, proyId){
+  try{
+    await sb.from('movimientos_v2').update({proyecto_id: proyId}).eq('id', facturaId);
+    showStatus('✓ Factura vinculada al proyecto');
+    verDetalleProyecto(proyId);
+  }catch(e){showError('Error: '+e.message);}
+}
+
+async function desvincularFacturaProyecto(facturaId, proyId){
+  try{
+    await sb.from('movimientos_v2').update({proyecto_id: null}).eq('id', facturaId);
+    showStatus('Factura desvinculada');
+    verDetalleProyecto(proyId);
+  }catch(e){showError('Error: '+e.message);}
 }
 
 function cerrarDetail(){document.getElementById('detail-modal').style.display='none';}

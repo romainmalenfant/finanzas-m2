@@ -142,7 +142,7 @@ function agregarCotItem(tipo){
 }
 
 function eliminarCotItem(tempId){
-  cotItemsTemp = cotItemsTemp.filter(function(i){return (i._tempId||i.id) != tempId;});
+  cotItemsTemp = cotItemsTemp.filter(function(i){return String(i._tempId||i.id)!==String(tempId);});
   renderCotItemsForm();
   recalcCotTotal();
 }
@@ -198,7 +198,7 @@ function renderCotItemsForm(){
 }
 
 function updateCotItem(tempId, field, value){
-  var item = cotItemsTemp.find(function(i){return (i._tempId||i.id)==tempId;});
+  var item = cotItemsTemp.find(function(i){return String(i._tempId||i.id)===String(tempId);});
   if(!item) return;
   item[field] = value;
   item.subtotal = (parseFloat(item.cantidad)||0)*(parseFloat(item.precio_unitario)||0);
@@ -408,7 +408,8 @@ async function confirmarConversion(){
       fecha_pedido: new Date().toISOString().split('T')[0],
       fecha_entrega: fechaEntrega,
       year: año,
-      cotizacion_id: cotId
+      cotizacion_id: cotId,
+      activo: true
     };
 
     var {data:proj,error:pe} = await sb.from('proyectos').insert([proyData]).select().single();
@@ -533,15 +534,15 @@ async function verDetalleCotizacion(id){
 // ── Empresa config (editar aquí) ─────────────────────────
 var EMPRESA_CONFIG = {
   nombre:    'Grupo M2',
-  slogan:    'Maquinados Industriales',
+  slogan:    'Maquinado Industrial de Precisión',
   direcciones: [
-    'Querétaro',
-    'Tampico'
+    'Querétaro: Blvd. Bernardo Quintana 123, Col. Centro, C.P. 76000',
+    'Tampico: Av. Hidalgo 456, Col. Industrial, C.P. 89000'
   ],
-  web:       'www.grupom2.com.mx',
-  tel:       '+52 56 5035 8701',
-  email:     'contacto@grupom2.com.mx',
-  banco:     'BBVA · CLABE: 012680001205003565 · Cuenta: 0120500356',
+  web:       'www.grupom2.mx',
+  tel:       '+52 442 000 0000',
+  email:     'contacto@grupom2.mx',
+  banco:     'BBVA · CLABE: 012345678901234567 · Cuenta: 1234567890',
   legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
              'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
   logo:      null // se carga automáticamente desde el DOM

@@ -561,7 +561,7 @@ async function verDetalleCotizacion(id){
     } else if(c.estatus==='cerrada'){
       acciones = '<div style="display:flex;gap:8px;">'+
         '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">📄 PDF</button>'+
-        (c.proyecto_id?'<button class="btn-sm" onclick="cerrarDetail();switchTab(\'proyectos\',document.getElementById(\'sb-proyectos\'))">Ver proyecto →</button>':'')+
+        (c.proyecto_id?'<button class="btn-sm" onclick="cerrarDetail();switchTab(\'proyectos\',document.getElementById(\'sb-proyectos\'));setTimeout(function(){verDetalleProyecto(\''+c.proyecto_id+'\');},600);">Ver proyecto →</button>':'')+
       '</div>';
     } else {
       acciones = '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">📄 PDF</button>';

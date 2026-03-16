@@ -94,11 +94,15 @@ async function verDetalleEmpresa(id){
       '</div>'+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos '+año+'</div>'+
         mvmts.slice(0,6).map(function(m){
-          var col=CAT_COLORS[m.categoria]||'#475569';
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||m.contraparte||'').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div></div>'+
-            '<span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span></div>';
-        }).join('')+'</div>':'');
+          var desc=(m.descripcion&&m.descripcion!=='undefined'&&m.descripcion!=='null')?m.descripcion:
+                   (m.contraparte&&m.contraparte!=='undefined'&&m.contraparte!=='null')?m.contraparte:null;
+          if(!desc&&!(parseFloat(m.monto)||0))return '';
+          var col=CAT_COLORS[m.categoria]||'var(--text-3)';
+          return '<div class="detail-list-item"><div>'+
+            '<div style="font-size:12px;color:var(--text-1);">'+(desc||'Sin descripción').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+(m.fecha?' · '+(CAT_LABELS[m.categoria]||m.categoria||''):'')+'</div>'+
+            '</div><span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span></div>';
+        }).filter(Boolean).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
   }catch(e){
     console.error('Detalle empresa:',e);

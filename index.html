@@ -17,12 +17,12 @@
   <!-- ── Detail view modal ────────────────────────────── -->
   <div class="modal-overlay" id="detail-modal" style="z-index:500;padding:1rem;">
     <div class="detail-modal-box">
-      <div class="modal-hdr" style="background:#0b0e17;">
+      <div class="modal-hdr" style="background:var(--bg-card);">
         <div style="display:flex;align-items:center;gap:12px;">
           <div class="detail-avatar" id="detail-avatar">?</div>
           <div>
             <div class="modal-title" id="detail-title">—</div>
-            <div style="font-size:11px;color:#475569;margin-top:2px;" id="detail-subtitle"></div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px;" id="detail-subtitle"></div>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
@@ -36,28 +36,28 @@
 
   <div id="toast-container"></div>
   <!-- ── Login screen ─────────────────────────────────── -->
-  <div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#08090f;display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div id="login-screen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg-app);display:flex;align-items:center;justify-content:center;z-index:9999;">
     <div style="width:100%;max-width:360px;padding:0 1.5rem;">
       <div style="text-align:center;margin-bottom:2rem;">
         <div style="width:56px;height:56px;background:#3B82F6;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;overflow:hidden;padding:4px;">
           <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAIAAAC2BqGFAAAODklEQVR42u2ce1hU553Hv+cyZ27AhJuggNxFvGs0Ca63an2UR02KTdvVtPFJu332aXfTuPtstnG3mphoY9s8NjW12rTxqbaYNmnjDfGyRJCooEjxBolAFKqgXGYA53buZ/+YEZgRmGMcLfR5v8/7D2fO+857PufM7/a+B0rTNBA9fNEEAQFNQBMR0AQ0AU1EQBPQRAQ0AU1AExHQBDQRAU1AE9BEBDQBTURAE9AENBEBTUATEdAENAFNREAT0EQENAFNQBMR0AQ0EQFNQBPQRA9ZbHiG6Xai+Ubfn5qG0QlIiNPbXZRQfw2KDFD+7o/ZkJasp2u7w8HzPCgKAAXERkdbTCYAkGQ0NkEU/GOGkAaKgS0S8bGwmB4GaCoMb2UJElb9G46fgMHgP6IoSE/Fh+9iXLqOa9SwdiN2FYJl+45EROCj9/DE1KG7VtTUvF9UJMuyD7SiKLlZWd9btcrIcfh1If5rIxja95EuGU3ISsPCOXj+WWSlDj/T4XTjs0aoKhTF3wB8Wo+1r8LtDd191wf4ze/9t8fXVBUdnai/PnS/q9ev/6m4mBcEVdNUVVU1TVEUl8fjf3TqG+HxBMwqZHO7UH0RW7Zh0dfwzu8gK8PPRrMMKCqgmU0oKcembSE6nruEDT8FTYGm+/oC4Dhkjh2iX5vdvmffPrfXyzAMRVEURWmqarVYvp6fbzIaAYBhAsbU02ganAFmE+wOvLwR634SRtYP0xmaOGzfhQ+LBz2hswsvrYfdAYYJOM4LWLkcM6cM1s/t9e7et6/NbmfvdvSZv68uWTIuLS0MM2cYcAa88xu8WzgSQFMUFBk/3ITahgE+VRSs24LqCzBygRZfwBMz8NP/hWFgRy0ryp8OH66/ft3A9p0gSdL8J5+cO3NmOCfP0HhrJ5pbR0J4x7JoacXaDXC6gz96930UfgiTMeCgJCNpDHb8BAmxgw1ZfPJkRU1NAGVZnpidVbB4MdXf7ykqZAmSrLfJMoLiApbFzVbsOzKcwruhDIgR5Wew8ed460d9B09XY+NbfhvaH43JhLffwORxgw12pqamuKyM6WdqZEUZFRPzzaefMRsD79nieTh1Hqqi9/n1eHHjJjQtYEoUUF6JH7wAmh72oH2e7de7MWMyVj8DAG2deGk9enrAcQFBnqJg/X9ixaIhwowPios1TaPvXraqqkaOe+7pp0fF3vMLWLoAC/KgqPpAA7KKHXuwaaufu99Y07jRCqcbtsiRkBnSNFQV//NjXL4KAC9vxqXaAMo+B/jCKvzghZBhRi9lTdM0TfvKokUTs7MH/TFZzbqaxYwoK76+ApERAQaEouH2QJBGgunotXdt7XjxR5g2CfuKgk0zL+BLc/HmOjAD33iXx7P7o4/a7PYg0zxv1qyFeXlhm+T1G+DFwARHA8OCoYYxaE2DpgWYNo5DVQ3OVsPABlyMKCErHds3wxYx4EhKb5jRm3kCkiyPS0t7dskSWqf1VDXU1uPcBdRfg9s1gI0WJZyugigExJqqirhoWC3DFbSmwWiE2QxHYIzMMgATHORFReKXbw6R8h4uK6u4eLE/ZUVVY2y2bz3zjNWiD8HRcmzfhYpquJzQBi93sAawQdNTMTEn+Pc3vECbTdi0Dm++jeYb6Mco+DRQ2PQKvvTUEGHGkfJytt9jq2magWVXLV8+JiEh9Ey8PF7dip27IQrgOBiN9/24FOQP7zhakvHUNPzyx7BY/dWPe8WL+P4L+O6qwcawd3V9dOyYoij9A2RFVZfOnTt9woTQc5AVvLwZP98JTYXReB/Vpd6blP9lzHti2CcsXh6L/gmbXwEo3Fsj5HksX4xX/2NID8pazOZ764s9Lpeq6ojb3j+AXYUwm75IFOzlMSkXW9YNlqAOv/DuX5/Di/8CQQxgLYiYPBHvvAGreeAn/d83oLTSFhm5esUKi8XSHyvLMOVVVScqK0PXFLe9F5yAhPaZKkQJvIB5s7H3V8hIGQm1jl69uhZfXQFeuPuLljEqHju2IClx4PO3bMf236LlFoDxGRnfyM+nqIC6OQUcKCmpbWwc6kvP1uBqQ7B70DR4ebg9AzdehNGIqZOw9XXsew+5meGMbx8FaJMRv3gdLbdQeR6cAZwRb7+OWYMU5wr3Y+sOGI294crsGTM6urqKTpxg7wbRNE0Lorj34MGX1qwZICf0qfoSeAFmU0CEZzFjzT8jZxCCtgiMy8KU8TAbw87gUSUs8dHYuQVf+TYar+NnP8TKpQOfVlGD/34DihJkVZctWNDhcFTU1HB3n1CGYdo6OwsPHvze6tWmAWOJW+3BjkEU8d1vYet6/D30CBdnc7Pw3lZs24yXvj3wCX9rxfdfgcMBNvj2swyzatmynPR0SZZ7DxoMhtrGxv0l/4cBV+NEOdg60zRysvB3EvtIv23OTMwZpGTs9uLF9ai7Olh2YLVY1hQU/GLPng6Ho7fezzJMaeXZpIREvZXo8jNY+BQMLHQulFLAmERwhpEGeghfv+EtHCkJMKn3KCEubk1Bwa/27vXyPEPTAHxO8i/HjiXGx2enhlpO5Qw4eBSfVMLAQueStCRj5TJs3RC8BjRSQe/+C3bu1pPp5qSnfyM/f8+BA5qm+bIYmqbdXu8fDhxYu2ZNtM0Wuo7Y1Q39C/+ShLN/hVdAxIOWO4bHBpqi45AlnQHv7Bkz8ufNkxWlN+BjGabl9u3CQ4dESUc9k6bBMPfR2JGSsOiaBQXqPmayfMGCp6ZNC3KMF+rqikpLMVw1IreEMQMFISzLHj91qvLixX9c0BQFSfKvb/Y26X5WJRQFkhTQXZSGtqRWi+X5goKE2FhRkhRVVVRV1TRRkopOnPDw/N0xZchKwLBfrA2X8M4WgaULUVwClvXvc5NlTJmINN2FgiULUfc5GNrfXdUQ/Rgenzx0p8S4uOdXrvzjoUO8KFJ3t4TlZGRwvjJQ3gyUnARD69t7N7gznD0rLIkiFZ7/iK4B3f1r6hqirMFF9KHV44ai3IWiwWKCidPTT5REQZR666hWs7mvptrueNDnkaIwKubBY7vwgSb6h3SGI1FhS1i8PP/ptWuCKGYkJyfEhd4Z7fZ6G5qaFEWJiozMHjs2ZBCtqGpbZ2difDxNUQDa7Xar2RxyzdDe09Pc0qKp6qjY2JTRo3VeS2t7e3Nrq4njcjMzTcbwVPKY11577cFH6XA4fr9/v8vj8QrC6erqqMiI+JiYobvUNTYWlZYaOa62oeHG7dvj0tKoIVm7PZ4/Hz06MTvbt+PgSHk5TVEh7+iJioqaujoKqLpyWZSVsTpYl1ed+7iykqHpW+3tpy9cSE9OtprNw+WJLiotnTohd+7jM31EJB0uSJbl8ZmZBYsXK6q6bffuzq6uQSvLPv+oaUq/bFCDpse7SLL85NSpedOnd3R17T106PEJE8ymocopN9tun79S+51nn7VFRgI4VV1dVFq6pqCAfuAtYWGw0S6Px+nxTM+d4PvR3eroYHWkrRRFiaIoiGKnw6GoqsFg0NOF6iur6QraepdmJEmigJAGqqGpKTs11UcZwMzJk5xut9PtHhZPtIFlVVXhBSHCYmlubT1/5XJ6csryBQtCfDHDXGlocHu9127eXD5/fnRUVKgSBe3b1u/7kxdERkfUxTBMxYULre3tLe1ts6dNN4cyuBaT+VZ7R++fHi+vAYZwlDvC8EQbOW5CZtaBkhJHd/e03NyMlBRFxx5OSZZz0tNXr1jxxKRJre3tIVe1rWZztM32yfnzLo+nvqmp3WFPGTNGj4FKSkiYNG7ccyuenjVlSsjzJ2Zntzsc5y5d8ni9jp6egx9/nJOebgmHjQ5PHK0oasmZU/VNzSzDWC2WZfPnx0ZHD93ls2vXWtraFuXlCaL4QXHx0nnzQvpPp9u97/jxO243RVFL5szJSg39Ps/JqqqYqKjJOTn6r6Wts/NwWZkgSaqiZKWlfTkvjxluCQsvCpIkR1qtOnNJqp+j89lTPR2dbrfFZNJ/8doXysGdbhdn4IwcFy44JDMkmSHJDO/fpggwGcELMHIQJRg5dDlBaYiw+jf60zQUBRwHVQVNAYCkwN6NpFHw8HB7EB8Dew8MLKKskGR/F5qGywNJRqwNsuK3Ed1O2CJw244oKygKgoSYKFCUfw+xqoKhQdPo6IKsID4ajm7YomA0PGwG4ckMg1RSccbl8fSlbYfLcbQM52uRloStu5CahJPn0NyClttQVFTVotuJsjOoroOJw8mz+FsrRAXHPgE0XPwMn34OVcWHxXB5MD4Dl+txuQH7j8PpxKfXcekz3HGhx4mrTWhpwx+LMD4TB0sQ/RhKK1BWCYqGKOFsDS5fhaKAZmA1450/QFJAU9hRiOTRGOX3w1fq6y9dvZqRkjIyTEdmytjE/slxfCySxyArDY3N4Dg0tcBggL0bsTE4/VdYODA0UpOgqXB0444bt+3gBSgaTEawLFQVkVYkJsDR44uNYTYiIxUdXaBpaBoSYlH3OZwuJCX4j8ycjIxk2CKQGAeTCYKENgd6nLjjxpFTuHYTRiNkBY/ZEBkBZ9++9FFxcVmpYx8Gk0fiDFUVNA0NkGUYWKgaBBHddzA6HndcfQvMNA1JBssCGmQFXh5REZAk8CIirXB5YGBh5KBq0FQwDFTV/+ZahAVuLzgDKIAXYLX07W2kKMgKKPjfAJNkuD0wm6BqkGVYTPDwsJgHe6VjpIEmIlEHAU1AExHQBDQRAU1AE9BEBDQBTURAE9AENBEBTUAT0AQBAU1AExHQBDQBTURAE9BEBDQBTUATEdAENBEBTUAT0EQENAFNREAT0AQ00cPX/wPxcTg5lQC3vwAAAABJRU5ErkJggg==" alt="M2" style="width:100%;height:100%;object-fit:contain;">
         </div>
-        <div style="font-size:20px;font-weight:600;color:#e2e8f0;">Grupo M2</div>
-        <div style="font-size:13px;color:#475569;margin-top:4px;">Maquinado Industrial · Finanzas</div>
+        <div style="font-size:20px;font-weight:600;color:var(--text-1);">Grupo M2</div>
+        <div style="font-size:13px;color:var(--text-3);margin-top:4px;">Maquinado Industrial · Finanzas</div>
       </div>
 
-      <div id="login-error" style="display:none;background:#2a0d0d;border:0.5px solid #f87171;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px;color:#f87171;"></div>
+      <div id="login-error" style="display:none;background:#fee2e2;border:0.5px solid #f87171;border-radius:8px;padding:10px 14px;margin-bottom:1rem;font-size:13px;color:#dc2626;" class="login-error-box"></div>
 
       <div style="display:flex;flex-direction:column;gap:12px;">
         <div>
-          <label style="display:block;font-size:12px;color:#475569;margin-bottom:6px;">Correo electrónico</label>
+          <label style="display:block;font-size:12px;color:var(--text-3);margin-bottom:6px;">Correo electrónico</label>
           <input type="email" id="login-email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')hacerLogin()"
-            style="width:100%;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:14px;background:#12172a;color:#e2e8f0;box-sizing:border-box;">
+            style="width:100%;padding:10px 14px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:var(--bg-input);color:var(--text-1);box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font-size:12px;color:#475569;margin-bottom:6px;">Contraseña</label>
+          <label style="display:block;font-size:12px;color:var(--text-3);margin-bottom:6px;">Contraseña</label>
           <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')hacerLogin()"
-            style="width:100%;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:14px;background:#12172a;color:#e2e8f0;box-sizing:border-box;">
+            style="width:100%;padding:10px 14px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:14px;background:var(--bg-input);color:var(--text-1);box-sizing:border-box;">
         </div>
         <button id="login-btn" onclick="hacerLogin()"
           style="width:100%;padding:11px;background:#3B82F6;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;margin-top:4px;">
@@ -227,7 +227,7 @@
           <div style="position:relative;">
             <input type="text" id="mvmt-cliente-search" placeholder="Buscar empresa..." autocomplete="off"
               oninput="buscarCliente(this.value)" style="width:100%;">
-            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-cliente-id">
           <div id="cliente-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;align-items:center;justify-content:space-between;">
@@ -245,7 +245,7 @@
           <div style="position:relative;">
             <input type="text" id="mvmt-prov-search" placeholder="Buscar proveedor..." autocomplete="off"
               oninput="buscarProveedor(this.value)" style="width:100%;">
-            <div id="prov-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+            <div id="prov-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-prov-id">
           <div id="prov-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;align-items:center;justify-content:space-between;">
@@ -262,12 +262,12 @@
           <label>Factura que se está pagando</label>
           <div style="position:relative;">
             <input type="text" id="factura-search-input" placeholder="Buscar por folio, descripción o monto..."
-              style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;"
+              style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);"
               oninput="filtrarFacturasPendientes(this.value)" onclick="mostrarDropdownFacturas()">
-            <div id="facturas-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;max-height:200px;overflow-y:auto;z-index:300;margin-top:2px;"></div>
+            <div id="facturas-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;z-index:300;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-factura-sel">
-          <div id="factura-seleccionada" style="display:none;margin-top:6px;padding:8px 10px;background:#12172a;border:0.5px solid #34d39944;border-radius:6px;font-size:12px;color:#34d399;"></div>
+          <div id="factura-seleccionada" style="display:none;margin-top:6px;padding:8px 10px;background:var(--bg-input);border:0.5px solid #34d39944;border-radius:6px;font-size:12px;color:#34d399;"></div>
         </div>
 
         <!-- Monto + Moneda -->
@@ -428,22 +428,22 @@
     <!-- Consulta NL — SIEMPRE ARRIBA -->
     <div class="input-card" style="margin-bottom:1.5rem;">
       <div style="display:flex;gap:8px;">
-        <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
+        <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);" onkeydown="if(event.key==='Enter')responderConsulta()">
         <button class="btn-primary" onclick="responderConsulta()">Consultar</button>
       </div>
-      <div id="query-result" style="font-size:13px;color:#94a3b8;margin-top:10px;min-height:0;line-height:1.6;"></div>
+      <div id="query-result" style="font-size:13px;color:var(--text-2);margin-top:10px;min-height:0;line-height:1.6;"></div>
     </div>
 
     <!-- KPIs YTD hero -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div class="mcard-hero"><div class="mlabel">Ventas YTD</div><div class="mvalue-hero c-green" id="db-ventas-ytd">$0</div><div class="mtrend" id="db-ventas-mom" style="font-size:11px;color:#475569;margin-top:4px;"></div></div>
-      <div class="mcard-hero"><div class="mlabel">Utilidad operativa YTD</div><div class="mvalue-hero c-util-pos" id="db-util-ytd">$0</div><div class="mtrend" id="db-util-mom" style="font-size:11px;color:#475569;margin-top:4px;"></div></div>
+      <div class="mcard-hero"><div class="mlabel">Ventas YTD</div><div class="mvalue-hero c-green" id="db-ventas-ytd">$0</div><div class="mtrend" id="db-ventas-mom" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div></div>
+      <div class="mcard-hero"><div class="mlabel">Utilidad operativa YTD</div><div class="mvalue-hero c-util-pos" id="db-util-ytd">$0</div><div class="mtrend" id="db-util-mom" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Cobranza YTD</div><div class="mvalue c-blue" id="db-cobr-ytd">$0</div><div class="mtrend" id="db-cobr-mom" style="font-size:10px;color:#475569;margin-top:3px;"></div></div>
-      <div class="mcard"><div class="mlabel">Gastos YTD</div><div class="mvalue c-red" id="db-gasto-ytd">$0</div><div class="mtrend" id="db-gasto-mom" style="font-size:10px;color:#475569;margin-top:3px;"></div></div>
-      <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="db-por-cobrar">$0</div><div class="mtrend" style="font-size:10px;color:#475569;margin-top:3px;">Facturas pendientes</div></div>
-      <div class="mcard"><div class="mlabel">Flujo de caja YTD</div><div class="mvalue c-util-pos" id="db-flujo-ytd">$0</div><div class="mtrend" style="font-size:10px;color:#475569;margin-top:3px;">Cobranza − Gastos</div></div>
+      <div class="mcard"><div class="mlabel">Cobranza YTD</div><div class="mvalue c-blue" id="db-cobr-ytd">$0</div><div class="mtrend" id="db-cobr-mom" style="font-size:10px;color:var(--text-3);margin-top:3px;"></div></div>
+      <div class="mcard"><div class="mlabel">Gastos YTD</div><div class="mvalue c-red" id="db-gasto-ytd">$0</div><div class="mtrend" id="db-gasto-mom" style="font-size:10px;color:var(--text-3);margin-top:3px;"></div></div>
+      <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="db-por-cobrar">$0</div><div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Facturas pendientes</div></div>
+      <div class="mcard"><div class="mlabel">Flujo de caja YTD</div><div class="mvalue c-util-pos" id="db-flujo-ytd">$0</div><div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Cobranza − Gastos</div></div>
     </div>
 
     <!-- Últimos movimientos -->
@@ -460,27 +460,27 @@
         <div class="mvmts-hdr">
           <div class="sec-title" style="margin-bottom:0;">Cuentas por cobrar</div>
           <div style="display:flex;gap:16px;align-items:baseline;">
-            <span style="font-size:11px;color:#475569;" id="cxc-num-facturas">0 facturas</span>
+            <span style="font-size:11px;color:var(--text-3);" id="cxc-num-facturas">0 facturas</span>
             <span style="font-size:16px;font-weight:700;color:#fbbf24;" id="cxc-total">$0</span>
           </div>
         </div>
         <!-- Antigüedad bands -->
-        <div id="cxc-antiguedad" style="padding:8px 1.25rem;border-bottom:0.5px solid #1a2035;">
+        <div id="cxc-antiguedad" style="padding:8px 1.25rem;border-bottom:0.5px solid var(--border);">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;" id="cxc-bands">
-            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">0–30d</div>
+            <div style="text-align:center;padding:6px 4px;background:var(--bg-input);border-radius:6px;">
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">0–30d</div>
               <div style="font-size:13px;font-weight:600;color:#34d399;" id="cxc-b0">$0</div>
             </div>
-            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">31–60d</div>
+            <div style="text-align:center;padding:6px 4px;background:var(--bg-input);border-radius:6px;">
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">31–60d</div>
               <div style="font-size:13px;font-weight:600;color:#fbbf24;" id="cxc-b1">$0</div>
             </div>
-            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">61–90d</div>
+            <div style="text-align:center;padding:6px 4px;background:var(--bg-input);border-radius:6px;">
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">61–90d</div>
               <div style="font-size:13px;font-weight:600;color:#f97316;" id="cxc-b2">$0</div>
             </div>
-            <div style="text-align:center;padding:6px 4px;background:#12172a;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">+90d</div>
+            <div style="text-align:center;padding:6px 4px;background:var(--bg-input);border-radius:6px;">
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">+90d</div>
               <div style="font-size:13px;font-weight:600;color:#f87171;" id="cxc-b3">$0</div>
             </div>
           </div>
@@ -494,21 +494,21 @@
         <div class="mvmts-hdr">
           <div class="sec-title" style="margin-bottom:0;">Cuentas por pagar</div>
           <div style="display:flex;gap:16px;align-items:baseline;">
-            <span style="font-size:11px;color:#475569;" id="cxp-num-facturas">0 facturas</span>
+            <span style="font-size:11px;color:var(--text-3);" id="cxp-num-facturas">0 facturas</span>
             <span style="font-size:16px;font-weight:700;color:#f87171;" id="cxp-total">$0</span>
           </div>
         </div>
         <!-- Vence pronto -->
-        <div style="padding:8px 1.25rem;border-bottom:0.5px solid #1a2035;">
+        <div style="padding:8px 1.25rem;border-bottom:0.5px solid var(--border);">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
             <div style="padding:8px 10px;background:#2a0d0d44;border:0.5px solid #f8717122;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">Vencidas (+30 días)</div>
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">Vencidas (+30 días)</div>
               <div style="font-size:14px;font-weight:700;color:#f87171;" id="cxp-vence30">$0</div>
-              <div style="font-size:10px;color:#475569;" id="cxp-vence30-num">0 facturas</div>
+              <div style="font-size:10px;color:var(--text-3);" id="cxp-vence30-num">0 facturas</div>
             </div>
-            <div style="padding:8px 10px;background:#12172a;border-radius:6px;">
-              <div style="font-size:9px;color:#475569;margin-bottom:2px;">Resto pendiente</div>
-              <div style="font-size:14px;font-weight:700;color:#94a3b8;" id="cxp-resto">$0</div>
+            <div style="padding:8px 10px;background:var(--bg-input);border-radius:6px;">
+              <div style="font-size:9px;color:var(--text-3);margin-bottom:2px;">Resto pendiente</div>
+              <div style="font-size:14px;font-weight:700;color:var(--text-2);" id="cxp-resto">$0</div>
             </div>
           </div>
         </div>
@@ -542,17 +542,17 @@
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total contactos</div><div class="mvalue c-blue" id="cont-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="cont-k-activos">0</div></div>
-      <div class="mcard"><div class="mlabel">Con empresa vinculada</div><div class="mvalue" id="cont-k-empresas" style="color:#94a3b8;">0</div></div>
+      <div class="mcard"><div class="mlabel">Con empresa vinculada</div><div class="mvalue" id="cont-k-empresas" style="color:var(--text-2);">0</div></div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-      <div style="font-size:13px;color:#475569;" id="contactos-count">0 contactos</div>
+      <div style="font-size:13px;color:var(--text-3);" id="contactos-count">0 contactos</div>
       <button class="btn-primary" onclick="abrirNuevoContacto()">+ Nuevo contacto</button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:1rem;">
       <input type="text" id="contactos-search" placeholder="Buscar por nombre, empresa o cargo..." oninput="filtrarContactos(this.value)"
-        style="flex:1;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <select id="contactos-activo-filter" onchange="filtrarContactos(document.getElementById('contactos-search').value)"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
@@ -575,7 +575,7 @@
         </div>
         <div class="form-group">
           <label>Empresa</label>
-          <select id="contacto-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+          <select id="contacto-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
             <option value="">— Sin empresa —</option>
           </select>
         </div>
@@ -589,7 +589,7 @@
         </div>
       </div>
       <div style="padding:0 1.25rem 1rem;">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2);">
           <input type="checkbox" id="contacto-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
           Contacto activo
         </label>
@@ -604,20 +604,20 @@
   <!-- Tab Empleados -->
   <div id="tab-empleados" style="display:none;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-      <div style="font-size:13px;color:#475569;" id="empleados-count">0 empleados</div>
+      <div style="font-size:13px;color:var(--text-3);" id="empleados-count">0 empleados</div>
       <button class="btn-primary" onclick="abrirNuevoEmpleado()">+ Nuevo empleado</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total empleados</div><div class="mvalue c-blue" id="emp-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="emp-k-activos">0</div></div>
       <div class="mcard"><div class="mlabel">Nómina mensual</div><div class="mvalue c-amber" id="emp-k-nomina">$0</div></div>
-      <div class="mcard"><div class="mlabel">Áreas</div><div class="mvalue" id="emp-k-areas" style="color:#94a3b8;">0</div></div>
+      <div class="mcard"><div class="mlabel">Áreas</div><div class="mvalue" id="emp-k-areas" style="color:var(--text-2);">0</div></div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:1rem;">
       <input type="text" id="empleados-search" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarEmpleados(this.value)"
-        style="flex:1;padding:9px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <select id="empleados-activo-filter" onchange="filtrarEmpleados(document.getElementById('empleados-search').value)"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
@@ -653,7 +653,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Estatus</label>
-            <select id="emp-estatus" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <select id="emp-estatus" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
               <option value="Activo">Activo</option>
               <option value="Inactivo">Inactivo</option>
               <option value="Baja">Baja</option>
@@ -661,7 +661,7 @@
           </div>
           <div class="form-group">
             <label>Tipo de contrato</label>
-            <select id="emp-contrato" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <select id="emp-contrato" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
               <option value="">— Seleccionar —</option>
               <option value="nomina">Nómina</option>
               <option value="honorarios">Honorarios</option>
@@ -678,8 +678,8 @@
           <div class="form-group"><label>CLABE bancaria</label><input type="text" id="emp-clabe" placeholder="18 dígitos" maxlength="18"></div>
           <div class="form-group"><label>Días de vacaciones</label><input type="number" id="emp-vacaciones" placeholder="0" min="0"></div>
         </div>
-        <div style="padding:0 0 12px;border-bottom:0.5px solid #1a2035;margin-bottom:12px;">
-          <div style="font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Contacto de emergencia</div>
+        <div style="padding:0 0 12px;border-bottom:0.5px solid var(--border);margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Contacto de emergencia</div>
           <div class="form-row">
             <div class="form-group"><label>Nombre</label><input type="text" id="emp-emg-nombre" placeholder="Nombre completo"></div>
             <div class="form-group"><label>Teléfono</label><input type="tel" id="emp-emg-tel" placeholder="+52 442 000 0000"></div>
@@ -687,16 +687,16 @@
         </div>
         <div class="form-group"><label>Notas internas</label><textarea id="emp-notas" placeholder="Observaciones..." style="min-height:50px;"></textarea></div>
         <div style="display:flex;gap:16px;margin-bottom:4px;">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);">
             <input type="checkbox" id="emp-tiene-contrato" style="width:14px;height:14px;accent-color:#3B82F6;"> Contrato firmado
           </label>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#94a3b8;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);">
             <input type="checkbox" id="emp-imss-activo" style="width:14px;height:14px;accent-color:#3B82F6;"> IMSS activo
           </label>
         </div>
       </div>
       <div style="padding:0 1.25rem 1rem;">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2);">
           <input type="checkbox" id="emp-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
           Empleado activo
         </label>
@@ -728,7 +728,7 @@
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0">Movimientos del mes</div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
+          <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
             <option value="fecha_desc">📅 Fecha ↓ reciente</option>
             <option value="fecha_asc">📅 Fecha ↑ antiguo</option>
             <option value="monto_desc">💰 Monto ↓ mayor</option>
@@ -756,18 +756,18 @@
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
       <input type="text" id="proj-search" placeholder="Buscar por cliente, pedido o tipo de pieza..."
         oninput="filtrarProyectos(this.value)"
-        style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <button class="btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;">
-      <select id="proj-year-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;"></select>
-      <select id="proj-status-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;">
+      <select id="proj-year-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
+      <select id="proj-status-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)" style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
         <option value="">Todos los estados</option>
         <option value="En proceso">En proceso</option>
         <option value="Completado">Completado</option>
         <option value="Atrasado">Atrasado</option>
       </select>
-      <span style="font-size:12px;color:#475569;" id="proj-count">0 proyectos</span>
+      <span style="font-size:12px;color:var(--text-3);" id="proj-count">0 proyectos</span>
     </div>
     <div id="proyectos-list"><div class="empty-state">Sin proyectos registrados</div></div>
   </div>
@@ -778,19 +778,19 @@
     <div style="display:grid;grid-template-columns:1fr 1fr 2fr 2fr;gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total empresas</div><div class="mvalue c-blue" id="cli-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Activas (90d)</div><div class="mvalue c-green" id="cli-k-activos">0</div></div>
-      <div class="mcard"><div class="mlabel">Top facturadoras YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
-      <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudoras</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard"><div class="mlabel">Top facturadoras YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
+      <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudoras</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
       <input type="text" id="clientes-search" placeholder="Buscar empresa por nombre o RFC..." oninput="filtrarClientes(this.value)"
-        style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <select id="clientes-activo-filter" onchange="filtrarClientes(document.getElementById('clientes-search').value)"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
-      <span style="font-size:12px;color:#475569;flex-shrink:0;" id="clientes-count">0 empresas</span>
+      <span style="font-size:12px;color:var(--text-3);flex-shrink:0;" id="clientes-count">0 empresas</span>
       <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>
     </div>
     <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
@@ -802,18 +802,18 @@
     <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total proveedores</div><div class="mvalue c-blue" id="prov-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Cuentas por pagar</div><div class="mvalue c-red" id="prov-k-cxp">$0</div></div>
-      <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores proveedores YTD</div><div id="prov-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:#94a3b8;">—</div></div>
+      <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores proveedores YTD</div><div id="prov-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
     </div>
     <!-- Búsqueda y lista -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
       <input type="text" id="proveedores-search" placeholder="Buscar por nombre o RFC..." oninput="filtrarProveedores(this.value)"
-        style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <select id="proveedores-activo-filter" onchange="filtrarProveedores(document.getElementById('proveedores-search').value)"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
-      <span style="font-size:12px;color:#475569;flex-shrink:0;" id="prov-count">0 proveedores</span>
+      <span style="font-size:12px;color:var(--text-3);flex-shrink:0;" id="prov-count">0 proveedores</span>
       <button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
     </div>
     <div id="proveedores-list"><div class="empty-state">Sin proveedores registrados</div></div>
@@ -870,7 +870,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Categoría</label>
-            <select id="prov-categoria" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <select id="prov-categoria" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
               <option value="">— Seleccionar —</option>
               <option value="materia_prima">Materia prima</option>
               <option value="herramienta">Herramienta / equipo</option>
@@ -882,7 +882,7 @@
           </div>
           <div class="form-group">
             <label>Calificación</label>
-            <select id="prov-calificacion" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <select id="prov-calificacion" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
               <option value="0">— Sin calificar —</option>
               <option value="5">⭐⭐⭐⭐⭐ Excelente</option>
               <option value="4">⭐⭐⭐⭐ Bueno</option>
@@ -895,7 +895,7 @@
         <div class="form-group"><label>Notas internas</label><textarea id="prov-notas" placeholder="Observaciones, condiciones especiales..." style="min-height:50px;"></textarea></div>
       </div>
       <div style="padding:0 1.25rem 1rem;">
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#94a3b8;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-2);">
           <input type="checkbox" id="prov-activo" checked style="width:16px;height:16px;accent-color:#3B82F6;">
           Proveedor activo
         </label>
@@ -922,19 +922,19 @@
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;">
       <input type="text" id="cotizaciones-search" placeholder="Buscar por número o cliente..."
         oninput="filtrarCotizaciones(this.value)"
-        style="flex:1;padding:8px 12px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <select id="cot-year-filter" onchange="cotYearFilter=parseInt(this.value);filtrarCotizaciones(document.getElementById('cotizaciones-search').value);"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#e2e8f0;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
       </select>
       <select id="cot-estatus-filter" onchange="filtrarCotizaciones(document.getElementById('cotizaciones-search').value)"
-        style="padding:6px 10px;border:0.5px solid #1a2035;border-radius:7px;background:#12172a;color:#94a3b8;font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="">Todos los estados</option>
         <option value="borrador">Borrador</option>
         <option value="enviada">Enviada</option>
         <option value="cerrada">Cerrada</option>
         <option value="perdida">Perdida</option>
       </select>
-      <span style="font-size:12px;color:#475569;" id="cot-count">0 cotizaciones</span>
+      <span style="font-size:12px;color:var(--text-3);" id="cot-count">0 cotizaciones</span>
       <div class="view-toggle">
         <button id="btn-view-lista" class="active" onclick="toggleCotView('lista')">☰ Lista</button>
         <button id="btn-view-kanban" onclick="toggleCotView('kanban')">⬛ Kanban</button>
@@ -962,9 +962,9 @@
           <div style="position:relative;">
             <input type="text" id="cot-cliente-search" placeholder="Buscar empresa..." autocomplete="off"
               oninput="buscarClienteCot(this.value)"
-              style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+              style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
             <input type="hidden" id="cot-cliente-id">
-            <div id="cot-cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#0f1420;border:0.5px solid #1a2035;border-radius:8px;z-index:400;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+            <div id="cot-cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:400;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <div id="cot-cliente-selected" style="display:none;margin-top:6px;font-size:12px;color:#34d399;"></div>
         </div>
@@ -981,7 +981,7 @@
         <!-- Items -->
         <div style="margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <label style="font-size:12px;font-weight:500;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;">Items</label>
+            <label style="font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;">Items</label>
             <div style="display:flex;gap:6px;">
               <button class="btn-sm" onclick="agregarCotItem('maquinado')">+ 🔩 Maquinado</button>
               <button class="btn-sm" onclick="agregarCotItem('servicio')">+ ⚙️ Servicio</button>
@@ -991,14 +991,14 @@
           <div id="cot-items-list"></div>
         </div>
         <!-- Totals -->
-        <div style="background:#12172a;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:6px;">
+        <div style="background:var(--bg-input);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-3);margin-bottom:6px;">
             <span>Subtotal</span><span id="cot-subtotal">$0</span>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-3);margin-bottom:8px;">
             <span>IVA (16%)</span><span id="cot-iva">$0</span>
           </div>
-          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:#e2e8f0;">
+          <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--text-1);">
             <span>Total</span><span id="cot-total" style="color:#34d399;">$0</span>
           </div>
         </div>
@@ -1023,9 +1023,9 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="conv-cot-id">
-        <div style="background:#0d2a14;border:0.5px solid #34d39944;border-radius:8px;padding:12px;margin-bottom:16px;">
+        <div style="background:#dcfce7;border:0.5px solid #34d39966;border-radius:8px;padding:12px;margin-bottom:16px;">
           <div style="font-size:12px;color:#34d399;font-weight:600;">✓ Cotización ganada</div>
-          <div style="font-size:13px;color:#e2e8f0;margin-top:4px;" id="conv-cliente">—</div>
+          <div style="font-size:13px;color:var(--text-1);margin-top:4px;" id="conv-cliente">—</div>
           <div style="font-size:14px;font-weight:700;color:#34d399;margin-top:2px;" id="conv-monto">$0</div>
         </div>
         <div class="form-group">
@@ -1079,8 +1079,8 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <div class="sec-title" style="margin-bottom:0;">Resumen SAT · <span id="sat-periodo">Marzo 2026</span></div>
         <div style="display:flex;gap:8px;">
-          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid #1a2035;border-radius:6px;font-size:12px;font-family:inherit;background:#12172a;color:#94a3b8;"></select>
-          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid #1a2035;border-radius:6px;font-size:12px;font-family:inherit;background:#12172a;color:#94a3b8;"></select>
+          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);"></select>
+          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);"></select>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="sat-metrics">
@@ -1108,7 +1108,7 @@
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
+          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
                         <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -1125,7 +1125,7 @@
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
+          <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
                         <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -1142,7 +1142,7 @@
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid #1a2035;border-radius:6px;background:#12172a;font-family:inherit;color:#94a3b8;cursor:pointer;">
+          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
                         <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="monto_desc">Monto ↓ mayor</option>
@@ -1183,7 +1183,7 @@
         <div class="form-row">
           <div class="form-group">
             <label>Cliente *</label>
-            <select id="proj-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+            <select id="proj-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
               <option value="">— Seleccionar cliente —</option>
             </select>
             <input type="hidden" id="proj-cliente">
@@ -1221,16 +1221,16 @@
         </div>
         <div class="form-group">
           <label>Contacto clave (opcional)</label>
-          <select id="proj-contacto-sel" style="width:100%;padding:8px 10px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;">
+          <select id="proj-contacto-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
             <option value="">— Sin contacto clave —</option>
           </select>
         </div>
         <!-- Facturas SAT vinculadas — solo en edición -->
         <div id="proj-facturas-section" style="display:none;margin-top:4px;">
-          <div style="font-size:11px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Facturas SAT vinculadas</div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Facturas SAT vinculadas</div>
           <div id="proj-facturas-linked" style="margin-bottom:8px;"></div>
           <div id="proj-facturas-available-wrap" style="display:none;">
-            <div style="font-size:11px;color:#475569;margin-bottom:6px;">Disponibles para vincular:</div>
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Disponibles para vincular:</div>
             <div id="proj-facturas-available"></div>
           </div>
         </div>

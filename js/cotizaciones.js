@@ -533,15 +533,15 @@ async function verDetalleCotizacion(id){
 // ── Empresa config (editar aquí) ─────────────────────────
 var EMPRESA_CONFIG = {
   nombre:    'Grupo M2',
-  slogan:    'Maquinado Industrial de Precisión',
+  slogan:    'Maquinados Industriales',
   direcciones: [
-    'Querétaro: Blvd. Bernardo Quintana 123, Col. Centro, C.P. 76000',
-    'Tampico: Av. Hidalgo 456, Col. Industrial, C.P. 89000'
+    'Querétaro',
+    'Tampico'
   ],
-  web:       'www.grupom2.mx',
-  tel:       '+52 442 000 0000',
-  email:     'contacto@grupom2.mx',
-  banco:     'BBVA · CLABE: 012345678901234567 · Cuenta: 1234567890',
+  web:       'www.grupom2.com.mx',
+  tel:       '+52 56 5035 8701',
+  email:     'contacto@grupom2.com.mx',
+  banco:     'BBVA · CLABE: 012680001205003565 · Cuenta: 0120500356',
   legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
              'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
   logo:      null // se carga automáticamente desde el DOM

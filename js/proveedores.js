@@ -65,7 +65,7 @@ function abrirNuevoProveedor(){
   document.getElementById('prov-calificacion').value=0;
   document.getElementById('prov-notas').value='';
   document.getElementById('prov-activo').checked=true;
-  document.getElementById('prov-modal').style.display='block';
+  document.getElementById('prov-modal').style.display='flex';
 }
 
 function editarProveedor(id){
@@ -83,7 +83,7 @@ function editarProveedor(id){
   document.getElementById('prov-categoria').value=p.categoria||'';
   document.getElementById('prov-calificacion').value=p.calificacion||0;
   document.getElementById('prov-notas').value=p.notas||'';
-  document.getElementById('prov-modal').style.display='block';
+  document.getElementById('prov-modal').style.display='flex';
 }
 
 function cerrarModalProveedor(){document.getElementById('prov-modal').style.display='none';}

@@ -66,7 +66,7 @@ function abrirNuevoEmpleado(){
   document.getElementById('emp-estatus').value='Activo';
   document.getElementById('empleado-id-edit').value='';
   document.getElementById('empleado-modal-title').textContent='Nuevo empleado';
-  document.getElementById('empleado-modal').style.display='block';
+  document.getElementById('empleado-modal').style.display='flex';
 }
 
 function editarEmpleado(id){
@@ -104,7 +104,7 @@ function editarEmpleado(id){
   document.getElementById('emp-notas').value='';
   document.getElementById('emp-tiene-contrato').checked=false;
   document.getElementById('emp-imss-activo').checked=false;
-  document.getElementById('empleado-modal').style.display='block';
+  document.getElementById('empleado-modal').style.display='flex';
 }
 
 async function guardarEmpleado(){

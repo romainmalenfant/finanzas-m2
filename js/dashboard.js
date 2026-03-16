@@ -186,7 +186,7 @@ async function responderConsulta(){
       '## CLIENTES REGISTRADOS\n'+clientesDetalle;
 
 
-    var apiResp=await fetch('https://iycqlbvywwogcfftciil.supabase.co/functions/v1/consultar-claude',{
+    var apiResp=await fetch('https://iycqlbvywwogcfftciil.supabase.co/functions/v1/hyper-api',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',

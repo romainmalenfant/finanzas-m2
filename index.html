@@ -799,6 +799,12 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 
   <!-- Tab Contactos -->
   <div id="tab-contactos" style="display:none;">
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Total contactos</div><div class="mvalue c-blue" id="cont-k-total">0</div></div>
+      <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="cont-k-activos">0</div></div>
+      <div class="mcard"><div class="mlabel">Con empresa vinculada</div><div class="mvalue" id="cont-k-empresas" style="color:#94a3b8;">0</div></div>
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
       <div style="font-size:13px;color:#475569;" id="contactos-count">0 contactos</div>
       <button class="btn-primary" onclick="abrirNuevoContacto()">+ Nuevo contacto</button>
@@ -2910,7 +2916,6 @@ function abrirNuevoCliente(fromForm){
   document.getElementById('cliente-rfc').value='';
   document.getElementById('cliente-ciudad').value='';
   document.getElementById('cliente-pago').value='30';
-  document.getElementById('cliente-activo').checked=true;
   document.getElementById('cliente-modal').style.display='block';
 }
 
@@ -4217,7 +4222,7 @@ document.addEventListener('keydown',function(e){
   }
   if(e.key==='Escape'){
     var dm=document.getElementById('detail-modal');if(dm&&dm.style.display==='block'){dm.style.display='none';return;}
-    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proyecto-modal','form-mvmt-modal'];
+    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proj-modal','form-mvmt-modal'];
     for(var i=0;i<modals.length;i++){
       var m=document.getElementById(modals[i]);
       if(m&&m.style.display==='block'){m.style.display='none';return;}
@@ -4894,6 +4899,9 @@ async function loadContactos(){
     var {data,error}=await sb.from('contactos').select('*,clientes(nombre)').order('nombre',{ascending:true});
     if(error)throw error;
     contactos=data||[];allContactos=contactos;
+    var kt=document.getElementById('cont-k-total'); if(kt)kt.textContent=contactos.length;
+    var ka=document.getElementById('cont-k-activos'); if(ka)ka.textContent=contactos.filter(function(c){return c.activo!==false;}).length;
+    var ke=document.getElementById('cont-k-empresas'); if(ke){var es=new Set(contactos.filter(function(c){return c.cliente_id;}).map(function(c){return c.cliente_id;}));ke.textContent=es.size;}
     // Populate cliente select in modal
     var sel=document.getElementById('contacto-cliente-sel');
     sel.innerHTML='<option value="">— Sin empresa —</option>';

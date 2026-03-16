@@ -476,10 +476,34 @@ async function convertirACotizacionCerrada(cotId){
   var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',cotId).order('orden');
   items = items||[];
 
-  // Build project name from items
-  var piezas = items.filter(function(i){return i.tipo==='maquinado';});
-  var totalPiezas = piezas.reduce(function(a,i){return a+(parseFloat(i.cantidad)||0);},0);
-  var tipoPieza = piezas.length?piezas[0].descripcion:'';
+  // Classify items
+  var maquinados = items.filter(function(i){return i.tipo==='maquinado';});
+  var servicios  = items.filter(function(i){return i.tipo==='servicio';});
+  var productos  = items.filter(function(i){return i.tipo==='producto';});
+  var totalPiezas = maquinados.reduce(function(a,i){return a+(parseFloat(i.cantidad)||0);},0);
+
+  // Build description from all items
+  var allDescs = items.map(function(i){return i.descripcion;}).filter(Boolean);
+  var tipoPieza = allDescs.slice(0,2).join(', ')+(allDescs.length>2?' y más':'');
+
+  // Build unidad from dominant type
+  var unidad = maquinados.length ? (maquinados[0].unidad||'pzas') :
+               servicios.length  ? (servicios[0].unidad||'hrs') : 'servicios';
+
+  // Build items summary HTML
+  var summaryHTML = items.length ?
+    '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Items de la cotización</div>'+
+    items.map(function(i){
+      var badge = i.tipo==='maquinado'?'🔧':i.tipo==='servicio'?'⚙️':'📦';
+      return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:0.5px solid var(--border-light);">'+
+        '<span>'+badge+' '+esc(i.descripcion||'')+(i.material?' <span style="color:var(--text-3);">('+esc(i.material)+')</span>':'')+'</span>'+
+        '<span style="color:var(--text-2);">'+fmt(parseFloat(i.subtotal)||0)+'</span>'+
+      '</div>';
+    }).join('') : '<span style="color:var(--text-3);">Sin items</span>';
+
+  // Show/hide piezas row based on whether there are maquinados
+  var piezasRow = document.getElementById('conv-piezas-row');
+  if(piezasRow) piezasRow.style.display = maquinados.length ? 'flex' : 'none';
 
   // Show confirmation modal
   cerrarDetail();
@@ -489,6 +513,8 @@ async function convertirACotizacionCerrada(cotId){
   document.getElementById('conv-pedido').value = (cot.numero||'COT-').replace('COT-','PED-');
   document.getElementById('conv-tipo-pieza').value = tipoPieza;
   document.getElementById('conv-piezas').value = Math.round(totalPiezas)||0;
+  document.getElementById('conv-unidad').value = unidad;
+  document.getElementById('conv-items-summary').innerHTML = summaryHTML;
   document.getElementById('conv-fecha-entrega').value = '';
   var fechaMin = new Date(); fechaMin.setDate(fechaMin.getDate()+7);
   document.getElementById('conv-fecha-entrega').min = fechaMin.toISOString().split('T')[0];
@@ -502,6 +528,7 @@ async function confirmarConversion(){
 
   var nombrePedido = document.getElementById('conv-pedido').value.trim();
   var tipoPieza = document.getElementById('conv-tipo-pieza').value.trim();
+  var convUnidad = (document.getElementById('conv-unidad')||{}).value||'pzas';
   var totalPiezas = parseInt(document.getElementById('conv-piezas').value)||0;
   var fechaEntrega = document.getElementById('conv-fecha-entrega').value;
 

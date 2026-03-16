@@ -1,29 +1,38 @@
 // ── Sidebar badges ────────────────────────────────────────
 function updateBadges(){
-  var hoy=new Date();
-  // SAT — facturas emitidas sin cobrar >30 días
-  if(_cxcRows){
-    var venc=_cxcRows.filter(function(m){return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}).length;
-    var b=document.getElementById('badge-sat');
-    if(b){b.style.display=venc>0?'flex':'none';b.textContent=venc>9?'9+':String(venc);}
-  }
-  // Proveedores — CxP sin pagar >30 días
-  if(_cxpRows){
-    var vp=_cxpRows.filter(function(m){return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}).length;
-    var bp=document.getElementById('badge-proveedores');
-    if(bp){bp.style.display=vp>0?'flex':'none';bp.textContent=vp>9?'9+':String(vp);}
-  }
-  // Proyectos atrasados
-  if(typeof proyectos!=='undefined'&&proyectos.length&&typeof entregasByProyecto!=='undefined'){
-    var atr=proyectos.filter(function(p){
-      var ents=entregasByProyecto[p.id]||[];
-      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
-      var est=estadoProyecto(p,entregadas);
-      return(est.lbl||est)==='Atrasado';
-    }).length;
-    var bj=document.getElementById('badge-proyectos');
-    if(bj){bj.style.display=atr>0?'flex':'none';bj.textContent=atr>9?'9+':String(atr);}
-  }
+  try{
+    var hoy=new Date();
+    // SAT — facturas emitidas sin cobrar >30 días
+    if(_cxcRows&&_cxcRows.length>=0){
+      var venc=_cxcRows.filter(function(m){
+        try{return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}catch(e){return false;}
+      }).length;
+      var b=document.getElementById('badge-sat');
+      if(b){b.style.display=venc>0?'flex':'none';b.textContent=venc>9?'9+':String(venc);}
+    }
+    // Proveedores — CxP sin pagar >30 días
+    if(_cxpRows&&_cxpRows.length>=0){
+      var vp=_cxpRows.filter(function(m){
+        try{return Math.floor((hoy-new Date(m.fecha))/(864e5))>30;}catch(e){return false;}
+      }).length;
+      var bp=document.getElementById('badge-proveedores');
+      if(bp){bp.style.display=vp>0?'flex':'none';bp.textContent=vp>9?'9+':String(vp);}
+    }
+    // Proyectos atrasados
+    if(typeof proyectos!=='undefined'&&proyectos.length&&
+       typeof entregasByProyecto!=='undefined'&&typeof estadoProyecto==='function'){
+      var atr=proyectos.filter(function(p){
+        try{
+          var ents=entregasByProyecto[p.id]||[];
+          var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+          var est=estadoProyecto(p,entregadas);
+          return(est.lbl||est)==='Atrasado';
+        }catch(e){return false;}
+      }).length;
+      var bj=document.getElementById('badge-proyectos');
+      if(bj){bj.style.display=atr>0?'flex':'none';bj.textContent=atr>9?'9+':String(atr);}
+    }
+  }catch(e){console.error('updateBadges:',e);}
 }
 
 function invalidateMovementCache(){cacheInvalidate('ytd_'+new Date().getFullYear());_ytdMvmts=null;_cxcRows=null;_cxpRows=null;}

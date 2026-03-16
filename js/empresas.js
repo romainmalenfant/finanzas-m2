@@ -73,7 +73,7 @@ function abrirNuevoCliente(fromForm){
   document.getElementById('cliente-rfc').value='';
   document.getElementById('cliente-ciudad').value='';
   document.getElementById('cliente-pago').value='30';
-  document.getElementById('cliente-modal').style.display='block';
+  document.getElementById('cliente-modal').style.display='flex';
 }
 
 function editarCliente(id){
@@ -86,7 +86,7 @@ function editarCliente(id){
   document.getElementById('cliente-rfc').value=c.rfc||'';
   document.getElementById('cliente-ciudad').value=c.ciudad||'';
   document.getElementById('cliente-pago').value=c.condiciones_pago||'30';
-  document.getElementById('cliente-modal').style.display='block';
+  document.getElementById('cliente-modal').style.display='flex';
 }
 
 function cerrarModalCliente(){

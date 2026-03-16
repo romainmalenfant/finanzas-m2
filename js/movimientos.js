@@ -173,7 +173,7 @@ async function processMovement(){
 
 // ── Metrics ──────────────────────────────────────────────
 function computeMetrics(){
-  function sum(cats){return movements.filter(function(m){return cats.includes(m.categoria);}).reduce(function(a,m){return a+Number(m.monto);},0);}
+  function sum(cats){return movements.filter(function(m){return cats.includes(m.categoria);}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);}
   var v=sum(['venta']),c=sum(['cobranza']),g=sum(['gasto','compra']),x=sum(['cuenta_por_cobrar']);
   return{ventas:v,cobr:c,gastos:g,cxc:x,util:v-g,flujo:c-g};
 }
@@ -242,15 +242,15 @@ function sortAndRender(){
         '<div class="mvmt-desc">'+esc(m.descripcion)+(m.contraparte?' · <span style="font-weight:400">'+esc(m.contraparte)+'</span>':'')+'</div>'+
         '<div class="mvmt-meta">'+
           '<span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||m.categoria)+'</span>'+
-          (m.etiqueta?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(m.etiqueta)+'</span>':'')+
-          (m.metodo_pago?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(m.metodo_pago)+'</span>':'')+
-          (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#E6F1FB;color:#185FA5;">'+esc(m.moneda)+'</span>':'')+
-          (m.origen==='banco_abono'||m.origen==='banco_cargo'?'<span class="badge" style="background:#0d1f3c;color:#60a5fa;font-size:9px;">'+(m.origen==='banco_abono'?'Banco +':'Banco −')+'</span>':'')+
+          (m.etiqueta?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.etiqueta)+'</span>':'')+
+          (m.metodo_pago?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.metodo_pago)+'</span>':'')+
+          (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#dbeafe;color:#1d4ed8;">'+esc(m.moneda)+'</span>':'')+
+          (m.origen==='banco_abono'||m.origen==='banco_cargo'?'<span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:9px;">'+(m.origen==='banco_abono'?'Banco +':'Banco −')+'</span>':'')+
           (m.usuario&&m.usuario!=='SAT'&&m.usuario!=='BBVA'?'<span class="badge badge-user">'+esc(m.usuario)+'</span>':'')+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span>'+
         '</div>'+
       '</div>'+
-      '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+'">'+(m.tipo==='egreso'||m.categoria==='gasto'||m.categoria==='compra'?'−':'+')+fmt(m.monto)+'</div>'+
+      '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+'">'+(m.tipo==='egreso'||m.categoria==='gasto'||m.categoria==='compra'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</div>'+
       '<button class="btn-del '+(isOwn?'btn-del-own':'')+'" onclick="deleteMovement(\''+esc(m.id)+'\',\''+esc(m.usuario||'')+'\');" title="'+(isOwn?'Eliminar':'Eliminar (de otro usuario)')+'">×</button>'+
     '</div>';
   }).join('');
@@ -278,7 +278,7 @@ function findDuplicate(monto, fecha, categoria){
     var dirExist=ingresos.includes(m.categoria)?'ingreso':'egreso';
     if(dirNuevo!==dirExist)return false;
     // Mismo monto ±5%
-    var diff=Math.abs(Number(m.monto)-monto)/Math.max(monto,1);
+    var diff=Math.abs((parseFloat(m.monto)||0)-monto)/Math.max(monto,1);
     if(diff>0.05)return false;
     // Fecha dentro de 10 días
     var mFecha=new Date(m.fecha+'T12:00');

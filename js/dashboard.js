@@ -242,9 +242,9 @@ async function loadCxC(){
     var top5=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var el=document.getElementById('cxc-top5');
     el.innerHTML=top5.map(function(d,i){
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid var(--border);font-size:12px;">'+
         '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
-        '<span style="color:#fbbf24;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+        '<span style="color:#d97706;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
       '</div>';
     }).join('');
   }catch(e){console.error('CxC:',e);}
@@ -279,7 +279,7 @@ async function loadCxP(){
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var el=document.getElementById('cxp-top5');
     el.innerHTML=top5.map(function(d,i){
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid var(--border);font-size:12px;">'+
         '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
         '<span style="color:#f87171;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
       '</div>';

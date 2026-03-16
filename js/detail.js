@@ -22,7 +22,7 @@ async function verDetalleEmpresa(id){
     c=cd;
   }
   var ini=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-  abrirDetail(c.nombre,c.rfc||'',ini,'<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarCliente(id);});
+  abrirDetail(c.nombre,c.rfc||'',ini,'<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarCliente(id);});
   try{
     var año=new Date().getFullYear(); var hoy=new Date();
     // Run queries sequentially to avoid or() issues
@@ -71,32 +71,32 @@ async function verDetalleEmpresa(id){
         cxcFacturas.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
           var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
             '<span style="font-weight:600;color:#fbbf24;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')  +
       ((projs||[]).length?'<div class="detail-section"><div class="detail-section-title">Proyectos '+año+'</div>'+
         projs.map(function(p){
           return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleProyecto(\''+p.id+'\');},100)">'+
             '<div><div style="font-size:12px;color:#60a5fa;">'+esc(p.nombre_pedido)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">Entrega: '+fmtDateFull(p.fecha_entrega)+'</div></div>'+
-            '<span style="font-weight:600;color:#94a3b8;">'+fmt(p.monto_total||0)+'</span></div>';
+            '<div style="font-size:10px;color:var(--text-3);">Entrega: '+fmtDateFull(p.fecha_entrega)+'</div></div>'+
+            '<span style="font-weight:600;color:var(--text-2);">'+fmt(p.monto_total||0)+'</span></div>';
         }).join('')+'</div>':'') +
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
       '</div>'+
       ((conts||[]).length?(conts).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
-        return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+esc(nombre)+'</div>'+
-          '<div style="font-size:10px;color:#475569;">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
-          (ct.telefono?'<span style="font-size:11px;color:#475569;">'+esc(ct.telefono)+'</span>':'')+'</div>';
-      }).join(''):'<div style="color:#334155;font-size:12px;padding:8px 0;">Sin contactos</div>')+
+        return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+esc(nombre)+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
+          (ct.telefono?'<span style="font-size:11px;color:var(--text-3);">'+esc(ct.telefono)+'</span>':'')+'</div>';
+      }).join(''):'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contactos</div>')+
       '</div>'+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos '+año+'</div>'+
         mvmts.slice(0,6).map(function(m){
           var col=CAT_COLORS[m.categoria]||'#475569';
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(m.descripcion||m.contraparte||'').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div></div>'+
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||m.contraparte||'').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div></div>'+
             '<span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(m.monto)+'</span></div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
@@ -115,7 +115,7 @@ async function verDetalleProveedor(id){
     p=pd;
   }
   var ini=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-  abrirDetail(p.nombre,p.rfc||'',ini,'<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProveedor(id);});
+  abrirDetail(p.nombre,p.rfc||'',ini,'<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProveedor(id);});
   try{
     var año=new Date().getFullYear(); var hoy=new Date();
     var {data:mv1}=await sb.from('movimientos_v2').select('tipo,monto,fecha,descripcion').eq('year',año).ilike('contraparte','%'+p.nombre+'%').order('fecha',{ascending:false}).limit(20);
@@ -155,19 +155,19 @@ async function verDetalleProveedor(id){
         '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Límite crédito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+
       '</div>'+
-      (p.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:#94a3b8;">'+esc(p.notas)+'</div></div>':'')+
+      (p.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(p.notas)+'</div></div>':'')+
       (cxp.length?'<div class="detail-section"><div class="detail-section-title">Facturas por pagar</div>'+
         cxp.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
           var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha)+' · <span style="color:'+color+';">'+dias+'d</span></div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(f.monto)+'</span></div>';
         }).join('')+'</div>':'')+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos</div>'+
         mvmts.slice(0,6).map(function(m){
-          return '<div class="detail-list-item"><div><div style="font-size:12px;color:#e2e8f0;">'+(m.descripcion||'').slice(0,40)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+fmtDate(m.fecha)+'</div></div>'+
+          return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||'').slice(0,40)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(m.monto)+'</span></div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
@@ -234,7 +234,7 @@ async function verDetalleEmpleado(id){
         '<div class="detail-field"><div class="detail-field-label">Nombre</div><div class="detail-field-value">'+(e.contacto_emergencia_nombre||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.contacto_emergencia_tel||'—')+'</div></div>'+
       '</div></div>':'')+
-    (e.notas?'<div class="detail-section"><div class="detail-section-title">Notas</div><div style="color:#94a3b8;font-size:13px;line-height:1.6;">'+esc(e.notas)+'</div></div>':'');
+    (e.notas?'<div class="detail-section"><div class="detail-section-title">Notas</div><div style="color:var(--text-2);font-size:13px;line-height:1.6;">'+esc(e.notas)+'</div></div>':'');
   abrirDetail(nombre,e.cargo||(e.area||''),ini,body,function(){cerrarDetail();editarEmpleado(id);});
 }
 
@@ -243,7 +243,7 @@ async function verDetalleProyecto(id){
   var p=proyectos.find(function(x){return x.id===id;});
   if(!p)return;
   var ini=(p.nombre_pedido||'?').slice(0,2).toUpperCase();
-  abrirDetail(p.nombre_pedido,p.nombre_cliente,ini,'<div style="padding:16px;color:#475569;font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProyecto(id);});
+  abrirDetail(p.nombre_pedido,p.nombre_cliente,ini,'<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProyecto(id);});
   try{
     var ents=entregasByProyecto[id]||[];
     var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
@@ -267,7 +267,7 @@ async function verDetalleProyecto(id){
           '<div class="detail-kpi"><div class="detail-kpi-label">Avance</div><div class="detail-kpi-value" style="color:'+color+';">'+pct+'%</div></div>'+
           '<div class="detail-kpi"><div class="detail-kpi-label">Estado</div><div class="detail-kpi-value" style="font-size:14px;color:'+color+';">'+lbl+'</div></div>'+
         '</div>'+
-        '<div style="margin-top:10px;background:#12172a;border-radius:6px;height:6px;overflow:hidden;">'+
+        '<div style="margin-top:10px;background:var(--bg-card-2);border-radius:6px;height:6px;overflow:hidden;">'+
           '<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:6px;"></div>'+
         '</div>'+
       '</div>'+
@@ -285,10 +285,10 @@ async function verDetalleProyecto(id){
         (empresa?
           '<div class="detail-list-item" style="cursor:pointer;" onclick="document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+empresa.id+'\');},100)">'+
             '<div><div style="font-size:13px;font-weight:500;color:#60a5fa;">'+esc(empresa.nombre)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+(empresa.rfc||'')+'</div></div>'+
-            '<span style="font-size:11px;color:#475569;">Ver detalle →</span>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+(empresa.rfc||'')+'</div></div>'+
+            '<span style="font-size:11px;color:var(--text-3);">Ver detalle →</span>'+
           '</div>':
-          '<div style="color:#334155;font-size:12px;padding:8px 0;">'+esc(p.nombre_cliente)+'</div>')+
+          '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">'+esc(p.nombre_cliente)+'</div>')+
       '</div>'+
       // Contacto clave
       '<div class="detail-section">'+
@@ -297,18 +297,18 @@ async function verDetalleProyecto(id){
         '</div>'+
         (contactoClave?
           '<div class="detail-list-item">'+
-            '<div><div style="font-size:13px;font-weight:500;color:#e2e8f0;">'+(contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:'')+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+(contactoClave.cargo||'')+(contactoClave.email?' · '+contactoClave.email:'')+'</div></div>'+
-            (contactoClave.telefono?'<span style="font-size:11px;color:#475569;">'+esc(contactoClave.telefono)+'</span>':'')+
+            '<div><div style="font-size:13px;font-weight:500;color:var(--text-1);">'+(contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:'')+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+(contactoClave.cargo||'')+(contactoClave.email?' · '+contactoClave.email:'')+'</div></div>'+
+            (contactoClave.telefono?'<span style="font-size:11px;color:var(--text-3);">'+esc(contactoClave.telefono)+'</span>':'')+
           '</div>':
-          '<div style="color:#334155;font-size:12px;padding:8px 0;">Sin contacto clave asignado</div>')+
+          '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contacto clave asignado</div>')+
       '</div>'+
       // Entregas
       (ents.length?'<div class="detail-section"><div class="detail-section-title">Historial de entregas</div>'+
         ents.map(function(e){
           return '<div class="detail-list-item">'+
-            '<div><div style="font-size:12px;color:#e2e8f0;">'+fmtDateFull(e.fecha)+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+(e.notas||'')+'</div></div>'+
+            '<div><div style="font-size:12px;color:var(--text-1);">'+fmtDateFull(e.fecha)+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+(e.notas||'')+'</div></div>'+
             '<span style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</span>'+
           '</div>';
         }).join('')+'</div>':'');
@@ -353,8 +353,8 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
       html += queries.map(function(f){
         return '<div class="detail-list-item">'+
           '<div>'+
-            '<div style="font-size:12px;color:#e2e8f0;">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
-            '<div style="font-size:10px;color:#475569;">'+fmtDate(f.fecha)+(f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+'</div>'+
+            '<div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+(f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+'</div>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:8px;">'+
             '<span style="font-weight:600;color:#34d399;">'+fmt(f.monto)+'</span>'+
@@ -363,21 +363,21 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
         '</div>';
       }).join('');
     } else {
-      html += '<div style="color:#334155;font-size:12px;padding:4px 0;">Sin facturas vinculadas</div>';
+      html += '<div style="color:var(--text-4);font-size:12px;padding:4px 0;">Sin facturas vinculadas</div>';
     }
 
     // Unlinked invoices for this client — show button to link
     if(unlinked.length){
       html += '<div style="margin-top:10px;">'+
-        '<div style="font-size:11px;color:#475569;margin-bottom:6px;">Facturas de '+esc(nombreCliente||'este cliente')+' sin proyecto:</div>'+
+        '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Facturas de '+esc(nombreCliente||'este cliente')+' sin proyecto:</div>'+
         unlinked.map(function(f){
           return '<div class="detail-list-item" style="opacity:.75;">'+
             '<div>'+
-              '<div style="font-size:12px;color:#94a3b8;">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
-              '<div style="font-size:10px;color:#475569;">'+fmtDate(f.fecha)+'</div>'+
+              '<div style="font-size:12px;color:var(--text-2);">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
+              '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+'</div>'+
             '</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+
-              '<span style="font-size:12px;color:#94a3b8;">'+fmt(f.monto)+'</span>'+
+              '<span style="font-size:12px;color:var(--text-2);">'+fmt(f.monto)+'</span>'+
               '<button class="btn-sm" style="font-size:10px;padding:2px 8px;" onclick="vincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" >+ Vincular</button>'+
             '</div>'+
           '</div>';

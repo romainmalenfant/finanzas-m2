@@ -1,3 +1,20 @@
+// ── Theme ─────────────────────────────────────────────────
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  var btn = document.getElementById('theme-toggle-btn');
+  if(btn) btn.textContent = theme==='dark' ? '☀️' : '🌙';
+  localStorage.setItem('m2_theme', theme);
+}
+function toggleTheme(){
+  var current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current==='dark' ? 'light' : 'dark');
+}
+// Init theme on load
+(function(){
+  var saved = localStorage.getItem('m2_theme') || 'light';
+  applyTheme(saved);
+})();
+
 // ── Helpers ──────────────────────────────────────────────
 function fmt(n){var a=Math.abs(Math.round(n));return(n<0?'-':'')+'$'+a.toLocaleString('es-MX');}
 function fmtDate(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');var hoy=new Date();var base=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return d.getFullYear()===hoy.getFullYear()?base:base+' '+d.getFullYear();}

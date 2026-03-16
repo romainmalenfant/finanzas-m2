@@ -137,7 +137,7 @@ function buscarKBar(q){
             '<div class="kbar-item-name">'+esc((m.contraparte||m.descripcion||'').slice(0,45))+'</div>'+
             '<div class="kbar-item-sub">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div>'+
           '</div>'+
-          '<span class="kbar-item-badge" style="color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(m.monto)+'</span>'+
+          '<span class="kbar-item-badge" style="color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span>'+
         '</div>';
       }).join(''));
   }

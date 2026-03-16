@@ -171,6 +171,28 @@ function buscarKBar(q){
   }else{
     res.innerHTML=sections.join('');
   }
+
+  // Cotizaciones
+  var cotMatch=(cotizaciones||[]).filter(function(c){
+    return (c.numero||'').toLowerCase().includes(ql)||
+           (c.cliente_nombre||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(ql);
+  }).slice(0,4);
+  if(cotMatch.length){
+    var EST_C={borrador:'#475569',enviada:'#60a5fa',cerrada:'#34d399',perdida:'#f87171'};
+    sections.push('<div class="kbar-section">Cotizaciones</div>'+
+      cotMatch.map(function(c){
+        var color=EST_C[c.estatus]||'#475569';
+        return '<div class="kbar-item" onclick="cerrarKBar();verDetalleCotizacion(\''+c.id+'\')">'+
+          '<div class="kbar-item-icon" style="background:#12172a;color:'+color+';font-size:11px;font-weight:600;">COT</div>'+
+          '<div class="kbar-item-main">'+
+            '<div class="kbar-item-name">'+esc(c.numero||'')+'</div>'+
+            '<div class="kbar-item-sub">'+esc(c.cliente_nombre||'')+ ' · '+fmt(c.total||0)+'</div>'+
+          '</div>'+
+          '<span class="kbar-item-badge" style="color:'+color+';">'+(c.estatus||'')+'</span>'+
+        '</div>';
+      }).join(''));
+    res.innerHTML=sections.join('');
+  }
 }
 
 // Keyboard shortcut
@@ -183,7 +205,7 @@ document.addEventListener('keydown',function(e){
   }
   if(e.key==='Escape'){
     var dm=document.getElementById('detail-modal');if(dm&&dm.style.display==='block'){dm.style.display='none';return;}
-    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proj-modal','form-mvmt-modal'];
+    var modals=['cliente-modal','prov-modal','contacto-modal','empleado-modal','proj-modal','form-mvmt-modal','cot-modal','conv-modal'];
     for(var i=0;i<modals.length;i++){
       var m=document.getElementById(modals[i]);
       if(m&&m.style.display==='block'){m.style.display='none';return;}

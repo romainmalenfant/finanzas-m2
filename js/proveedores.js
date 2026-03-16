@@ -78,6 +78,11 @@ function editarProveedor(id){
   document.getElementById('prov-ciudad').value=p.ciudad||'';
   document.getElementById('prov-tipo').value=p.tipo||'general';
   document.getElementById('prov-pago').value=p.condiciones_pago||'30';
+  document.getElementById('prov-clabe').value=p.clabe||'';
+  document.getElementById('prov-limite').value=p.limite_credito||0;
+  document.getElementById('prov-categoria').value=p.categoria||'';
+  document.getElementById('prov-calificacion').value=p.calificacion||0;
+  document.getElementById('prov-notas').value=p.notas||'';
   document.getElementById('prov-modal').style.display='block';
 }
 

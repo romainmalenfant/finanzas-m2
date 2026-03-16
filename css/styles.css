@@ -363,3 +363,12 @@ input[type="checkbox"],input[type="radio"]{width:auto;accent-color:#3B82F6;}
 }
 .etiq-btn:hover{background:var(--bg-hover);border-color:var(--text-3);color:var(--text-1);}
 .etiq-btn.active{background:#3B82F6;border-color:#3B82F6;color:#fff;font-weight:500;}
+
+/* ── Autocomplete ── */
+.ac-wrap{position:relative;}
+.ac-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:500;max-height:220px;overflow-y:auto;margin-top:3px;box-shadow:0 4px 16px var(--shadow);}
+.ac-item{padding:9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;border-bottom:0.5px solid var(--border-light);}
+.ac-item:last-child{border-bottom:none;}
+.ac-item:hover{background:var(--bg-hover);}
+.ac-item-name{font-size:13px;font-weight:500;color:var(--text-1);}
+.ac-item-sub{font-size:11px;color:var(--text-3);}

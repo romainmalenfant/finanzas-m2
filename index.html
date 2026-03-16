@@ -423,11 +423,6 @@
 
     <!-- Consulta NL — SIEMPRE ARRIBA -->
     <div class="input-card" style="margin-bottom:1.5rem;">
-      <div id="apikey-banner" style="margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-        <input type="password" id="apikey-input" placeholder="API key de Anthropic (sk-ant-...)"
-          style="flex:1;padding:7px 10px;border:0.5px solid #1a2035;border-radius:7px;font-family:inherit;font-size:12px;background:#12172a;color:#e2e8f0;">
-        <button class="btn-primary" onclick="saveApiKey()" style="font-size:12px;padding:6px 14px;">Guardar key</button>
-      </div>
       <div style="display:flex;gap:8px;">
         <input type="text" id="query-input" placeholder="Pregunta lo que quieras: ¿Cuánto vendimos en febrero? ¿Quién es mi cliente más grande? ¿Cuál fue el gasto de nómina?" style="flex:1;padding:10px 14px;border:0.5px solid #1a2035;border-radius:8px;font-family:inherit;font-size:13px;background:#12172a;color:#e2e8f0;" onkeydown="if(event.key==='Enter')responderConsulta()">
         <button class="btn-primary" onclick="responderConsulta()">Consultar</button>

@@ -227,7 +227,7 @@
           <div style="position:relative;">
             <input type="text" id="mvmt-cliente-search" placeholder="Buscar empresa..." autocomplete="off"
               oninput="buscarCliente(this.value)" style="width:100%;">
-            <div id="cliente-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
+            <div id="cliente-dropdown" class="ac-dropdown" style="position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:300;max-height:200px;overflow-y:auto;margin-top:2px;"></div>
           </div>
           <input type="hidden" id="mvmt-cliente-id">
           <div id="cliente-seleccionado" style="display:none;margin-top:6px;padding:6px 10px;background:#F5F4F0;border-radius:6px;font-size:12px;align-items:center;justify-content:space-between;">
@@ -575,9 +575,11 @@
         </div>
         <div class="form-group">
           <label>Empresa</label>
-          <select id="contacto-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
-            <option value="">— Sin empresa —</option>
-          </select>
+          <div class="ac-wrap">
+            <input type="text" id="contacto-empresa-search" placeholder="Buscar empresa..." autocomplete="off">
+            <input type="hidden" id="contacto-cliente-sel">
+            <div class="ac-dropdown" id="contacto-empresa-dd"></div>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Cargo</label><input type="text" id="contacto-cargo" placeholder="Director de Compras"></div>
@@ -968,11 +970,11 @@
         <!-- Cliente -->
         <div class="form-group">
           <label>Cliente *</label>
-          <select id="cot-cliente-sel" onchange="selClienteCotSel(this)">
-            <option value="">— Seleccionar cliente —</option>
-          </select>
-          <input type="hidden" id="cot-cliente-id">
-          <input type="hidden" id="cot-cliente-search">
+          <div class="ac-wrap">
+            <input type="text" id="cot-cliente-search" placeholder="Buscar cliente..." autocomplete="off">
+            <input type="hidden" id="cot-cliente-id">
+            <div class="ac-dropdown" id="cot-cliente-dd"></div>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -1189,10 +1191,12 @@
         <div class="form-row">
           <div class="form-group">
             <label>Cliente *</label>
-            <select id="proj-cliente-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
-              <option value="">— Seleccionar cliente —</option>
-            </select>
-            <input type="hidden" id="proj-cliente">
+            <div class="ac-wrap">
+              <input type="text" id="proj-cliente-search" placeholder="Buscar cliente..." autocomplete="off">
+              <input type="hidden" id="proj-cliente-sel">
+              <input type="hidden" id="proj-cliente">
+              <div class="ac-dropdown" id="proj-cliente-dd"></div>
+            </div>
           </div>
           <div class="form-group">
             <label>Nombre / No. de pedido *</label>
@@ -1227,9 +1231,11 @@
         </div>
         <div class="form-group">
           <label>Contacto clave (opcional)</label>
-          <select id="proj-contacto-sel" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
-            <option value="">— Sin contacto clave —</option>
-          </select>
+          <div class="ac-wrap">
+            <input type="text" id="proj-contacto-search" placeholder="Buscar contacto..." autocomplete="off">
+            <input type="hidden" id="proj-contacto-sel">
+            <div class="ac-dropdown" id="proj-contacto-dd"></div>
+          </div>
         </div>
         <!-- Facturas SAT vinculadas — solo en edición -->
         <div id="proj-facturas-section" style="display:none;margin-top:4px;">

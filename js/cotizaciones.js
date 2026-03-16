@@ -186,7 +186,7 @@ function renderCotItemsForm(){
         '</div>'+
         '<div class="form-group">'+
           '<label>Subtotal</label>'+
-          '<div style="padding:8px 10px;background:#0b0e17;border-radius:8px;font-size:14px;font-weight:600;color:#34d399;">'+fmt((item.cantidad||0)*(item.precio_unitario||0))+'</div>'+
+          '<div id="sub-'+tid+'" style="padding:8px 10px;background:#0b0e17;border-radius:8px;font-size:14px;font-weight:600;color:#34d399;">'+fmt((item.cantidad||0)*(item.precio_unitario||0))+'</div>'+
         '</div>'+
       '</div>'+
       '<div class="form-group">'+
@@ -202,12 +202,9 @@ function updateCotItem(tempId, field, value){
   if(!item) return;
   item[field] = value;
   item.subtotal = (parseFloat(item.cantidad)||0)*(parseFloat(item.precio_unitario)||0);
-  // Update subtotal display without full re-render
-  var el = document.getElementById('cot-item-'+tempId);
-  if(el){
-    var subtotals = el.querySelectorAll('[data-subtotal]');
-    if(subtotals.length) subtotals[0].textContent = fmt(item.subtotal);
-  }
+  // Update subtotal display directly
+  var subEl = document.getElementById('sub-'+tempId);
+  if(subEl) subEl.textContent = fmt(item.subtotal);
   recalcCotTotal();
 }
 
@@ -533,6 +530,23 @@ async function verDetalleCotizacion(id){
   }
 }
 
+// ── Empresa config (editar aquí) ─────────────────────────
+var EMPRESA_CONFIG = {
+  nombre:    'Grupo M2',
+  slogan:    'Maquinado Industrial de Precisión',
+  direcciones: [
+    'Querétaro: Blvd. Bernardo Quintana 123, Col. Centro, C.P. 76000',
+    'Tampico: Av. Hidalgo 456, Col. Industrial, C.P. 89000'
+  ],
+  web:       'www.grupom2.mx',
+  tel:       '+52 442 000 0000',
+  email:     'contacto@grupom2.mx',
+  banco:     'BBVA · CLABE: 012345678901234567 · Cuenta: 1234567890',
+  legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
+             'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
+  logo:      null // se carga automáticamente desde el DOM
+};
+
 // ── PDF ───────────────────────────────────────────────────
 async function generarPDFCotizacion(id){
   var c = cotizaciones.find(function(x){return x.id===id;});
@@ -541,84 +555,151 @@ async function generarPDFCotizacion(id){
   var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden');
   items = items||[];
 
+  // Get contacto of empresa
+  var contactoNombre = '';
+  if(c.cliente_id){
+    try{
+      var {data:conts} = await sb.from('contactos').select('nombre,apellido,cargo').eq('cliente_id',c.cliente_id).limit(1);
+      if(conts&&conts[0]){
+        var ct = conts[0];
+        contactoNombre = (ct.nombre||'')+(ct.apellido?' '+ct.apellido:'')+(ct.cargo?' · '+ct.cargo:'');
+      }
+    }catch(e){}
+  }
+
   try{
-    var doc = new jspdf.jsPDF();
-    var pw = doc.internal.pageSize.getWidth();
+    var doc = new jspdf.jsPDF({orientation:'landscape', unit:'mm', format:'letter'});
+    var pw = doc.internal.pageSize.getWidth();  // 279
+    var ph = doc.internal.pageSize.getHeight(); // 216
 
-    // Header
+    // ── Header bar ───────────────────────────────────────
     doc.setFillColor(11,14,23);
-    doc.rect(0,0,pw,40,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(20); doc.setFont('helvetica','bold');
-    doc.text('GRUPO M2',14,18);
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.setTextColor(148,163,184);
-    doc.text('Maquinado Industrial · Querétaro, México',14,26);
+    doc.rect(0,0,pw,38,'F');
 
+    // Logo from DOM
+    try{
+      var imgEl = document.querySelector('.sidebar-logo img');
+      if(imgEl && imgEl.src){
+        doc.addImage(imgEl.src,'PNG',10,5,22,22);
+      }
+    }catch(e){}
+
+    // Company name
     doc.setTextColor(255,255,255);
     doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text(c.numero||'COTIZACIÓN', pw-14, 18, {align:'right'});
+    doc.text(EMPRESA_CONFIG.nombre, 38, 17);
     doc.setFontSize(9); doc.setFont('helvetica','normal');
     doc.setTextColor(148,163,184);
-    doc.text('Fecha: '+fmtDateFull(c.fecha), pw-14, 26, {align:'right'});
-    doc.text('Vigencia: '+(c.vigencia_dias||15)+' días', pw-14, 32, {align:'right'});
+    doc.text(EMPRESA_CONFIG.slogan, 38, 24);
 
-    // Client info
-    var y = 52;
-    doc.setTextColor(30,30,30);
+    // Cotizacion number & date (right)
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(18); doc.setFont('helvetica','bold');
+    doc.text(c.numero||'COTIZACIÓN', pw-12, 16, {align:'right'});
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.setTextColor(148,163,184);
+    doc.text('Fecha: '+fmtDateFull(c.fecha), pw-12, 22, {align:'right'});
+    doc.text('Vigencia: '+(c.vigencia_dias||15)+' días a partir de esta fecha', pw-12, 28, {align:'right'});
+
+    var y = 48;
+
+    // ── Client & contact info ─────────────────────────────
+    doc.setFillColor(18,23,42);
+    doc.roundedRect(10, y-4, 120, contactoNombre?22:16, 2, 2, 'F');
+    doc.setTextColor(71,85,105);
+    doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text('DIRIGIDO A', 14, y+2);
+    doc.setTextColor(226,232,240);
     doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.text('CLIENTE', 14, y);
-    doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    doc.text(c.cliente_nombre||'', 14, y+7);
+    doc.text(c.cliente_nombre||'', 14, y+9);
+    if(contactoNombre){
+      doc.setFontSize(9); doc.setFont('helvetica','normal');
+      doc.setTextColor(148,163,184);
+      doc.text('Atención: '+contactoNombre, 14, y+16);
+    }
 
-    // Items table
+    // ── Items table ───────────────────────────────────────
+    y = contactoNombre ? 76 : 70;
+
     var tableData = items.map(function(item){
       return [
-        item.descripcion+(item.material?' ('+item.material+')':''),
+        {content: (item.descripcion||'')+(item.material?' Material: '+item.material:'')+(item.notas?' '+item.notas:''), styles:{fontSize:9}},
         item.tipo==='maquinado'?'Maquinado':item.tipo==='servicio'?'Servicio':'Producto',
         (item.cantidad||0)+' '+(item.unidad||''),
         fmt(item.precio_unitario||0),
-        fmt(item.subtotal||0)
+        {content: fmt(item.subtotal||0), styles:{fontStyle:'bold', textColor:[52,211,153]}}
       ];
     });
 
     doc.autoTable({
       head:[['Descripción','Tipo','Cantidad','P. Unitario','Subtotal']],
       body: tableData,
-      startY: y+15,
-      styles:{fontSize:9,cellPadding:4},
-      headStyles:{fillColor:[11,14,23],textColor:255,fontStyle:'bold'},
-      alternateRowStyles:{fillColor:[245,248,250]},
-      columnStyles:{4:{halign:'right'},3:{halign:'right'},2:{halign:'center'}}
-    });
-
-    var finalY = doc.lastAutoTable.finalY + 8;
-
-    // Totals
-    var totals = [
-      ['Subtotal', fmt(c.subtotal||0)],
-      ['IVA (16%)', fmt(c.iva||0)],
-      ['TOTAL', fmt(c.total||0)]
-    ];
-    doc.autoTable({
-      body: totals,
-      startY: finalY,
-      margin:{left: pw-80},
-      tableWidth: 66,
-      styles:{fontSize:10,cellPadding:4},
-      bodyStyles:{fillColor:false},
-      didDrawCell: function(data){
-        if(data.row.index===2){
-          doc.setFont('helvetica','bold');
-        }
+      startY: y,
+      margin:{left:10, right:10},
+      styles:{fontSize:9, cellPadding:3, lineColor:[26,32,53], lineWidth:0.3},
+      headStyles:{fillColor:[11,14,23], textColor:[148,163,184], fontStyle:'bold', fontSize:8},
+      alternateRowStyles:{fillColor:[15,20,32]},
+      bodyStyles:{fillColor:[18,23,42], textColor:[203,213,225]},
+      columnStyles:{
+        0:{cellWidth:'auto'},
+        1:{cellWidth:28, halign:'center'},
+        2:{cellWidth:28, halign:'center'},
+        3:{cellWidth:30, halign:'right'},
+        4:{cellWidth:35, halign:'right'}
       }
     });
 
+    var finalY = doc.lastAutoTable.finalY + 6;
+
+    // ── Totals (right side) ───────────────────────────────
+    var tx = pw - 10;
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.setTextColor(100,116,139);
+    doc.text('Subtotal:', tx - 35, finalY); doc.setTextColor(203,213,225); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
+    finalY += 6;
+    doc.setTextColor(100,116,139);
+    doc.text('IVA (16%):', tx - 35, finalY); doc.setTextColor(203,213,225); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
+    finalY += 7;
+    doc.setFillColor(11,14,23);
+    doc.roundedRect(tx-70, finalY-5, 70, 10, 2, 2, 'F');
+    doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.setTextColor(52,211,153);
+    doc.text('TOTAL:', tx - 35, finalY+2);
+    doc.text(fmt(c.total||0), tx, finalY+2, {align:'right'});
+
+    // ── Notes ─────────────────────────────────────────────
     if(c.notas){
-      var notasY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(9); doc.setTextColor(100,100,100);
-      doc.text('Notas: '+c.notas, 14, notasY);
+      finalY += 14;
+      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
+      doc.text('NOTAS:', 10, finalY);
+      doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
+      var notasLines = doc.splitTextToSize(c.notas, 160);
+      doc.text(notasLines, 10, finalY+5);
+      finalY += 5 + notasLines.length*4;
     }
+
+    // ── Footer ────────────────────────────────────────────
+    var footerY = ph - 30;
+    doc.setFillColor(11,14,23);
+    doc.rect(0, footerY, pw, 30, 'F');
+
+    // Addresses
+    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+    EMPRESA_CONFIG.direcciones.forEach(function(dir, i){
+      doc.text('📍 '+dir, 10, footerY+7+(i*5));
+    });
+
+    // Contact info (center)
+    var cx = pw/2;
+    doc.setTextColor(148,163,184);
+    doc.text('🌐 '+EMPRESA_CONFIG.web, cx, footerY+7, {align:'center'});
+    doc.text('📞 '+EMPRESA_CONFIG.tel+'   ✉ '+EMPRESA_CONFIG.email, cx, footerY+12, {align:'center'});
+    doc.text('🏦 '+EMPRESA_CONFIG.banco, cx, footerY+17, {align:'center'});
+
+    // Legal
+    doc.setTextColor(71,85,105); doc.setFontSize(6.5);
+    var legalLines = doc.splitTextToSize(EMPRESA_CONFIG.legal, pw-20);
+    doc.text(legalLines, pw/2, footerY+23, {align:'center'});
 
     doc.save((c.numero||'cotizacion')+'.pdf');
     showStatus('✓ PDF generado');

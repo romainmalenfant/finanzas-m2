@@ -263,3 +263,42 @@ select option{background:var(--bg-card);color:var(--text-1);}
 .view-toggle button:hover:not(.active){background:var(--bg-hover);color:var(--text-2);}
 @media(max-width:640px){.metrics-hero{grid-template-columns:1fr;}.topbar-brand,.topbar-sub{display:none;}}
 .topbar.hide-period .period-nav{display:none;}
+
+/* ── SAT Cartera table ── */
+.sat-table{width:100%;border-collapse:collapse;font-size:13px;}
+.sat-table th{padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:0.5px solid var(--border);background:var(--bg-card-2);white-space:nowrap;}
+.sat-table th:last-child{text-align:right;}
+.sat-table td{padding:10px 12px;border-bottom:0.5px solid var(--border-light);vertical-align:middle;color:var(--text-1);}
+.sat-table tr:last-child td{border-bottom:none;}
+.sat-table .sat-banda{padding:6px 12px;font-size:11px;font-weight:600;border-bottom:0.5px solid var(--border);}
+.sat-table td.monto{text-align:right;font-weight:600;}
+.sat-table td.muted{color:var(--text-3);font-size:12px;}
+
+/* ── Entity cards (Empresas, Contactos, Empleados, Proveedores) ── */
+.cliente-card{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-card);border:0.5px solid var(--border);border-radius:10px;margin-bottom:8px;box-shadow:0 1px 3px var(--shadow);transition:border-color .15s;}
+.cliente-card:hover{border-color:#3B82F6;}
+.cliente-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg-hover);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#3B82F6;flex-shrink:0;}
+.cliente-info{flex:1;min-width:0;}
+.cliente-nombre{font-size:13px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cliente-meta{font-size:11px;color:var(--text-3);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+
+/* ── Movement items ── */
+.mvmt-info{flex:1;min-width:0;}
+.mvmt-desc{font-size:13px;font-weight:500;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mvmt-meta{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap;}
+.mvmt-date{font-size:11px;color:var(--text-3);}
+.mvmt-amount{font-size:14px;font-weight:600;flex-shrink:0;white-space:nowrap;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;}
+.badge-user{background:var(--bg-hover);color:var(--text-3);}
+.btn-del{background:none;border:none;cursor:pointer;color:var(--text-4);font-size:16px;line-height:1;padding:2px 4px;border-radius:4px;flex-shrink:0;}
+.btn-del:hover,.btn-del-own:hover{color:#f87171;}
+
+/* ── Semantic color overrides for dark theme ── */
+[data-theme="dark"] .login-error-box{background:#2a0d0d!important;color:#f87171!important;}
+[data-theme="dark"] .badge{background:var(--bg-hover);color:var(--text-2);}
+[data-theme="dark"] .bv{background:#0d2a14;color:#34d399;}
+[data-theme="dark"] .bc{background:#0d1f3c;color:#60a5fa;}
+[data-theme="dark"] .bg{background:#2a0d0d;color:#f87171;}
+[data-theme="dark"] .bx{background:#2a1a0d;color:#fbbf24;}
+[data-theme="dark"] .badge[style*="#dbeafe"]{background:#0d1f3c!important;color:#60a5fa!important;}
+[data-theme="dark"] .badge[style*="#dcfce7"]{background:#0d2a14!important;color:#34d399!important;}

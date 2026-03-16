@@ -180,6 +180,15 @@ async function responderConsulta(){
 
       '## PROYECTOS '+año+'\n'+(proyectosDetalle||'Sin proyectos')+'\n\n'+
 
+      '## COTIZACIONES\n'+(
+        (cotizaciones||[]).length ?
+        (cotizaciones||[]).slice(0,20).map(function(c){
+          return (c.numero||'COT')+' | '+( c.cliente_nombre||'?')+' | '+
+            (c.estatus||'borrador')+' | $'+Math.round(c.total||0).toLocaleString('es-MX');
+        }).join('\n') :
+        'Sin cotizaciones'
+      )+'\n\n'+
+
       '## CLIENTES REGISTRADOS\n'+clientesDetalle;
 
     var payload={

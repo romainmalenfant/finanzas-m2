@@ -3,7 +3,7 @@
 
 // ── switchTab updated ────────────────────────────────────
 function switchTab(tab, btn){
-  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat'];
+  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat','cotizaciones'];
   all.forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if(el)el.style.display='none';
@@ -28,5 +28,6 @@ function switchTab(tab, btn){
   if(tab==='contactos')loadContactos();
   if(tab==='empleados')loadEmpleados();
   if(tab==='sat')initSATTab();
+  if(tab==='cotizaciones')loadCotizaciones();
 }
 

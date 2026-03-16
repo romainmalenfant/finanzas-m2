@@ -33,7 +33,7 @@ async function verDetalleEmpresa(id){
       mv2data=mv2||[];
     }
     var seen={}; var mvmts=[];
-    [(mv1||[])].concat(mv2data).forEach(function(m){var k=m.fecha+m.monto+m.descripcion;if(!seen[k]){seen[k]=true;mvmts.push(m);}});
+    (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'')+(m.descripcion||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
 
     var {data:cx1}=await sb.from('movimientos_v2').select('monto,fecha,descripcion,numero_factura').eq('origen','sat_emitida').eq('conciliado',false).eq('cliente_id',id);
     var cx2data=[];
@@ -42,7 +42,7 @@ async function verDetalleEmpresa(id){
       cx2data=cx2||[];
     }
     var seenC={}; var cxcFacturas=[];
-    [(cx1||[])].concat(cx2data).forEach(function(m){var k=m.fecha+m.monto;if(!seenC[k]){seenC[k]=true;cxcFacturas.push(m);}});
+    (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxcFacturas.push(m);}}); 
 
     var {data:projs}=await sb.from('proyectos').select('*').ilike('nombre_cliente','%'+c.nombre+'%').eq('year',año);
     var {data:conts}=await sb.from('contactos').select('*').eq('cliente_id',id).order('nombre');
@@ -129,7 +129,7 @@ async function verDetalleProveedor(id){
       mv2data=mv2||[];
     }
     var seen={}; var mvmts=[];
-    [(mv1||[])].concat(mv2data).forEach(function(m){var k=m.fecha+m.monto;if(!seen[k]){seen[k]=true;mvmts.push(m);}});
+    (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
 
     var {data:cx1}=await sb.from('movimientos_v2').select('monto,fecha,descripcion,numero_factura').eq('origen','sat_recibida').eq('conciliado',false).ilike('contraparte','%'+p.nombre+'%');
     var cx2data=[];
@@ -138,7 +138,7 @@ async function verDetalleProveedor(id){
       cx2data=cx2||[];
     }
     var seenC={}; var cxp=[];
-    [(cx1||[])].concat(cx2data).forEach(function(m){var k=m.fecha+m.monto;if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
+    (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
 
     var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cxpTotal=cxp.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);

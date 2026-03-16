@@ -613,23 +613,27 @@ async function loadCartera(){
       else grupos.g90.push({f:f,dias:dias});
     });
     var bandas=[{key:'g90',label:'Más de 90 días',color:'#791F1F',bg:'#F7C1C1'},{key:'g60',label:'61-90 días',color:'#A32D2D',bg:'#FCEBEB'},{key:'g30',label:'31-60 días',color:'#854F0B',bg:'#FAEEDA'},{key:'g0',label:'0-30 días',color:'#3B6D11',bg:'#EAF3DE'}];
-    var html='<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 90px 80px 60px 70px;"><span>Cliente</span><span>No. Factura</span><span style="text-align:right">Monto</span><span>Días</span><span>Fecha</span></div>';
+    var html='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+      '<th>Cliente</th><th>No. Factura</th><th>Fecha</th><th>Días</th><th style="text-align:right;">Monto</th>'+
+      '</tr></thead><tbody>';
     bandas.forEach(function(b){
       var items=grupos[b.key];if(!items.length)return;
       var subtotal=items.reduce(function(a,i){return a+Number(i.f.monto);},0);
-      html+='<div style="padding:8px 1.25rem;background:'+b.bg+';border-bottom:.5px solid #d3d1c7;"><span style="font-size:11px;font-weight:500;color:'+b.color+';">'+b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · '+fmt(subtotal)+'</span></div>';
+      html+='<tr><td colspan="5" class="sat-banda" style="background:'+b.bg+';color:'+b.color+';">'+
+        b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · <b>'+fmt(subtotal)+'</b></td></tr>';
       html+=items.map(function(i){
         var numFac=i.f.numero_factura||'—';
-        return '<div class="sat-row" style="grid-template-columns:1fr 90px 80px 60px 70px;">'+
-          '<div><div style="font-size:12px;font-weight:500;">'+esc((i.f.contraparte||i.f.rfc_contraparte||'-').slice(0,28))+'</div>'+
-          '<div style="font-size:10px;color:#888780;">'+esc(i.f.rfc_contraparte||'')+'</div></div>'+
-          '<div style="font-size:11px;color:#5f5e5a;">'+esc(numFac)+'</div>'+
-          '<div style="text-align:right;font-weight:500;color:'+b.color+';">'+fmt(Number(i.f.monto))+'</div>'+
-          '<div style="color:#73726c;font-size:12px;">'+i.dias+'d</div>'+
-          '<div style="color:#73726c;font-size:11px;">'+fmtDate(i.f.fecha)+'</div>'+
-        '</div>';
+        return '<tr>'+
+          '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((i.f.contraparte||'-').slice(0,35))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+esc(i.f.rfc_contraparte||'')+'</div></td>'+
+          '<td class="muted">'+esc(numFac)+'</td>'+
+          '<td class="muted">'+fmtDate(i.f.fecha)+'</td>'+
+          '<td class="muted">'+i.dias+'d</td>'+
+          '<td class="monto" style="color:'+b.color+';">'+fmt(Number(i.f.monto))+'</td>'+
+        '</tr>';
       }).join('');
     });
+    html+='</tbody></table></div>';
     el.innerHTML=html;
   }catch(e){console.error('Cartera:',e);}
 }

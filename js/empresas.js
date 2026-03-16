@@ -155,7 +155,7 @@ async function loadClientesKPIs(){
     if(top5fac.length){
       topEl.innerHTML=top5fac.map(function(d,i){
         return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
           '<span style="color:#34d399;flex-shrink:0;">'+fmt(d[1])+'</span>'+
         '</div>';
       }).join('');
@@ -170,7 +170,7 @@ async function loadClientesKPIs(){
     if(top5deu.length){
       deudorEl.innerHTML=top5deu.map(function(d,i){
         return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
           '<span style="color:#fbbf24;flex-shrink:0;">'+fmt(d[1])+'</span>'+
         '</div>';
       }).join('');

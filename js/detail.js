@@ -87,9 +87,10 @@ async function verDetalleEmpresa(id){
       '</div>'+
       ((conts||[]).length?(conts).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
-        return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+esc(nombre)+'</div>'+
+        return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleContacto(\''+ct.id+'\');},100);">'+
+          '<div><div style="font-size:12px;font-weight:500;color:#3B82F6;">'+esc(nombre)+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
-          (ct.telefono?'<span style="font-size:11px;color:var(--text-3);">'+esc(ct.telefono)+'</span>':'')+'</div>';
+          '<span style="font-size:11px;color:var(--text-3);">→</span></div>';
       }).join(''):'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contactos</div>')+
       '</div>'+
       (mvmts.length?'<div class="detail-section"><div class="detail-section-title">Últimos movimientos '+año+'</div>'+
@@ -153,9 +154,9 @@ async function verDetalleProveedor(id){
       '<div class="detail-section"><div class="detail-section-title">Datos</div><div class="detail-grid">'+
         '<div class="detail-field"><div class="detail-field-label">RFC</div><div class="detail-field-value">'+(p.rfc||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Ciudad</div><div class="detail-field-value">'+(p.ciudad||'—')+'</div></div>'+
-        '<div class="detail-field"><div class="detail-field-label">Tipo</div><div class="detail-field-value">'+(p.tipo||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Tipo</div><div class="detail-field-value">'+(p.tipo?p.tipo.charAt(0).toUpperCase()+p.tipo.slice(1):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Condiciones</div><div class="detail-field-value">'+(p.condiciones_pago||'—')+'</div></div>'+
-        '<div class="detail-field"><div class="detail-field-label">Categoría</div><div class="detail-field-value">'+(p.categoria||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">Categoría</div><div class="detail-field-value">'+(p.categoria?p.categoria.charAt(0).toUpperCase()+p.categoria.slice(1):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Calificación</div><div class="detail-field-value">'+(p.calificacion?'⭐'.repeat(p.calificacion):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Límite crédito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+

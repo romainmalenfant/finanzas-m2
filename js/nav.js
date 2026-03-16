@@ -88,3 +88,9 @@ function nextMonth(){if(curMonth===11){curMonth=0;curYear++;}else{curMonth++;}lo
 function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMovements();}
 function handleKey(e){if(e.ctrlKey&&e.key==='Enter')processMovement();}
 
+
+// ── Polling ──────────────────────────────────────────────
+function startPolling(){
+  if(pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(function(){loadMovements();}, 60000);
+}

@@ -1,3 +1,20 @@
+
+function initContactoEmpresaAC(){
+  if(!document.getElementById('contacto-empresa-search')) return;
+  // Clear
+  document.getElementById('contacto-empresa-search').value='';
+  document.getElementById('contacto-cliente-sel').value='';
+  makeAutocomplete('contacto-empresa-search','contacto-cliente-sel','contacto-empresa-dd',
+    function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
+    null
+  );
+}
+function setContactoEmpresa(id, nombre){
+  var inp=document.getElementById('contacto-empresa-search');
+  var hid=document.getElementById('contacto-cliente-sel');
+  if(inp) inp.value=nombre||'';
+  if(hid) hid.value=id||'';
+}
 // ── Contactos ─────────────────────────────────────────────
 var contactos=[], allContactos=[];
 
@@ -73,13 +90,10 @@ function abrirNuevoContacto(){
   document.getElementById('contacto-tel').value='';
   document.getElementById('contacto-notas').value='';
   document.getElementById('contacto-cliente-sel').value='';
-  // Ensure clientes loaded
-  if(!clientes.length)loadClientes();
-  else{
-    var sel=document.getElementById('contacto-cliente-sel');
-    sel.innerHTML='<option value="">— Sin empresa —</option>';
-    clientes.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
-  }
+  var empInp=document.getElementById('contacto-empresa-search');
+  if(empInp)empInp.value='';
+  if(!clientes.length)loadClientes().then(initContactoEmpresaAC);
+  else initContactoEmpresaAC();
   document.getElementById('contacto-activo').checked=true;
   document.getElementById('contacto-modal').style.display='flex';
 }
@@ -118,7 +132,7 @@ async function guardarContacto(){
     email:document.getElementById('contacto-email').value.trim()||null,
     telefono:document.getElementById('contacto-tel').value.trim()||null,
     notas:document.getElementById('contacto-notas').value.trim()||null,
-    cliente_id:document.getElementById('contacto-cliente-sel').value||null,
+    cliente_id:document.getElementById('contacto-cliente-sel').value||null, // from ac hidden
     activo:document.getElementById('contacto-activo').checked
   };
   try{

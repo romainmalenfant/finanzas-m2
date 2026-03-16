@@ -455,7 +455,8 @@ async function cambiarEstatusCot(id, estatus){
     if(estatus==='cerrada'){
       await convertirACotizacionCerrada(id);
     } else {
-      loadCotizaciones();
+      await loadCotizaciones();
+      if(cotView==='kanban') renderKanban();
       cerrarDetail();
       showStatus('✓ Cotización actualizada');
     }
@@ -913,10 +914,10 @@ async function kanbanDrop(e, newEstatus){
   }
   try{
     await sb.from('cotizaciones').update({estatus:newEstatus}).eq('id',cot.id);
-    cot.estatus = newEstatus;
     showStatus('✓ Movida a '+EST_LABELS[newEstatus]);
-    renderKanban();
-    renderCotizacionesKPIs();
+    // Reload from DB to ensure sync
+    await loadCotizaciones();
+    if(cotView==='kanban') renderKanban();
   }catch(err){ showError('Error: '+err.message); }
   _dragId=null;
 }

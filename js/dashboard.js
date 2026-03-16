@@ -204,7 +204,7 @@ async function responderConsulta(){
     var answer=result.answer||'Sin respuesta.';
     // Format answer — bold for numbers
     answer=answer.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
-    resp.innerHTML='<span style="color:#e2e8f0;line-height:1.7;">'+answer.replace(/\n/g,'<br>')+'</span>';
+    resp.innerHTML='<span style="color:var(--text-1);line-height:1.7;">'+answer.replace(/\n/g,'<br>')+'</span>';
 
   }catch(e){
     console.error('Consulta error:',e);
@@ -243,7 +243,7 @@ async function loadCxC(){
     var el=document.getElementById('cxc-top5');
     el.innerHTML=top5.map(function(d,i){
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
-        '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+        '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
         '<span style="color:#fbbf24;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
       '</div>';
     }).join('');
@@ -280,7 +280,7 @@ async function loadCxP(){
     var el=document.getElementById('cxp-top5');
     el.innerHTML=top5.map(function(d,i){
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 1.25rem;border-bottom:0.5px solid #0f1420;font-size:12px;">'+
-        '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+        '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%;">'+(i+1)+'. '+esc(d[0])+'</span>'+
         '<span style="color:#f87171;font-weight:600;flex-shrink:0;">'+fmt(d[1])+'</span>'+
       '</div>';
     }).join('');
@@ -334,7 +334,7 @@ async function loadDashboard(){
     var gastoLY=ly.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+Number(m.monto);},0);
 
     function momBadge(actual,anterior,label){
-      if(!anterior)return '<span style="color:#475569;">'+label+': '+fmt(actual)+'</span>';
+      if(!anterior)return '<span style="color:var(--text-3);">'+label+': '+fmt(actual)+'</span>';
       var pct=Math.round((actual-anterior)/anterior*100);
       var color=pct>=0?'#34d399':'#f87171';
       var arrow=pct>=0?'↑':'↓';

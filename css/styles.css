@@ -310,3 +310,16 @@ select option{background:var(--bg-card);color:var(--text-1);}
 [data-theme="dark"] span[style*="#dcfce7"]{background:#0d2a14!important;}
 [data-theme="dark"] span[style*="#dbeafe"]{background:#0d1f3c!important;}
 [data-theme="dark"] span[style*="#fef3c7"]{background:#2a1a0d!important;}
+
+/* ── Global input/select styles ── */
+input[type="text"],input[type="number"],input[type="date"],input[type="email"],
+input[type="tel"],input[type="password"],select,textarea{
+  background:var(--bg-input);color:var(--text-1);border:0.5px solid var(--border);
+  border-radius:8px;font-family:inherit;font-size:13px;padding:8px 10px;width:100%;
+  box-sizing:border-box;transition:border-color .15s;}
+input[type="text"]:focus,input[type="number"]:focus,input[type="date"]:focus,
+input[type="email"]:focus,input[type="tel"]:focus,input[type="password"]:focus,
+select:focus,textarea:focus{outline:none;border-color:#3B82F6;box-shadow:0 0 0 2px #3B82F620;}
+input::placeholder,textarea::placeholder{color:var(--text-3);}
+select option{background:var(--bg-card);color:var(--text-1);}
+input[type="checkbox"],input[type="radio"]{width:auto;accent-color:#3B82F6;}

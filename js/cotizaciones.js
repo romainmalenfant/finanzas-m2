@@ -187,7 +187,7 @@ function abrirNuevaCotizacion(){
   document.getElementById('cot-notas').value = '';
   renderCotItemsForm();
   recalcCotTotal();
-  document.getElementById('cot-modal').style.display = 'block';
+  document.getElementById('cot-modal').style.display = 'flex';
   if(!clientes.length) loadClientes();
 }
 
@@ -212,7 +212,7 @@ function editarCotizacion(id){
     renderCotItemsForm();
     recalcCotTotal();
   });
-  document.getElementById('cot-modal').style.display = 'block';
+  document.getElementById('cot-modal').style.display = 'flex';
 }
 
 function cerrarCotModal(){
@@ -474,7 +474,7 @@ async function convertirACotizacionCerrada(cotId){
   document.getElementById('conv-fecha-entrega').value = '';
   var fechaMin = new Date(); fechaMin.setDate(fechaMin.getDate()+7);
   document.getElementById('conv-fecha-entrega').min = fechaMin.toISOString().split('T')[0];
-  document.getElementById('conv-modal').style.display = 'block';
+  document.getElementById('conv-modal').style.display = 'flex';
 }
 
 async function confirmarConversion(){

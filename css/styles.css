@@ -302,3 +302,11 @@ select option{background:var(--bg-card);color:var(--text-1);}
 [data-theme="dark"] .bx{background:#2a1a0d;color:#fbbf24;}
 [data-theme="dark"] .badge[style*="#dbeafe"]{background:#0d1f3c!important;color:#60a5fa!important;}
 [data-theme="dark"] .badge[style*="#dcfce7"]{background:#0d2a14!important;color:#34d399!important;}
+
+/* ── Dark theme overrides for SAT tables ── */
+[data-theme="dark"] .sat-table th{background:var(--bg-card-2);}
+[data-theme="dark"] .sat-table td{color:var(--text-1);}
+[data-theme="dark"] span[style*="#fee2e2"]{background:#2a0d0d!important;}
+[data-theme="dark"] span[style*="#dcfce7"]{background:#0d2a14!important;}
+[data-theme="dark"] span[style*="#dbeafe"]{background:#0d1f3c!important;}
+[data-theme="dark"] span[style*="#fef3c7"]{background:#2a1a0d!important;}

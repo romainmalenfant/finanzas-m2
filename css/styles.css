@@ -261,3 +261,16 @@ textarea:focus{outline:none;border-color:#3B82F6;}
 .dup-btn.active{background:#854F0B;color:#fff;}
 @media(max-width:640px){.metrics-hero{grid-template-columns:1fr;}.topbar-brand,.topbar-sub{display:none;}}
 .topbar.hide-period .period-nav{display:none;}
+/* ── Kanban ── */
+.kanban-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;min-height:400px;}
+.kanban-col{flex:0 0 220px;background:#0f1420;border-radius:10px;border:0.5px solid #1a2035;display:flex;flex-direction:column;max-height:calc(100vh - 280px);}
+.kanban-col-hdr{padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:600;color:#94a3b8;border-bottom:0.5px solid #1a2035;flex-shrink:0;}
+.kanban-cards{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;}
+.kanban-card{background:#12172a;border:0.5px solid #1a2035;border-radius:8px;padding:10px;cursor:pointer;transition:border-color .15s,transform .1s;}
+.kanban-card:hover{border-color:#2d3a5a;transform:translateY(-1px);}
+.kanban-card[draggable]{cursor:grab;}
+.kanban-card[draggable]:active{cursor:grabbing;opacity:.7;}
+.view-toggle{display:flex;gap:0;border:0.5px solid #1a2035;border-radius:7px;overflow:hidden;}
+.view-toggle button{background:#12172a;border:none;color:#475569;padding:5px 12px;cursor:pointer;font-family:inherit;font-size:12px;transition:background .15s,color .15s;}
+.view-toggle button.active{background:#1a2035;color:#e2e8f0;}
+.view-toggle button:hover:not(.active){background:#1a2035;color:#94a3b8;}

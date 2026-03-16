@@ -48,7 +48,7 @@ function renderEmpleados(list){
         '<div class="cliente-meta" style="display:flex;gap:10px;flex-wrap:wrap;">'+
           (e.cargo?'<span>'+esc(e.cargo)+'</span>':'')+
           (e.area?'<span style="color:#60a5fa;">'+esc(e.area)+'</span>':'')+
-          (e.salario_mensual?'<span>'+fmt(Number(e.salario_mensual))+'</span>':'')+
+          (e.salario_mensual?'<span>'+fmt(parseFloat(e.salario_mensual)||0)+'</span>':'')+
           '<span style="color:'+sc+';">'+esc(e.estatus||'Activo')+'</span>'+
         '</div>'+
       '</div>'+

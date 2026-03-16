@@ -127,23 +127,16 @@ function renderCotizacionesList(list, historial){
 
 // ── Cliente select ────────────────────────────────────────
 function poblarClientesCot(clienteIdActual){
-  var sel = document.getElementById('cot-cliente-sel');
-  if(!sel) return;
-  sel.innerHTML = '<option value="">— Seleccionar cliente —</option>';
-  clientes.forEach(function(c){
-    var o = document.createElement('option');
-    o.value = c.id;
-    o.textContent = c.nombre;
-    if(c.id === clienteIdActual) o.selected = true;
-    sel.appendChild(o);
-  });
-}
-
-function selClienteCotSel(sel){
-  var id = sel.value;
-  var c = clientes.find(function(x){return x.id===id;});
-  document.getElementById('cot-cliente-id').value = id||'';
-  document.getElementById('cot-cliente-search').value = c?c.nombre:'';
+  var inp = document.getElementById('cot-cliente-search');
+  var hid = document.getElementById('cot-cliente-id');
+  if(!inp) return;
+  var c = clientes.find(function(x){return x.id===clienteIdActual;});
+  inp.value = c?c.nombre:'';
+  if(hid) hid.value = clienteIdActual||'';
+  makeAutocomplete('cot-cliente-search','cot-cliente-id','cot-cliente-dd',
+    function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
+    null
+  );
 }
 
 // ── Form ──────────────────────────────────────────────────

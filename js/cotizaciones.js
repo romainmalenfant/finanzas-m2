@@ -317,8 +317,9 @@ async function guardarCotizacion(){
     if(ie)throw ie;
 
     cerrarCotModal();
-    loadCotizaciones();
+    await loadCotizaciones();
     showStatus('✓ Cotización guardada');
+    verDetalleCotizacion(savedCot.id);
   }catch(e){
     console.error('guardarCotizacion:',e);
     showError('Error: '+e.message);
@@ -369,10 +370,11 @@ async function convertirACotizacionCerrada(cotId){
   var tipoPieza = piezas.length?piezas[0].descripcion:'';
 
   // Show confirmation modal
+  cerrarDetail();
   document.getElementById('conv-cot-id').value = cotId;
   document.getElementById('conv-cliente').textContent = cot.cliente_nombre||'';
   document.getElementById('conv-monto').textContent = fmt(cot.total||0);
-  document.getElementById('conv-pedido').value = cot.numero||'';
+  document.getElementById('conv-pedido').value = (cot.numero||'COT-').replace('COT-','PED-');
   document.getElementById('conv-tipo-pieza').value = tipoPieza;
   document.getElementById('conv-piezas').value = Math.round(totalPiezas)||0;
   document.getElementById('conv-fecha-entrega').value = '';
@@ -427,6 +429,7 @@ async function confirmarConversion(){
     setTimeout(function(){
       if(confirm('¿Ver el proyecto creado?')){
         switchTab('proyectos', document.getElementById('sb-proyectos'));
+        setTimeout(function(){verDetalleProyecto(proj.id);},600);
       }
     },500);
   }catch(e){
@@ -709,3 +712,12 @@ async function generarPDFCotizacion(id){
     showError('Error generando PDF: '+e.message);
   }
 }
+// ESC closes cotizacion modal
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){
+    var m=document.getElementById('cot-modal');
+    if(m&&m.style.display==='block'){cerrarCotModal();return;}
+    var m2=document.getElementById('conv-modal');
+    if(m2&&m2.style.display==='block'){m2.style.display='none';return;}
+  }
+});

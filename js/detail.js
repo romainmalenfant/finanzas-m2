@@ -97,7 +97,7 @@ async function verDetalleEmpresa(id){
           var col=CAT_COLORS[m.categoria]||'#475569';
           return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||m.contraparte||'').slice(0,40)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+' · '+(CAT_LABELS[m.categoria]||m.categoria)+'</div></div>'+
-            '<span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(m.monto)+'</span></div>';
+            '<span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
   }catch(e){
@@ -168,7 +168,7 @@ async function verDetalleProveedor(id){
         mvmts.slice(0,6).map(function(m){
           return '<div class="detail-list-item"><div><div style="font-size:12px;color:var(--text-1);">'+(m.descripcion||'').slice(0,40)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
-            '<span style="font-weight:600;color:#f87171;">'+fmt(m.monto)+'</span></div>';
+            '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
     document.getElementById('detail-body').innerHTML=body;
   }catch(e){
@@ -357,7 +357,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+(f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+'</div>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:8px;">'+
-            '<span style="font-weight:600;color:#34d399;">'+fmt(f.monto)+'</span>'+
+            '<span style="font-weight:600;color:#34d399;">'+fmt(parseFloat(f.monto)||0)+'</span>'+
             '<button class="btn-sm" style="color:#f87171;font-size:10px;padding:2px 8px;" onclick="desvincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" title="Desvincular">×</button>'+
           '</div>'+
         '</div>';
@@ -377,7 +377,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
               '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+'</div>'+
             '</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+
-              '<span style="font-size:12px;color:var(--text-2);">'+fmt(f.monto)+'</span>'+
+              '<span style="font-size:12px;color:var(--text-2);">'+fmt(parseFloat(f.monto)||0)+'</span>'+
               '<button class="btn-sm" style="font-size:10px;padding:2px 8px;" onclick="vincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" >+ Vincular</button>'+
             '</div>'+
           '</div>';

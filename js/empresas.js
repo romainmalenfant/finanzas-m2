@@ -148,7 +148,7 @@ async function loadClientesKPIs(){
     var byCliente={};
     (ytdVentas||[]).forEach(function(m){
       var k=(m.contraparte||'Sin nombre').trim();
-      byCliente[k]=(byCliente[k]||0)+Number(m.monto);
+      byCliente[k]=(byCliente[k]||0)+(parseFloat(m.monto)||0);
     });
     var top5fac=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var topEl=document.getElementById('cli-k-top');
@@ -164,7 +164,7 @@ async function loadClientesKPIs(){
     // Top 5 deudores — nombre completo
     var {data:deudas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_emitida').eq('conciliado',false);
     var byDeudor={};
-    (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+Number(m.monto);});
+    (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+(parseFloat(m.monto)||0);});
     var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var deudorEl=document.getElementById('cli-k-deudor');
     if(top5deu.length){

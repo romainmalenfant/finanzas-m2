@@ -135,13 +135,13 @@ async function loadProveedoresKPIs(){
   try{
     var año=new Date().getFullYear();
     var {data:cxp}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_recibida').eq('conciliado',false);
-    var totalCXP=(cxp||[]).reduce(function(a,m){return a+Number(m.monto);},0);
+    var totalCXP=(cxp||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('prov-k-cxp').textContent=fmt(totalCXP);
     document.getElementById('prov-k-pendientes') && (document.getElementById('prov-k-pendientes').textContent=(cxp||[]).length);
 
     var {data:ytdCompras}=await sb.from('movimientos_v2').select('contraparte,monto').eq('tipo','egreso').eq('year',año);
     var byProv={};
-    (ytdCompras||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+Number(m.monto);});
+    (ytdCompras||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+(parseFloat(m.monto)||0);});
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var topEl=document.getElementById('prov-k-top');
     if(top5.length){

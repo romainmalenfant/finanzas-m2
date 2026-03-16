@@ -81,7 +81,7 @@ function abrirNuevoContacto(){
     clientes.forEach(function(c){var o=document.createElement('option');o.value=c.id;o.textContent=c.nombre;sel.appendChild(o);});
   }
   document.getElementById('contacto-activo').checked=true;
-  document.getElementById('contacto-modal').style.display='block';
+  document.getElementById('contacto-modal').style.display='flex';
 }
 
 function editarContacto(id){
@@ -100,7 +100,7 @@ function editarContacto(id){
   sel.innerHTML='<option value="">— Sin empresa —</option>';
   clientes.forEach(function(cl){var o=document.createElement('option');o.value=cl.id;o.textContent=cl.nombre;sel.appendChild(o);});
   sel.value=c.cliente_id||'';
-  document.getElementById('contacto-modal').style.display='block';
+  document.getElementById('contacto-modal').style.display='flex';
 }
 
 function cerrarModalContacto(){document.getElementById('contacto-modal').style.display='none';}

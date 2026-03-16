@@ -544,18 +544,18 @@
       <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="cont-k-activos">0</div></div>
       <div class="mcard"><div class="mlabel">Con empresa vinculada</div><div class="mvalue" id="cont-k-empresas" style="color:var(--text-2);">0</div></div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-      <div style="font-size:13px;color:var(--text-3);" id="contactos-count">0 contactos</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
+      <input type="text" id="contactos-search" placeholder="Buscar por nombre, empresa o cargo..." oninput="filtrarContactos(this.value)"
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
       <button class="btn-primary" onclick="abrirNuevoContacto()">+ Nuevo contacto</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem;">
-      <input type="text" id="contactos-search" placeholder="Buscar por nombre, empresa o cargo..." oninput="filtrarContactos(this.value)"
-        style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <select id="contactos-activo-filter" onchange="filtrarContactos(document.getElementById('contactos-search').value)"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
+        style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
+      <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="contactos-count">0 contactos</span>
     </div>
     <div id="contactos-list"><div class="empty-state">Sin contactos registrados</div></div>
   </div>
@@ -603,24 +603,27 @@
 
   <!-- Tab Empleados -->
   <div id="tab-empleados" style="display:none;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-      <div style="font-size:13px;color:var(--text-3);" id="empleados-count">0 empleados</div>
-      <button class="btn-primary" onclick="abrirNuevoEmpleado()">+ Nuevo empleado</button>
-    </div>
+    <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total empleados</div><div class="mvalue c-blue" id="emp-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Activos</div><div class="mvalue c-green" id="emp-k-activos">0</div></div>
       <div class="mcard"><div class="mlabel">Nómina mensual</div><div class="mvalue c-amber" id="emp-k-nomina">$0</div></div>
       <div class="mcard"><div class="mlabel">Áreas</div><div class="mvalue" id="emp-k-areas" style="color:var(--text-2);">0</div></div>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:1rem;">
+    <!-- Búsqueda -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
       <input type="text" id="empleados-search" placeholder="Buscar por nombre, cargo o área..." oninput="filtrarEmpleados(this.value)"
-        style="flex:1;padding:9px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+      <button class="btn-primary" onclick="abrirNuevoEmpleado()">+ Nuevo empleado</button>
+    </div>
+    <!-- Filtros -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <select id="empleados-activo-filter" onchange="filtrarEmpleados(document.getElementById('empleados-search').value)"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
+        style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
+      <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="empleados-count">0 empleados</span>
     </div>
     <div id="empleados-list"><div class="empty-state">Sin empleados registrados. Primero crea la tabla <code>empleados</code> en Supabase.</div></div>
   </div>
@@ -781,17 +784,20 @@
       <div class="mcard"><div class="mlabel">Top facturadoras YTD</div><div id="cli-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
       <div class="mcard" style="grid-column:span 1;"><div class="mlabel">Mayores deudoras</div><div id="cli-k-deudor" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
     </div>
-    <!-- Búsqueda y lista -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
+    <!-- Búsqueda -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
       <input type="text" id="clientes-search" placeholder="Buscar empresa por nombre o RFC..." oninput="filtrarClientes(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+      <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>
+    </div>
+    <!-- Filtros -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <select id="clientes-activo-filter" onchange="filtrarClientes(document.getElementById('clientes-search').value)"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
+        style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
-      <span style="font-size:12px;color:var(--text-3);flex-shrink:0;" id="clientes-count">0 empresas</span>
-      <button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>
+      <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="clientes-count">0 empresas</span>
     </div>
     <div id="clientes-list"><div class="empty-state">Sin clientes registrados</div></div>
   </div>
@@ -804,17 +810,20 @@
       <div class="mcard"><div class="mlabel">Cuentas por pagar</div><div class="mvalue c-red" id="prov-k-cxp">$0</div></div>
       <div class="mcard" style="grid-column:span 2;"><div class="mlabel">Mayores proveedores YTD</div><div id="prov-k-top" style="margin-top:6px;font-size:11px;line-height:1.7;color:var(--text-2);">—</div></div>
     </div>
-    <!-- Búsqueda y lista -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:10px;">
+    <!-- Búsqueda -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
       <input type="text" id="proveedores-search" placeholder="Buscar por nombre o RFC..." oninput="filtrarProveedores(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+      <button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
+    </div>
+    <!-- Filtros -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <select id="proveedores-activo-filter" onchange="filtrarProveedores(document.getElementById('proveedores-search').value)"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
+        style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
         <option value="activo">Solo activos</option>
         <option value="todos">Todos</option>
       </select>
-      <span style="font-size:12px;color:var(--text-3);flex-shrink:0;" id="prov-count">0 proveedores</span>
-      <button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>
+      <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="prov-count">0 proveedores</span>
     </div>
     <div id="proveedores-list"><div class="empty-state">Sin proveedores registrados</div></div>
   </div>

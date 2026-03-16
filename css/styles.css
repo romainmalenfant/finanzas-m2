@@ -323,3 +323,43 @@ select:focus,textarea:focus{outline:none;border-color:#3B82F6;box-shadow:0 0 0 2
 input::placeholder,textarea::placeholder{color:var(--text-3);}
 select option{background:var(--bg-card);color:var(--text-1);}
 input[type="checkbox"],input[type="radio"]{width:auto;accent-color:#3B82F6;}
+
+/* ── Modal form improvements ── */
+.modal-box{margin:auto;}
+.modal-body .form-group label{color:var(--text-3);}
+.modal-body input[type="text"],
+.modal-body input[type="number"],
+.modal-body input[type="date"],
+.modal-body input[type="email"],
+.modal-body input[type="tel"],
+.modal-body select,
+.modal-body textarea{
+  background:var(--bg-input);
+  border:0.5px solid var(--border);
+  color:var(--text-1);
+  border-radius:8px;
+  padding:9px 12px;
+  font-size:13px;
+  font-family:inherit;
+  width:100%;
+  transition:border-color .15s,box-shadow .15s;
+}
+.modal-body input:focus,
+.modal-body select:focus,
+.modal-body textarea:focus{
+  outline:none;
+  border-color:#3B82F6;
+  box-shadow:0 0 0 3px #3B82F615;
+}
+.modal-body input::placeholder,
+.modal-body textarea::placeholder{color:var(--text-3);}
+.modal-hdr{background:var(--bg-card);border-radius:14px 14px 0 0;}
+
+/* ── Etiqueta / método pago buttons ── */
+.etiq-btn{
+  padding:5px 12px;border:0.5px solid var(--border);border-radius:20px;
+  background:var(--bg-card-2);color:var(--text-2);font-family:inherit;
+  font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.etiq-btn:hover{background:var(--bg-hover);border-color:var(--text-3);color:var(--text-1);}
+.etiq-btn.active{background:#3B82F6;border-color:#3B82F6;color:#fff;font-weight:500;}

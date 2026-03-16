@@ -42,7 +42,7 @@ function renderEmpleados(list){
     var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
     var sc=statusColor[e.estatus]||'#475569';
     return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpleado(\''+esc(String(e.id))+'\')">'+
-      '<div class="cliente-avatar" style="background:#12172a;color:'+sc+';">'+esc(ini)+'</div>'+
+      '<div class="cliente-avatar" style="background:var(--bg-card-2);color:'+sc+';">'+esc(ini)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(nombre)+'</div>'+
         '<div class="cliente-meta" style="display:flex;gap:10px;flex-wrap:wrap;">'+

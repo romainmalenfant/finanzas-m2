@@ -147,8 +147,8 @@ async function loadProveedoresKPIs(){
     if(top5.length){
       topEl.innerHTML=top5.map(function(d,i){
         return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:#cbd5e1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
-          '<span style="color:#94a3b8;flex-shrink:0;">'+fmt(d[1])+'</span>'+
+          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
+          '<span style="color:var(--text-2);flex-shrink:0;">'+fmt(d[1])+'</span>'+
         '</div>';
       }).join('');
     }else{topEl.textContent='Sin compras registradas';}

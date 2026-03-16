@@ -46,12 +46,6 @@ async function responderConsulta(){
   var resp=document.getElementById('query-result');
   resp.innerHTML='<span style="color:#60a5fa;font-size:12px;">Consultando...</span>';
 
-  var apiKey=getApiKey();
-  if(!apiKey){
-    resp.innerHTML='<span style="color:#f87171;">Necesitas configurar tu API key de Anthropic. '+
-      'Guárdala en la pantalla de configuración (ícono ⚙ o ajustes).</span>';
-    return;
-  }
 
   try{
     // ── Contexto financiero enfocado en año en curso ──────
@@ -191,33 +185,23 @@ async function responderConsulta(){
 
       '## CLIENTES REGISTRADOS\n'+clientesDetalle;
 
-    var payload={
-      model:'claude-haiku-4-5-20251001',
-      max_tokens:400,
-      system:'Eres el asistente financiero de Grupo M2, una empresa de maquinado industrial en Querétaro, México. '+
-        'Responde en español, de forma directa y concisa (máximo 3 líneas). '+
-        'Usa los datos del contexto para responder con precisión. '+
-        'Si la pregunta involucra un cliente, proveedor, empleado o contacto específico, filtra solo esa entidad. '+
-        'Formatea montos como $X,XXX,XXX MXN. '+
-        'Si no tienes suficiente información para responder con certeza, dilo claramente.',
-      messages:[
-        {role:'user', content:'Contexto financiero actual:\n\n'+contextStr+'\n\n---\nPregunta: '+q}
-      ]
-    };
 
-    var apiResp=await fetch('https://api.anthropic.com/v1/messages',{
+    var apiResp=await fetch('https://iycqlbvywwogcfftciil.supabase.co/functions/v1/consultar-claude',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify(payload)
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+SUPABASE_KEY
+      },
+      body:JSON.stringify({pregunta:q, contexto:contextStr})
     });
 
     if(!apiResp.ok){
       var err=await apiResp.json().catch(function(){return {};});
-      throw new Error(err.error&&err.error.message||'API error '+apiResp.status);
+      throw new Error(err.error||'Error en la consulta ('+apiResp.status+')');
     }
 
     var result=await apiResp.json();
-    var answer=(result.content&&result.content[0]&&result.content[0].text)||'Sin respuesta.';
+    var answer=result.answer||'Sin respuesta.';
     // Format answer — bold for numbers
     answer=answer.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
     resp.innerHTML='<span style="color:#e2e8f0;line-height:1.7;">'+answer.replace(/\n/g,'<br>')+'</span>';

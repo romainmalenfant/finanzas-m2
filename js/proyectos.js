@@ -119,7 +119,7 @@ function abrirNuevoProyecto(){
   document.getElementById('proj-fecha-entrega').value='';
   poblarClientesEnProyecto('');
   poblarContactosEnProyecto('');
-  document.getElementById('proj-modal').style.display='block';
+  document.getElementById('proj-modal').style.display='flex';
 }
 
 function editarProyecto(id){
@@ -136,7 +136,7 @@ function editarProyecto(id){
   document.getElementById('proj-fecha-entrega').value=p.fecha_entrega||'';
   document.getElementById('proj-monto').value=p.monto_total||0;
   document.getElementById('proj-notas').value=p.notas||'';
-  document.getElementById('proj-modal').style.display='block';
+  document.getElementById('proj-modal').style.display='flex';
   // Show and load invoices section
   document.getElementById('proj-facturas-section').style.display='block';
   cargarFacturasEnModal(id, p.cliente_id||null, p.nombre_cliente||null);
@@ -155,7 +155,7 @@ function abrirNuevoProyecto(){
   document.getElementById('proj-monto').value=0;
   document.getElementById('proj-notas').value='';
   document.getElementById('proj-facturas-section').style.display='none';
-  document.getElementById('proj-modal').style.display='block';
+  document.getElementById('proj-modal').style.display='flex';
 }
 
 async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
@@ -291,7 +291,7 @@ function abrirEntrega(id){
   document.getElementById('entrega-monto').value='';
   document.getElementById('entrega-notas').value='';
   document.getElementById('entrega-fecha').value=new Date().toISOString().split('T')[0];
-  document.getElementById('entrega-modal').style.display='block';
+  document.getElementById('entrega-modal').style.display='flex';
 }
 
 function cerrarEntrega(){document.getElementById('entrega-modal').style.display='none';}

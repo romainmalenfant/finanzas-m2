@@ -1,4 +1,25 @@
 // ── Formulario estructurado de movimiento ─────────────────
+// ── Venta factura toggle ─────────────────────────────────
+var _requiereFactura = true;
+
+function setRequiereFactura(val){
+  _requiereFactura = val;
+  document.getElementById('btn-con-factura').classList.toggle('active', val);
+  document.getElementById('btn-sin-factura').classList.toggle('active', !val);
+  document.getElementById('campos-con-factura').style.display = val?'block':'none';
+  document.getElementById('campos-sin-factura').style.display = val?'none':'block';
+  // Si sin factura → auto-set cliente a Público General
+  if(!val){
+    var pg = clientes.find(function(c){return c.id==='cli_publico_general';});
+    if(pg){
+      document.getElementById('mvmt-cliente-id').value = pg.id;
+      document.getElementById('mvmt-cliente-search').value = pg.nombre;
+      document.getElementById('cliente-seleccionado').style.display='flex';
+      document.getElementById('cliente-sel-nombre').textContent=pg.nombre;
+    }
+  }
+}
+
 function abrirFormMovimiento(tipo){
   tipoMovActual=tipo;
   etiquetaSeleccionada='';
@@ -32,6 +53,20 @@ function abrirFormMovimiento(tipo){
   limpiarCliente();
   limpiarProveedor();
 
+  // Reset factura toggle for venta
+  if(tipo==='venta'){
+    _requiereFactura=true;
+    setTimeout(function(){
+      var bcf=document.getElementById('btn-con-factura');
+      var bsf=document.getElementById('btn-sin-factura');
+      if(bcf)bcf.classList.add('active');
+      if(bsf)bsf.classList.remove('active');
+      var ccf=document.getElementById('campos-con-factura');
+      var csf=document.getElementById('campos-sin-factura');
+      if(ccf)ccf.style.display='block';
+      if(csf)csf.style.display='none';
+    },0);
+  }
   document.getElementById('form-mvmt-modal').style.display='flex';
   if(!clientes.length)loadClientes();
   if(!proveedores.length)loadProveedores();

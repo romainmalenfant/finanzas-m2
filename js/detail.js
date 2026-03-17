@@ -71,6 +71,11 @@ function detailGoToIndex(idx){
   _renderDetail(entry);
 }
 
+
+function _setDetailBody(html){
+  document.getElementById('detail-body').innerHTML = html;
+  _updateDetailNav();
+}
 function cerrarDetail(){
   _detailStack=[];
   document.getElementById('detail-modal').style.display='none';
@@ -175,10 +180,10 @@ async function verDetalleEmpresa(id){
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+(m.fecha&&cat?' · '+cat:'')+'</div>'+
             '</div><span style="font-weight:600;color:'+col+';">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).filter(Boolean).join('')+'</div>':'');
-    document.getElementById('detail-body').innerHTML=body;
+    _setDetailBody(body);
   }catch(e){
     console.error('Detalle empresa:',e);
-    document.getElementById('detail-body').innerHTML='<div style="padding:16px;color:#f87171;font-size:12px;">Error: '+esc(String(e.message||e))+'</div>';
+    _setDetailBody('<div style="padding:16px;color:#f87171;font-size:12px;">Error: '+esc(String(e.message||e))+'</div>');
   }
 }
 
@@ -253,10 +258,10 @@ async function verDetalleProveedor(id){
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
-    document.getElementById('detail-body').innerHTML=body;
+    _setDetailBody(body);
   }catch(e){
     console.error('Detalle proveedor:',e);
-    document.getElementById('detail-body').innerHTML='<div style="padding:16px;color:#f87171;font-size:12px;">Error: '+esc(String(e.message||e))+'</div>';
+    _setDetailBody('<div style="padding:16px;color:#f87171;font-size:12px;">Error: '+esc(String(e.message||e))+'</div>');
   }
 }
 
@@ -274,9 +279,11 @@ async function verDetalleContacto(id){
   var body=
     '<div class="detail-section"><div class="detail-grid">'+
       '<div class="detail-field"><div class="detail-field-label">Cargo</div><div class="detail-field-value">'+(c.cargo||'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Empresa</div><div class="detail-field-value" style="color:#60a5fa;cursor:pointer;" onclick="'+
-        (c.cliente_id?'document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+c.cliente_id+'\');},100)':'')
-      +'">'+esc(empresa)+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Empresa</div>'+
+      (c.cliente_id?
+        '<div class="detail-field-value" style="color:#3B82F6;cursor:pointer;" onclick="verDetalleEmpresa(\''+c.cliente_id+'\')">' + esc(empresa) + '</div>'
+        :'<div class="detail-field-value">'+esc(empresa)+'</div>')+
+      '</div>'+
       '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>':'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activo':'Inactivo')+'</div></div>'+
@@ -342,7 +349,12 @@ async function verDetalleProyecto(id){
     var pct=p.total_piezas>0?Math.round(entregadas/p.total_piezas*100):0;
 
     // Fetch contacto clave and empresa
-    var empresa=clientes.find(function(c){return c.nombre===p.nombre_cliente;});
+    var empresa = (p.cliente_id ? clientes.find(function(c){return c.id===p.cliente_id;}) : null) ||
+                  clientes.find(function(c){return c.nombre===p.nombre_cliente;});
+    if(!empresa && p.nombre_cliente){
+      var {data:empData}=await sb.from('clientes').select('*').ilike('nombre','%'+p.nombre_cliente+'%').limit(1).maybeSingle();
+      if(empData) empresa=empData;
+    }
     var contactoClave=null;
     if(p.contacto_id){
       var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).maybeSingle();
@@ -372,10 +384,10 @@ async function verDetalleProyecto(id){
       // Empresa vinculada
       '<div class="detail-section"><div class="detail-section-title">Empresa</div>'+
         (empresa?
-          '<div class="detail-list-item" style="cursor:pointer;" onclick="document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+empresa.id+'\')">'+
-            '<div><div style="font-size:13px;font-weight:500;color:#60a5fa;">'+esc(empresa.nombre)+'</div>'+
+          '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+empresa.id+'\')">' +
+            '<div><div style="font-size:13px;font-weight:500;color:#3B82F6;">'+esc(empresa.nombre)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+(empresa.rfc||'')+'</div></div>'+
-            '<span style="font-size:11px;color:var(--text-3);">Ver detalle →</span>'+
+            '<span style="font-size:11px;color:var(--text-3);">→</span>'+
           '</div>':
           '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">'+esc(p.nombre_cliente)+'</div>')+
       '</div>'+
@@ -401,7 +413,7 @@ async function verDetalleProyecto(id){
             '<span style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</span>'+
           '</div>';
         }).join('')+'</div>':'');
-    document.getElementById('detail-body').innerHTML=body;
+    _setDetailBody(body);
 
     // Load and render SAT invoices linked to this project
     await renderFacturasProyecto(id, p.cliente_id||null, p.nombre_cliente||null);

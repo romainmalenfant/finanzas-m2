@@ -102,14 +102,19 @@ async function responderConsulta(){
       .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
 
     // CxC — facturas sin cobrar con antigüedad
-    var {data:cxcRows}=await sb.from('movimientos_v2')
-      .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
-      .eq('origen','sat_emitida').eq('conciliado',false)
+    var {data:cxcRows}=await sb.from('facturas')
+      .select('receptor_nombre,receptor_rfc,total,fecha,numero_factura,concepto')
+      .eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente')
       .order('fecha',{ascending:true});
-    _cxcRows=cxcRows||[]; updateBadges();
+    _cxcRows=(cxcRows||[]).map(function(m){return {contraparte:m.receptor_nombre,rfc_contraparte:m.receptor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
+    updateBadges();
     var cxcTotal=_cxcRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var hoy=new Date();
-    var cxcDetalle=(cxcRows||[]).map(function(m){
+    // Also add ventas directas count to context
+    var {data:vtaDirectas}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('sin_factura',true).eq('year',año);
+    var vtaDirectasTotal=(vtaDirectas||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+
+    var cxcDetalle=_cxcRows.map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return (m.contraparte||m.rfc_contraparte||'?')+
         (m.numero_factura?' | folio:'+m.numero_factura:'')+
@@ -118,13 +123,14 @@ async function responderConsulta(){
     }).join('\n');
 
     // CxP — facturas sin pagar con antigüedad
-    var {data:cxpRows}=await sb.from('movimientos_v2')
-      .select('contraparte,rfc_contraparte,monto,fecha,numero_factura,descripcion')
-      .eq('origen','sat_recibida').eq('conciliado',false)
+    var {data:cxpRows}=await sb.from('facturas')
+      .select('emisor_nombre,emisor_rfc,total,fecha,numero_factura,concepto')
+      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente')
       .order('fecha',{ascending:true});
-    _cxpRows=cxpRows||[]; updateBadges();
+    _cxpRows=(cxpRows||[]).map(function(m){return {contraparte:m.emisor_nombre,rfc_contraparte:m.emisor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
+    updateBadges();
     var cxpTotal=_cxpRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var cxpDetalle=(cxpRows||[]).map(function(m){
+    var cxpDetalle=_cxpRows.map(function(m){
       var dias=Math.floor((hoy-new Date(m.fecha))/(1000*60*60*24));
       return (m.contraparte||m.rfc_contraparte||'?')+
         (m.numero_factura?' | folio:'+m.numero_factura:'')+
@@ -215,9 +221,10 @@ async function responderConsulta(){
 // ── CxC y CxP Dashboard ──────────────────────────────────
 async function loadCxC(){
   try{
-    var {data}=await sb.from('movimientos_v2')
-      .select('contraparte,monto,fecha')
-      .eq('origen','sat_emitida').eq('conciliado',false);
+    var {data}=await sb.from('facturas')
+      .select('receptor_nombre,total,fecha')
+      .eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    if(data)data=data.map(function(f){return {contraparte:f.receptor_nombre,monto:f.total,fecha:f.fecha};});
     var rows=data||[];
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxc-total').textContent=fmt(total);
@@ -252,9 +259,10 @@ async function loadCxC(){
 
 async function loadCxP(){
   try{
-    var {data}=await sb.from('movimientos_v2')
-      .select('contraparte,monto,fecha')
-      .eq('origen','sat_recibida').eq('conciliado',false);
+    var {data}=await sb.from('facturas')
+      .select('emisor_nombre,total,fecha')
+      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente');
+    if(data)data=data.map(function(f){return {contraparte:f.emisor_nombre,monto:f.total,fecha:f.fecha};});
     var rows=data||[];
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxp-total').textContent=fmt(total);
@@ -318,7 +326,8 @@ async function loadDashboard(){
     document.getElementById('db-util-ytd').className='mvalue-hero '+(utilYTD>=0?'c-util-pos':'c-util-neg');
 
     // Por cobrar
-    var {data:pending}=await sb.from('movimientos_v2').select('monto').eq('origen','sat_emitida').eq('conciliado',false);
+    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    if(pending)pending=pending.map(function(f){return {monto:f.total};});
     var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
 

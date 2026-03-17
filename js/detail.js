@@ -2,6 +2,9 @@
 var _detailStack = []; // [{titulo, subtitulo, iniciales, bodyHTML, editFn}]
 
 function abrirDetail(titulo, subtitulo, iniciales, bodyHTML, editFn){
+  // If modal is not open, this is a fresh navigation — reset stack
+  var modal = document.getElementById('detail-modal');
+  if(!modal || modal.style.display!=='flex') _detailStack=[];
   _renderDetail({titulo:titulo, subtitulo:subtitulo, iniciales:iniciales, bodyHTML:bodyHTML, editFn:editFn});
   document.getElementById('detail-modal').style.display='flex';
 }
@@ -17,19 +20,19 @@ function _renderDetail(entry){
   _updateDetailNav();
 }
 
-function _pushDetail(titulo, subtitulo, iniciales, editFn){
-  // Save current state before navigating away
-  var currentBody = document.getElementById('detail-body').innerHTML;
+function _pushDetail(){
+  // Only push if modal is already open — otherwise it's a fresh navigation
+  var modal = document.getElementById('detail-modal');
+  if(!modal || modal.style.display!=='flex') return;
   var currentTitle = document.getElementById('detail-title').textContent;
-  if(currentTitle && currentTitle!=='—'){
-    _detailStack.push({
-      titulo:currentTitle,
-      subtitulo:document.getElementById('detail-subtitle').textContent,
-      iniciales:document.getElementById('detail-avatar').textContent,
-      bodyHTML:currentBody,
-      editFn:document.getElementById('detail-edit-btn').onclick||null
-    });
-  }
+  if(!currentTitle || currentTitle==='—') return;
+  _detailStack.push({
+    titulo:currentTitle,
+    subtitulo:document.getElementById('detail-subtitle').textContent,
+    iniciales:document.getElementById('detail-avatar').textContent,
+    bodyHTML:document.getElementById('detail-body').innerHTML,
+    editFn:document.getElementById('detail-edit-btn').onclick||null
+  });
   _updateDetailNav();
 }
 

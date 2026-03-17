@@ -33,7 +33,7 @@ function renderProveedores(){
   el.innerHTML=proveedores.map(function(p){
     var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
     var tipoBadge=p.tipo&&p.tipo!=='general'?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(tipoLabels[p.tipo]||p.tipo)+'</span>':'';
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')">'+
+    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleProveedor(\''+esc(p.id)+'\')">'+
       '<div class="cliente-avatar" style="background:#e8e6e0;">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
         '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+

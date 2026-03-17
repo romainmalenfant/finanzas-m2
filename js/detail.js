@@ -1,17 +1,83 @@
-// ── Detail views ─────────────────────────────────────────
+// ── Detail navigation stack ──────────────────────────────
+var _detailStack = []; // [{titulo, subtitulo, iniciales, bodyHTML, editFn}]
+
 function abrirDetail(titulo, subtitulo, iniciales, bodyHTML, editFn){
-  document.getElementById('detail-title').textContent=titulo;
-  document.getElementById('detail-subtitle').textContent=subtitulo||'';
-  document.getElementById('detail-avatar').textContent=iniciales||'?';
-  document.getElementById('detail-body').innerHTML=bodyHTML;
-  var eb=document.getElementById('detail-edit-btn');
-  if(editFn){eb.style.display='block';eb.onclick=editFn;}
-  else eb.style.display='none';
+  _renderDetail({titulo:titulo, subtitulo:subtitulo, iniciales:iniciales, bodyHTML:bodyHTML, editFn:editFn});
   document.getElementById('detail-modal').style.display='flex';
+}
+
+function _renderDetail(entry){
+  document.getElementById('detail-title').textContent=entry.titulo;
+  document.getElementById('detail-subtitle').textContent=entry.subtitulo||'';
+  document.getElementById('detail-avatar').textContent=entry.iniciales||'?';
+  document.getElementById('detail-body').innerHTML=entry.bodyHTML;
+  var eb=document.getElementById('detail-edit-btn');
+  if(entry.editFn){eb.style.display='block';eb.onclick=entry.editFn;}
+  else eb.style.display='none';
+  _updateDetailNav();
+}
+
+function _pushDetail(titulo, subtitulo, iniciales, editFn){
+  // Save current state before navigating away
+  var currentBody = document.getElementById('detail-body').innerHTML;
+  var currentTitle = document.getElementById('detail-title').textContent;
+  if(currentTitle && currentTitle!=='—'){
+    _detailStack.push({
+      titulo:currentTitle,
+      subtitulo:document.getElementById('detail-subtitle').textContent,
+      iniciales:document.getElementById('detail-avatar').textContent,
+      bodyHTML:currentBody,
+      editFn:document.getElementById('detail-edit-btn').onclick||null
+    });
+  }
+  _updateDetailNav();
+}
+
+function _updateDetailNav(){
+  var backBtn = document.getElementById('detail-back-btn');
+  var bc = document.getElementById('detail-breadcrumb');
+  var bcInner = document.getElementById('detail-breadcrumb-inner');
+
+  if(_detailStack.length>0){
+    backBtn.style.display='block';
+    backBtn.textContent='← '+_detailStack[_detailStack.length-1].titulo;
+    // Breadcrumb
+    bc.style.display='block';
+    bcInner.innerHTML = _detailStack.map(function(entry, i){
+      return '<span style="color:#3B82F6;cursor:pointer;font-size:11px;" onclick="detailGoToIndex('+i+')">'+esc(entry.titulo)+'</span>'+
+        (i<_detailStack.length-1?'<span style="color:var(--text-4);font-size:11px;margin:0 2px;">›</span>':'');
+    }).join('')+
+    '<span style="color:var(--text-4);font-size:11px;margin:0 2px;">›</span>'+
+    '<span style="font-size:11px;color:var(--text-2);">'+esc(document.getElementById('detail-title').textContent)+'</span>';
+  } else {
+    backBtn.style.display='none';
+    bc.style.display='none';
+  }
+}
+
+function detailGoBack(){
+  if(!_detailStack.length)return;
+  var prev = _detailStack.pop();
+  _renderDetail(prev);
+}
+
+function detailGoToIndex(idx){
+  // Pop stack back to idx, render that entry
+  var entry = _detailStack[idx];
+  _detailStack = _detailStack.slice(0, idx);
+  _renderDetail(entry);
+}
+
+function cerrarDetail(){
+  _detailStack=[];
+  document.getElementById('detail-modal').style.display='none';
+  document.getElementById('detail-back-btn').style.display='none';
+  document.getElementById('detail-breadcrumb').style.display='none';
 }
 
 // ── Empresa detail ────────────────────────────────────────
 async function verDetalleEmpresa(id){
+  _pushDetail();
   // Ensure clientes loaded
   if(!clientes.length) await loadClientes();
   var c=clientes.find(function(x){return String(x.id)===String(id);});
@@ -114,6 +180,7 @@ async function verDetalleEmpresa(id){
 }
 
 async function verDetalleProveedor(id){
+  _pushDetail();
   if(!proveedores.length) await loadProveedores();
   var p=proveedores.find(function(x){return String(x.id)===String(id);});
   if(!p){
@@ -191,6 +258,7 @@ async function verDetalleProveedor(id){
 }
 
 async function verDetalleContacto(id){
+  _pushDetail();
   var c=contactos.find(function(x){return x.id===id;});
   if(!c){
     var {data}=await sb.from('contactos').select('*,clientes(nombre)').eq('id',id).maybeSingle();
@@ -257,6 +325,7 @@ async function verDetalleEmpleado(id){
 
 // ── Proyecto detail ───────────────────────────────────────
 async function verDetalleProyecto(id){
+  _pushDetail();
   var p=proyectos.find(function(x){return x.id===id;});
   if(!p)return;
   var ini=(p.nombre_pedido||'?').slice(0,2).toUpperCase();
@@ -425,5 +494,5 @@ async function desvincularFacturaProyecto(facturaId, proyId){
   }catch(e){showError('Error: '+e.message);}
 }
 
-function cerrarDetail(){document.getElementById('detail-modal').style.display='none';}
+// cerrarDetail defined above with stack reset
 

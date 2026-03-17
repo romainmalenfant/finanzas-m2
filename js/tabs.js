@@ -8,12 +8,13 @@ var TAB_COLORS = {
   contactos:   '#a78bfa',
   empleados:   '#94a3b8',
   sat:         '#fb923c',
-  cotizaciones:'#34d399'
+  cotizaciones:'#34d399',
+  facturas:    '#a78bfa'
 };
 
 // ── switchTab updated ────────────────────────────────────
 function switchTab(tab, btn){
-  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat','cotizaciones'];
+  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat','cotizaciones','facturas'];
   all.forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if(el)el.style.display='none';
@@ -46,5 +47,6 @@ function switchTab(tab, btn){
   if(tab==='empleados')loadEmpleados();
   if(tab==='sat')initSATTab();
   if(tab==='cotizaciones')loadCotizaciones();
+  if(tab==='facturas')loadFacturas();
 }
 

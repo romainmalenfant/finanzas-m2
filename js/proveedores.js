@@ -14,7 +14,7 @@ async function upsertProveedor(p){
 }
 
 async function deleteProveedor(id){
-  var {error}=await sb.from('proveedores').delete().eq('id',id);
+  var {error}=await sb.from('proveedores').update({activo:false}).eq('id',id);
   if(error)throw error;
 }
 

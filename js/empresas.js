@@ -162,7 +162,8 @@ async function loadClientesKPIs(){
     }else{topEl.textContent='Sin ventas registradas';}
 
     // Top 5 deudores — nombre completo
-    var {data:deudas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('origen','sat_emitida').eq('conciliado',false);
+    var {data:deudasRaw}=await sb.from('facturas').select('receptor_nombre,total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    var deudas=(deudasRaw||[]).map(function(f){return {contraparte:f.receptor_nombre,monto:f.total};});
     var byDeudor={};
     (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+(parseFloat(m.monto)||0);});
     var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);

@@ -225,6 +225,10 @@ function abrirNuevaFactura(){
   document.getElementById('fact-prov-search').value='';
   document.getElementById('fact-proj-id').value='';
   document.getElementById('fact-proj-search').value='';
+  document.getElementById('fact-total-manual').value='';
+  document.getElementById('fact-con-iva').checked=true;
+  _factItems=[]; _factItemId=0;
+  renderFactItems();
   onFactTipoChange('emitida');
   initFactACs();
   document.getElementById('fact-modal').style.display='flex';
@@ -266,14 +270,94 @@ async function editarFactura(id){
 function onFactTipoChange(tipo){
   document.getElementById('fact-campo-cliente').style.display=tipo==='emitida'?'block':'none';
   document.getElementById('fact-campo-proveedor').style.display=tipo==='recibida'?'block':'none';
+  // Clear the other field
+  if(tipo==='emitida'){document.getElementById('fact-prov-search').value='';document.getElementById('fact-prov-id').value='';}
+  else{document.getElementById('fact-cliente-search').value='';document.getElementById('fact-cliente-id').value='';}
 }
 
-function calcFactIva(){
-  var sub=parseFloat(document.getElementById('fact-subtotal').value)||0;
-  var iva=Math.round(sub*0.16*100)/100;
-  document.getElementById('fact-iva').value=iva||'';
-  document.getElementById('fact-total').value=Math.round((sub+iva)*100)/100||'';
+// ── Fact items management ─────────────────────────────────
+var _factItems = [];
+var _factItemId = 0;
+
+function addFactItem(desc, monto){
+  var id = ++_factItemId;
+  _factItems.push({id:id, desc:desc||'', monto:monto||0});
+  renderFactItems();
 }
+
+function removeFactItem(id){
+  _factItems = _factItems.filter(function(i){return i.id!==id;});
+  renderFactItems();
+}
+
+function renderFactItems(){
+  var el = document.getElementById('fact-items-list');
+  if(!_factItems.length){
+    el.innerHTML='<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Sin conceptos — agrega una línea o usa el total directo abajo.</div>';
+    recalcFactTotales();
+    return;
+  }
+  el.innerHTML = _factItems.map(function(item){
+    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
+      '<input type="text" placeholder="Descripción del concepto" value="'+esc(item.desc)+'"'+
+        ' onchange="_factItems.find(function(x){return x.id==='+item.id+';}).desc=this.value;updateFactConcepto();"'+
+        ' style="flex:1;padding:7px 10px;font-size:13px;">'+
+      '<input type="number" placeholder="$0" value="'+(item.monto||'')+'" min="0"'+
+        ' onchange="_factItems.find(function(x){return x.id==='+item.id+';}).monto=parseFloat(this.value)||0;recalcFactTotales();"'+
+        ' style="width:110px;padding:7px 10px;font-size:13px;">'+
+      '<button type="button" onclick="removeFactItem('+item.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 4px;">×</button>'+
+    '</div>';
+  }).join('');
+  recalcFactTotales();
+}
+
+function updateFactConcepto(){
+  var concepto = _factItems.map(function(i){return i.desc;}).filter(Boolean).join(', ');
+  document.getElementById('fact-concepto').value = concepto;
+}
+
+function recalcFactTotales(){
+  // If manual total is set, use that
+  var manualTotal = parseFloat(document.getElementById('fact-total-manual').value)||0;
+  var conIva = document.getElementById('fact-con-iva').checked;
+
+  var sub, iva, total;
+
+  if(manualTotal>0){
+    total = manualTotal;
+    if(conIva){
+      sub = Math.round(total/1.16*100)/100;
+      iva = Math.round(total-sub*100)/100;
+    } else {
+      sub = total;
+      iva = Math.round(sub*0.16*100)/100;
+      total = Math.round((sub+iva)*100)/100;
+    }
+  } else if(_factItems.length){
+    // Sum from items
+    sub = Math.round(_factItems.reduce(function(a,i){return a+(i.monto||0);},0)*100)/100;
+    iva = Math.round(sub*0.16*100)/100;
+    total = Math.round((sub+iva)*100)/100;
+  } else {
+    sub=0; iva=0; total=0;
+  }
+
+  document.getElementById('fact-subtotal-display').textContent = fmt(sub);
+  document.getElementById('fact-iva-display').textContent = fmt(iva);
+  document.getElementById('fact-total-display').textContent = fmt(total);
+  // Store in hidden fields
+  document.getElementById('fact-subtotal').value = sub;
+  document.getElementById('fact-iva').value = iva;
+  document.getElementById('fact-total').value = total;
+  updateFactConcepto();
+}
+
+function onFactTotalManual(val){
+  // When manual total changes, clear items monto to avoid conflict
+  recalcFactTotales();
+}
+
+function calcFactIva(){recalcFactTotales();}
 
 function initFactACs(){
   if(!clientes.length)loadClientes();
@@ -316,7 +400,7 @@ async function guardarFactura(){
     iva:parseFloat(document.getElementById('fact-iva').value)||0,
     total:total,
     metodo_pago:metodoPago,
-    concepto:document.getElementById('fact-concepto').value.trim()||null,
+    concepto:(_factItems.map(function(i){return i.desc;}).filter(Boolean).join(', '))||document.getElementById('fact-concepto').value.trim()||null,
     notas:document.getElementById('fact-notas').value.trim()||null,
     cliente_id:clienteId,
     proveedor_id:provId,
@@ -353,4 +437,3 @@ async function guardarFactura(){
     btn.disabled=false;btn.textContent='Guardar';
   }
 }
-

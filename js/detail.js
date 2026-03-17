@@ -147,7 +147,7 @@ async function verDetalleEmpresa(id){
         }).join('')+'</div>':'')  +
       ((projs||[]).length?'<div class="detail-section"><div class="detail-section-title">Proyectos '+año+'</div>'+
         projs.map(function(p){
-          return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleProyecto(\''+p.id+'\');},100)">'+
+          return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleProyecto(\''+p.id+'\')">'+
             '<div><div style="font-size:12px;color:#60a5fa;">'+esc(p.nombre_pedido)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">Entrega: '+fmtDateFull(p.fecha_entrega)+'</div></div>'+
             '<span style="font-weight:600;color:var(--text-2);">'+fmt(p.monto_total||0)+'</span></div>';
@@ -372,7 +372,7 @@ async function verDetalleProyecto(id){
       // Empresa vinculada
       '<div class="detail-section"><div class="detail-section-title">Empresa</div>'+
         (empresa?
-          '<div class="detail-list-item" style="cursor:pointer;" onclick="document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+empresa.id+'\');},100)">'+
+          '<div class="detail-list-item" style="cursor:pointer;" onclick="document.getElementById(\'detail-modal\').style.display=\'none\';setTimeout(function(){verDetalleEmpresa(\''+empresa.id+'\')">'+
             '<div><div style="font-size:13px;font-weight:500;color:#60a5fa;">'+esc(empresa.nombre)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+(empresa.rfc||'')+'</div></div>'+
             '<span style="font-size:11px;color:var(--text-3);">Ver detalle →</span>'+

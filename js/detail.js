@@ -152,7 +152,7 @@ async function verDetalleEmpresa(id){
         }).join('')+'</div>':'')  +
       ((projs||[]).length?'<div class="detail-section"><div class="detail-section-title">Proyectos '+año+'</div>'+
         projs.map(function(p){
-          return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleProyecto(\''+p.id+'\')">'+
+          return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleProyecto(\''+p.id+'\')">'+
             '<div><div style="font-size:12px;color:#60a5fa;">'+esc(p.nombre_pedido)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">Entrega: '+fmtDateFull(p.fecha_entrega)+'</div></div>'+
             '<span style="font-weight:600;color:var(--text-2);">'+fmt(p.monto_total||0)+'</span></div>';
@@ -162,7 +162,7 @@ async function verDetalleEmpresa(id){
       '</div>'+
       ((conts||[]).length?(conts).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
-        return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();setTimeout(function(){verDetalleContacto(\''+ct.id+'\');},100);">'+
+        return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+
           '<div><div style="font-size:12px;font-weight:500;color:#3B82F6;">'+esc(nombre)+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
           '<span style="font-size:11px;color:var(--text-3);">→</span></div>';

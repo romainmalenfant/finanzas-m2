@@ -213,7 +213,7 @@ document.addEventListener('keydown',function(e){
     // Close any open modal (flex = open)
     var modals=['cot-modal','conv-modal','form-mvmt-modal','proj-modal',
                 'cliente-modal','prov-modal','contacto-modal','empleado-modal',
-                'entrega-modal','sat-preview-modal'];
+                'entrega-modal','sat-preview-modal','fact-modal'];
     for(var i=0;i<modals.length;i++){
       var m=document.getElementById(modals[i]);
       if(m&&m.style.display==='flex'){m.style.display='none';return;}

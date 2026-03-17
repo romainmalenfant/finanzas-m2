@@ -42,7 +42,7 @@ async function loadBadgeData(){
   try{
     var {data:cxc}=await sb.from('movimientos_v2')
       .select('contraparte,monto,fecha')
-      .eq('origen','sat_emitida').eq('conciliado',false);
+      .eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
     _cxcRows=cxc||[];
   }catch(e){console.warn('Badge CxC:',e); _cxcRows=[];}
 

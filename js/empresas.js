@@ -14,7 +14,7 @@ async function upsertCliente(c){
 }
 
 async function deleteCliente(id){
-  var {error}=await sb.from('clientes').delete().eq('id',id);
+  var {error}=await sb.from('clientes').update({activo:false}).eq('id',id);
   if(error)throw error;
 }
 
@@ -26,9 +26,9 @@ async function upsertProyecto(proj){
 }
 
 async function deleteProyecto(id){
-  var {error}=await sb.from('proyectos').delete().eq('id',id);
+  var {error}=await sb.from('proyectos').update({activo:false}).eq('id',id);
   if(error)throw error;
-  await sb.from('entregas').delete().eq('proyecto_id',id);
+  await sb.from('entregas').update({activo:false}).eq('proyecto_id',id);
 }
 
 async function insertEntrega(entrega){

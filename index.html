@@ -17,17 +17,22 @@
   <!-- ── Detail view modal ────────────────────────────── -->
   <div class="modal-overlay" id="detail-modal" style="z-index:500;padding:1rem;">
     <div class="detail-modal-box">
-      <div class="modal-hdr" style="background:var(--bg-card);">
-        <div style="display:flex;align-items:center;gap:12px;">
+      <div class="modal-hdr" style="background:var(--bg-card);flex-direction:column;gap:0;padding-bottom:0;">
+        <!-- Breadcrumb -->
+        <div id="detail-breadcrumb" style="display:none;width:100%;padding:6px 0 8px;border-bottom:0.5px solid var(--border);margin-bottom:10px;">
+          <div id="detail-breadcrumb-inner" style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;width:100%;">
+          <button id="detail-back-btn" onclick="detailGoBack()" style="display:none;background:none;border:0.5px solid var(--border);border-radius:7px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--text-2);white-space:nowrap;">← Volver</button>
           <div class="detail-avatar" id="detail-avatar">?</div>
-          <div>
+          <div style="flex:1;min-width:0;">
             <div class="modal-title" id="detail-title">—</div>
             <div style="font-size:11px;color:var(--text-3);margin-top:2px;" id="detail-subtitle"></div>
           </div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn-sm" id="detail-edit-btn" style="display:none;">Editar</button>
-          <button class="modal-close" onclick="document.getElementById('detail-modal').style.display='none'">×</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-shrink:0;">
+            <button class="btn-sm" id="detail-edit-btn" style="display:none;">Editar</button>
+            <button class="modal-close" onclick="cerrarDetail()">×</button>
+          </div>
         </div>
       </div>
       <div class="modal-body" id="detail-body" style="max-height:75vh;padding:0;"></div>

@@ -231,29 +231,31 @@
 
   <!-- Modal nueva factura manual -->
   <div class="modal-overlay" id="fact-modal" style="z-index:300;padding:1rem;">
-    <div class="modal-box" style="max-width:560px;">
+    <div class="modal-box" style="max-width:620px;">
       <div class="modal-hdr">
         <div class="modal-title" id="fact-modal-title">Nueva factura</div>
         <button class="modal-close" onclick="document.getElementById('fact-modal').style.display='none'">×</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="fact-id-edit">
+        <!-- Tipo + Método -->
         <div class="form-row">
           <div class="form-group">
             <label>Tipo *</label>
             <select id="fact-tipo" onchange="onFactTipoChange(this.value)">
-              <option value="emitida">Emitida (ingreso)</option>
-              <option value="recibida">Recibida (gasto)</option>
+              <option value="emitida">Emitida (ingreso / cliente)</option>
+              <option value="recibida">Recibida (gasto / proveedor)</option>
             </select>
           </div>
           <div class="form-group">
             <label>Método de pago</label>
             <select id="fact-metodo-pago">
-              <option value="PUE">PUE — Pago en una sola exhibición</option>
-              <option value="PPD">PPD — Pago en parcialidades</option>
+              <option value="PUE">PUE — Una sola exhibición</option>
+              <option value="PPD">PPD — Parcialidades</option>
             </select>
           </div>
         </div>
+        <!-- Cliente (emitida) -->
         <div class="form-group" id="fact-campo-cliente">
           <label>Cliente *</label>
           <div class="ac-wrap">
@@ -262,6 +264,7 @@
             <div class="ac-dropdown" id="fact-cliente-dd"></div>
           </div>
         </div>
+        <!-- Proveedor (recibida) -->
         <div class="form-group" id="fact-campo-proveedor" style="display:none;">
           <label>Proveedor *</label>
           <div class="ac-wrap">
@@ -270,6 +273,7 @@
             <div class="ac-dropdown" id="fact-prov-dd"></div>
           </div>
         </div>
+        <!-- Fecha + Folio -->
         <div class="form-row">
           <div class="form-group">
             <label>Fecha *</label>
@@ -280,24 +284,42 @@
             <input type="text" id="fact-numero" placeholder="F-2026-001">
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Subtotal</label>
-            <input type="number" id="fact-subtotal" placeholder="0" min="0" oninput="calcFactIva()">
-          </div>
-          <div class="form-group">
-            <label>IVA (16%)</label>
-            <input type="number" id="fact-iva" placeholder="0" min="0">
-          </div>
-          <div class="form-group">
-            <label>Total *</label>
-            <input type="number" id="fact-total" placeholder="0" min="0">
-          </div>
-        </div>
+        <!-- Partidas / conceptos -->
         <div class="form-group">
-          <label>Concepto</label>
-          <input type="text" id="fact-concepto" placeholder="Descripción del servicio o producto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin-bottom:0;">Conceptos</label>
+            <button type="button" class="btn-sm" onclick="addFactItem()" style="font-size:11px;">+ Agregar línea</button>
+          </div>
+          <div id="fact-items-list">
+            <!-- items rendered by JS -->
+          </div>
         </div>
+        <!-- Totales -->
+        <div style="background:var(--bg-card-2);border:0.5px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:4px;">
+            <span>Subtotal</span><span id="fact-subtotal-display">$0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);margin-bottom:8px;">
+            <span>IVA (16%)</span><span id="fact-iva-display">$0</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:var(--text-1);">
+            <span>Total</span><span class="c-green" id="fact-total-display">$0</span>
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);display:flex;align-items:center;gap:8px;">
+            <label style="font-size:11px;color:var(--text-3);margin:0;">O ingresa el total directamente:</label>
+            <input type="number" id="fact-total-manual" placeholder="0" min="0" style="width:120px;padding:5px 8px;"
+              oninput="onFactTotalManual(this.value)">
+            <label style="font-size:11px;color:var(--text-3);margin:0;">
+              <input type="checkbox" id="fact-con-iva" checked onchange="recalcFactTotales()"> Con IVA incluido
+            </label>
+          </div>
+        </div>
+        <!-- Campos ocultos para guardar -->
+        <input type="hidden" id="fact-subtotal">
+        <input type="hidden" id="fact-iva">
+        <input type="hidden" id="fact-total">
+        <input type="hidden" id="fact-concepto">
+        <!-- Proyecto -->
         <div class="form-group">
           <label>Vincular a proyecto (opcional)</label>
           <div class="ac-wrap">
@@ -306,6 +328,7 @@
             <div class="ac-dropdown" id="fact-proj-dd"></div>
           </div>
         </div>
+        <!-- Notas -->
         <div class="form-group">
           <label>Notas</label>
           <input type="text" id="fact-notas" placeholder="Observaciones opcionales">

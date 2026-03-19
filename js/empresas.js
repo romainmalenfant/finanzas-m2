@@ -123,8 +123,14 @@ async function guardarCliente(){
 async function eliminarCliente(id){
   var c=clientes.find(function(x){return x.id===id;});
   if(!confirm('¿Eliminar cliente "'+(c?c.nombre:id)+'"?'))return;
-  try{await deleteCliente(id);clientes=clientes.filter(function(x){return x.id!==id;});renderClientes();}
-  catch(e){showError('No se pudo eliminar: '+e.message);}
+  try{
+    await deleteCliente(id);
+    clientes=clientes.filter(function(x){return x.id!==id;});
+    allClientes=clientes;
+    cacheInvalidate('clientes');
+    renderClientesList(clientes);
+    showStatus('✓ Cliente eliminado');
+  }catch(e){showError('No se pudo eliminar: '+e.message);}
 }
 
 // ── Clientes KPIs ─────────────────────────────────────────

@@ -44,7 +44,14 @@ function renderClientes(){
   var ct=document.getElementById('clientes-count');
   if(!el)return;
   ct.textContent=clientes.length+' empresa'+(clientes.length!==1?'s':'');
-  if(!clientes.length){el.innerHTML='<div class="empty-state">Sin empresas registradas.</div>';return;}
+  if(!clientes.length){
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">🏢</div>'+
+      '<div class="empty-state-msg">Sin empresas registradas</div>'+
+      '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>'+
+    '</div>';
+    return;
+  }
   var condLabels={'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
   el.innerHTML=clientes.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
@@ -202,7 +209,14 @@ function renderClientesList(list){
   var el=document.getElementById('clientes-list');
   var ct=document.getElementById('clientes-count');
   ct.textContent=list.length+' empresa'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin empresas</div>';return;}
+  if(!list.length){
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">🏢</div>'+
+      '<div class="empty-state-msg">Sin empresas</div>'+
+      '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>'+
+    '</div>';
+    return;
+  }
   var condLabels={'inmediato':'Pago inm.','15':'15d','30':'30d','45':'45d','60':'60d','90':'90d'};
   el.innerHTML=list.map(function(c){
     var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();

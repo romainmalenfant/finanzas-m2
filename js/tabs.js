@@ -1,52 +1,40 @@
-// ── Tab colors ────────────────────────────────────────────
-var TAB_COLORS = {
-  dashboard:   '#60a5fa',
-  finanzas:    '#34d399',
-  proyectos:   '#fbbf24',
-  clientes:    '#60a5fa',
-  proveedores: '#f87171',
-  contactos:   '#a78bfa',
-  empleados:   '#94a3b8',
-  sat:         '#fb923c',
-  cotizaciones:'#34d399',
-  facturas:    '#a78bfa'
-};
-
-// ── switchTab updated ────────────────────────────────────
+// ── switchTab ─────────────────────────────────────────────
+// Depende de APP_MODULES y APP_MODULES_MAP definidos en config.js
 function switchTab(tab, btn){
-  var all=['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat','cotizaciones','facturas'];
-  all.forEach(function(t){
-    var el=document.getElementById('tab-'+t);
+  // Ocultar todos usando el registro central
+  APP_MODULES.forEach(function(m){
+    var el=document.getElementById('tab-'+m.id);
     if(el)el.style.display='none';
-    var sb=document.getElementById('sb-'+t);
+    var sb=document.getElementById('sb-'+m.id);
     if(sb)sb.classList.remove('active');
   });
+
   var panel=document.getElementById('tab-'+tab);
   if(panel)panel.style.display='block';
 
-  // Apply color and active state
-  var activeBtn = btn || document.getElementById('sb-'+tab);
+  // Color y estado activo desde APP_MODULES_MAP (O1)
+  var mod=APP_MODULES_MAP[tab]||{color:'#60a5fa'};
+  var activeBtn=btn||document.getElementById('sb-'+tab);
   if(activeBtn){
     activeBtn.classList.add('active');
-    var color = TAB_COLORS[tab]||'#60a5fa';
-    activeBtn.style.setProperty('--tab-color', color);
+    activeBtn.style.setProperty('--tab-color', mod.color);
   }
 
-  // Hide month nav — only show on finanzas and sat
+  // Mostrar/ocultar selector de período
   var tb=document.querySelector('.topbar');
   if(tb){
-    var showPeriod=(tab==='finanzas'||tab==='sat');
-    if(showPeriod)tb.classList.remove('hide-period');
+    if(mod.showPeriod)tb.classList.remove('hide-period');
     else tb.classList.add('hide-period');
   }
-  if(tab==='dashboard')loadDashboard();
-  if(tab==='proyectos')loadProyectos();
-  if(tab==='clientes'){loadClientes();loadClientesKPIs();}
-  if(tab==='proveedores'){loadProveedores();loadProveedoresKPIs();}
-  if(tab==='contactos')loadContactos();
-  if(tab==='empleados')loadEmpleados();
-  if(tab==='sat')initSATTab();
-  if(tab==='cotizaciones')loadCotizaciones();
-  if(tab==='facturas')loadFacturas();
-}
 
+  // Inicializar módulo
+  if(tab==='dashboard')    loadDashboard();
+  if(tab==='proyectos')    loadProyectos();
+  if(tab==='clientes')     {loadClientes();loadClientesKPIs();}
+  if(tab==='proveedores')  {loadProveedores();loadProveedoresKPIs();}
+  if(tab==='contactos')    loadContactos();
+  if(tab==='empleados')    loadEmpleados();
+  if(tab==='sat')          initSATTab();
+  if(tab==='cotizaciones') loadCotizaciones();
+  if(tab==='facturas')     loadFacturas();
+}

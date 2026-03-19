@@ -337,9 +337,48 @@ async function guardarFormMovimiento(){
   var btn=document.getElementById('btn-save-mvmt');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
-    await insertMovement(mv);
-    if(facturaVinculadaId&&tipoMovActual==='cobranza'){
-      await sb.from('movimientos_v2').update({conciliado:true,movimiento_relacionado_id:mv.id}).eq('id',facturaVinculadaId);
+    if(tipoMovActual==='venta'){
+      // P1-a: venta → escribe en facturas, no en movimientos_v2
+      var sinFact=!_requiereFactura;
+      var fechaD=new Date(fecha+'T12:00');
+      var subTotal, ivaAmt;
+      if(sinFact){
+        subTotal=montoMXN; ivaAmt=0;
+      } else {
+        subTotal=Math.round(montoMXN/1.16*100)/100;
+        ivaAmt=Math.round((montoMXN-subTotal)*100)/100;
+      }
+      var numeroVta=null;
+      if(sinFact){
+        var {count}=await sb.from('facturas').select('*',{count:'exact',head:true})
+          .ilike('numero_vta','VTA-'+fechaD.getFullYear()+'-%');
+        numeroVta='VTA-'+fechaD.getFullYear()+'-'+String((count||0)+1).padStart(3,'0');
+      }
+      var factRow={
+        tipo:'emitida', fecha:fecha,
+        numero_factura:sinFact?null:(factura||null),
+        numero_vta:numeroVta,
+        subtotal:subTotal, iva:ivaAmt, total:montoMXN,
+        metodo_pago:metodoPagoSeleccionado||'PUE',
+        concepto:concepto||null,
+        cliente_id:clienteId||null,
+        receptor_nombre:cliente?cliente.nombre:null,
+        receptor_rfc:cliente?cliente.rfc:null,
+        sin_factura:sinFact,
+        estatus:'vigente',
+        conciliado:sinFact, // venta directa: cobrada inmediata
+        complemento_requerido:!sinFact&&metodoPagoSeleccionado==='PPD',
+        origen:'manual',
+        year:fechaD.getFullYear(), month:fechaD.getMonth()+1
+      };
+      var {error:fe}=await sb.from('facturas').insert([factRow]);
+      if(fe)throw fe;
+    } else {
+      // Cobranza y gasto siguen en movimientos_v2
+      await insertMovement(mv);
+      if(facturaVinculadaId&&tipoMovActual==='cobranza'){
+        await sb.from('movimientos_v2').update({conciliado:true,movimiento_relacionado_id:mv.id}).eq('id',facturaVinculadaId);
+      }
     }
     cerrarFormMovimiento();
     etiquetaSeleccionada=''; metodoPagoSeleccionado='';

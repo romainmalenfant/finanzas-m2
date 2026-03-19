@@ -27,7 +27,11 @@ function renderProveedores(){
   if(!el)return;
   ct.textContent=proveedores.length+' proveedor'+(proveedores.length!==1?'es':'');
   if(!proveedores.length){
-    el.innerHTML='<div class="empty-state">Sin proveedores. Se crean automáticamente al importar facturas SAT recibidas.</div>';
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">🛒</div>'+
+      '<div class="empty-state-msg">Sin proveedores. Se crean automáticamente al importar facturas SAT recibidas.</div>'+
+      '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>'+
+    '</div>';
     return;
   }
   el.innerHTML=proveedores.map(function(p){
@@ -176,7 +180,14 @@ function renderProveedoresList(list){
   var el=document.getElementById('proveedores-list');
   var ct=document.getElementById('prov-count');
   ct.textContent=list.length+' proveedor'+(list.length!==1?'es':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin proveedores</div>';return;}
+  if(!list.length){
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">🛒</div>'+
+      '<div class="empty-state-msg">Sin proveedores</div>'+
+      '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>'+
+    '</div>';
+    return;
+  }
   el.innerHTML=list.map(function(p){
     var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
     return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleProveedor(\''+esc(p.id)+'\')">'+

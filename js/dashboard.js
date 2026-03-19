@@ -208,7 +208,8 @@ async function responderConsulta(){
 
     var result=await apiResp.json();
     var answer=result.answer||'Sin respuesta.';
-    // Format answer — bold for numbers
+    // Escape first, then apply only safe formatting (bold + newlines)
+    answer=esc(answer);
     answer=answer.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
     resp.innerHTML='<span style="color:var(--text-1);line-height:1.7;">'+answer.replace(/\n/g,'<br>')+'</span>';
 
@@ -407,7 +408,7 @@ async function loadDashboard(){
         '<div class="mvmt-dot" style="background:'+(CAT_COLORS[m.categoria]||'#475569')+'"></div>'+
         '<div class="mvmt-info">'+
           '<div class="mvmt-desc" style="font-size:12px;">'+esc((m.contraparte||m.descripcion||'').slice(0,35))+'</div>'+
-          '<div class="mvmt-meta"><span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||m.categoria)+'</span>'+
+          '<div class="mvmt-meta"><span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||esc(m.categoria))+'</span>'+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span></div>'+
         '</div>'+
         '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+';font-size:13px;">'+(m.tipo==='egreso'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</div>'+

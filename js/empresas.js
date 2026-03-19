@@ -1,7 +1,7 @@
 // ── Clientes DB ──────────────────────────────────────────
 async function loadClientes(){
   try{
-    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
+    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true}).limit(500);
     if(error)throw error;
     clientes=data||[];
     renderClientes();
@@ -241,7 +241,7 @@ function renderClientesList(list){
 async function loadClientes(forceRefresh){
   try{
     clientes=await fetchWithCache('clientes',async function(){
-      var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
+      var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true}).limit(500);
       if(error)throw error;
       return data||[];
     },forceRefresh);

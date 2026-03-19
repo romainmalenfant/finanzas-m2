@@ -13,29 +13,24 @@ var _cxcRows=null, _cxpRows=null, _ytdMvmts=null;
 // ── Finanzas KPIs ─────────────────────────────────────────
 // Derives from in-memory movements — no extra query needed
 async function loadFinanzasKPIs(){
+  // P1-d: Flujo tab shows bank flows + manual cobranza/gastos
   try{
-    // P1-a: ventas from ventasMes (facturas), cobranza/gastos from movements (movimientos_v2)
-    var ventas=(ventasMes||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var rows=movements||[];
-    var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var util=ventas-gastos;
-    var flujo=cobr-gastos;
-    var setV=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);el.className='mvalue-hero '+(cls||'');};
-    setV('fin-ventas',ventas,'c-green');
-    setV('fin-util',util,util>=0?'c-util-pos':'c-util-neg');
-    setV('fin-cobr',cobr,'c-blue');
-    setV('fin-gasto',gastos,'c-red');
-    setV('fin-flujo',flujo,flujo>=0?'c-util-pos':'c-util-neg');
-    // CxC del mes — from cache or quick filter of cxcRows
-    var cxc=(_cxcRows||[]).filter(function(m){
-      var d=new Date(m.fecha);
-      return d.getFullYear()===curYear&&d.getMonth()===curMonth;
-    }).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    setV('fin-cxc',cxc,'c-amber');
-    var ventasEl=document.getElementById('fin-ventas-sub');
-    if(ventasEl)ventasEl.textContent=MONTHS[curMonth]+' '+curYear;
-  }catch(e){console.error('Finanzas KPIs:',e);}
+    var abonos=rows.filter(function(m){return m.origen==='banco_abono'||m.tipo==='ingreso'&&m.origen!=='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cargos=rows.filter(function(m){return m.origen==='banco_cargo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cobr=rows.filter(function(m){return m.categoria==='cobranza'&&m.origen==='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastos=rows.filter(function(m){return m.tipo==='egreso'&&m.origen==='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var entradas=abonos+cobr;
+    var saldo=entradas-cargos-gastos;
+    var set=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
+    set('fin-abonos',abonos,'c-green');
+    set('fin-cargos',cargos,'c-red');
+    set('fin-cobr',cobr,'c-blue');
+    set('fin-gasto',gastos,'c-red');
+    set('fin-entradas',entradas,'c-green');
+    var saldoEl=document.getElementById('fin-saldo');
+    if(saldoEl){saldoEl.textContent=fmt(saldo);saldoEl.className='mvalue '+(saldo>=0?'c-util-pos':'c-util-neg');}
+  }catch(e){console.error('Flujo KPIs:',e);}
 }
 
 // ── Motor de consultas en lenguaje natural ───────────────
@@ -329,6 +324,16 @@ async function loadDashboard(){
     document.getElementById('db-gasto-ytd').textContent=fmt(gastoYTD);
     document.getElementById('db-flujo-ytd').textContent=fmt(flujoYTD);
     document.getElementById('db-util-ytd').className='mvalue-hero '+(utilYTD>=0?'c-util-pos':'c-util-neg');
+    // P1-d: KPIs del mes en Dashboard
+    var ventasMesDB=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var cobrMesDB=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoMesDB=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var utilMesDB=ventasMesDB-gastoMesDB;
+    var setMes=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
+    setMes('db-ventas-mes',ventasMesDB,'c-green');
+    setMes('db-cobr-mes',cobrMesDB,'c-blue');
+    setMes('db-gasto-mes',gastoMesDB,'c-red');
+    setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
 
     // Por cobrar
     var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');

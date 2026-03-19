@@ -86,9 +86,9 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span class="s-tooltip">Dashboard</span>
     </button>
-    <button class="s-item" id="sb-finanzas" onclick="switchTab('finanzas',this)" title="Finanzas">
-      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span class="s-tooltip">Finanzas</span>
+    <button class="s-item" id="sb-finanzas" onclick="switchTab('finanzas',this)" title="Flujo de Caja">
+      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
+      <span class="s-tooltip">Flujo</span>
     </button>
     <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -629,8 +629,21 @@
       <div class="mcard"><div class="mlabel">Flujo de caja YTD</div><div class="mvalue c-util-pos" id="db-flujo-ytd">$0</div><div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Cobranza − Gastos</div></div>
     </div>
 
-    <!-- Últimos movimientos -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+    <!-- KPIs del mes -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;">
+      <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="db-ventas-mes">$0</div></div>
+      <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="db-cobr-mes">$0</div></div>
+      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="db-gasto-mes">$0</div></div>
+      <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="db-util-mes">$0</div></div>
+    </div>
+
+    <!-- Gráfica 12 meses -->
+    <div class="chart-card" style="margin-bottom:1.5rem;">
+      <div class="sec-title">Ventas y cobranza — últimos 12 meses</div>
+      <div style="position:relative;height:200px;"><canvas id="dbChart"></canvas></div>
+    </div>
+
+
       <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos</div></div>
       <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
     </div>
@@ -701,22 +714,37 @@
 
     </div>
 
-    <!-- Registrar movimiento — ABAJO -->
-    <div class="input-card" style="margin-top:0.5rem;">
-      <div class="sec-title">Registrar movimiento</div>
-      <input type="hidden" id="user-name-input">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('venta')">
-          <span style="font-size:22px;">📋</span>Venta
-        </button>
-        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('cobranza')">
-          <span style="font-size:22px;">💰</span>Cobranza
-        </button>
-        <button class="mvmt-type-btn" onclick="abrirFormMovimiento('gasto')">
-          <span style="font-size:22px;">🧾</span>Gasto
-        </button>
-      </div>
+    <!-- Últimos movimientos -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+      <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos de flujo</div></div>
+      <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
     </div>
+
+    <!-- Hidden for JS compatibility -->
+    <input type="hidden" id="user-name-input">
+  </div>
+
+  <!-- FAB — Registrar cobranza / gasto -->
+  <div id="fab-container" style="position:fixed;bottom:2rem;right:2rem;z-index:450;display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+    <div id="fab-menu" style="display:none;flex-direction:column;align-items:flex-end;gap:8px;margin-bottom:4px;">
+      <button onclick="cerrarFAB();abrirFormMovimiento('cobranza')"
+        style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;background:var(--bg-card);border:0.5px solid var(--border);box-shadow:0 2px 12px var(--shadow);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-1);">
+        <span>💰</span> Cobranza
+      </button>
+      <button onclick="cerrarFAB();abrirFormMovimiento('gasto')"
+        style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;background:var(--bg-card);border:0.5px solid var(--border);box-shadow:0 2px 12px var(--shadow);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-1);">
+        <span>🧾</span> Gasto
+      </button>
+      <button onclick="cerrarFAB();abrirFormMovimiento('venta')"
+        style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;background:var(--bg-card);border:0.5px solid var(--border);box-shadow:0 2px 12px var(--shadow);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-1);">
+        <span>📋</span> Venta
+      </button>
+    </div>
+    <button id="fab-btn" onclick="toggleFAB()"
+      style="width:52px;height:52px;border-radius:50%;background:#3B82F6;border:none;cursor:pointer;box-shadow:0 4px 16px #3B82F640;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .2s,background .15s;"
+      title="Registrar movimiento">
+      <span id="fab-icon">＋</span>
+    </button>
   </div>
 
   <!-- Tab Contactos -->
@@ -913,22 +941,28 @@
 
 
   <!-- Tab Finanzas -->
+  <!-- Tab Flujo de Caja (ex-Finanzas) -->
   <div id="tab-finanzas" style="display:none;">
-    <!-- KPIs del mes -->
+    <!-- KPIs flujo del mes -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="fin-ventas">$0</div></div>
-      <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="fin-cobr">$0</div></div>
-      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="fin-gasto">$0</div></div>
-      <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="fin-util">$0</div></div>
+      <div class="mcard"><div class="mlabel">Abonos bancarios</div><div class="mvalue c-green" id="fin-abonos">$0</div></div>
+      <div class="mcard"><div class="mlabel">Cargos bancarios</div><div class="mvalue c-red" id="fin-cargos">$0</div></div>
+      <div class="mcard"><div class="mlabel">Cobranza manual</div><div class="mvalue c-blue" id="fin-cobr">$0</div></div>
+      <div class="mcard"><div class="mlabel">Gastos manuales</div><div class="mvalue c-red" id="fin-gasto">$0</div></div>
     </div>
-    <div class="chart-card">
-      <div class="sec-title">Resumen visual del mes</div>
-      <div style="position:relative;height:200px;"><canvas id="myChart"></canvas></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Saldo neto del período</div><div class="mvalue c-util-pos" id="fin-saldo">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;">Abonos + Cobranza − Cargos − Gastos</div></div>
+      <div class="mcard"><div class="mlabel">Total entradas</div><div class="mvalue c-green" id="fin-entradas">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;" id="fin-ventas-sub"></div></div>
     </div>
+    <!-- Hidden IDs kept for compatibility -->
+    <span id="fin-ventas" style="display:none;"></span>
+    <span id="fin-util" style="display:none;"></span>
+    <span id="fin-flujo" style="display:none;"></span>
+    <span id="fin-cxc" style="display:none;"></span>
 
     <div class="mvmts-card">
       <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0">Movimientos del mes</div>
+        <div class="sec-title" style="margin-bottom:0">Flujo del mes</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <select id="mvmt-sort" onchange="sortAndRender()" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
             <option value="fecha_desc">📅 Fecha ↓ reciente</option>
@@ -941,8 +975,6 @@
       </div>
       <div id="mvmts-list"><div class="empty-state">Sin movimientos registrados este mes</div></div>
     </div>
-
-
   </div>
 
   <!-- Tab Proyectos -->

@@ -1,15 +1,42 @@
 
-function initContactoEmpresaAC(){
+function setContactoTipo(tipo){
+  var esEmpresa = tipo==='empresa';
+  // Toggle buttons
+  var btnEmp = document.getElementById('cont-tipo-empresa');
+  var btnProv = document.getElementById('cont-tipo-proveedor');
+  if(btnEmp) { btnEmp.classList.toggle('active', esEmpresa); }
+  if(btnProv){ btnProv.classList.toggle('active', !esEmpresa); }
+  // Show/hide fields
+  var campoEmp  = document.getElementById('cont-campo-empresa');
+  var campoProv = document.getElementById('cont-campo-proveedor');
+  if(campoEmp)  campoEmp.style.display  = esEmpresa  ? 'block' : 'none';
+  if(campoProv) campoProv.style.display = !esEmpresa ? 'block' : 'none';
+  // Clear the hidden field of the type not shown
+  if(esEmpresa){
+    var hp = document.getElementById('contacto-proveedor-sel');
+    var sp = document.getElementById('contacto-prov-search');
+    if(hp) hp.value=''; if(sp) sp.value='';
+  } else {
+    var hc = document.getElementById('contacto-cliente-sel');
+    var sc = document.getElementById('contacto-empresa-search');
+    if(hc) hc.value=''; if(sc) sc.value='';
+  }
+}
+
+function initContactoACs(){
   if(!document.getElementById('contacto-empresa-search')) return;
-  // Clear
-  document.getElementById('contacto-empresa-search').value='';
-  document.getElementById('contacto-cliente-sel').value='';
   makeAutocomplete('contacto-empresa-search','contacto-cliente-sel','contacto-empresa-dd',
     function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
     null
   );
+  makeAutocomplete('contacto-prov-search','contacto-proveedor-sel','contacto-prov-dd',
+    function(){return proveedores.map(function(p){return {id:p.id,label:p.nombre,sub:p.rfc||''};});},
+    null
+  );
 }
+
 function setContactoEmpresa(id, nombre){
+  setContactoTipo('empresa');
   var inp=document.getElementById('contacto-empresa-search');
   var hid=document.getElementById('contacto-cliente-sel');
   if(inp) inp.value=nombre||'';
@@ -20,7 +47,7 @@ var contactos=[], allContactos=[];
 
 async function loadContactos(){
   try{
-    var {data,error}=await sb.from('contactos').select('*,clientes(nombre)').order('nombre',{ascending:true});
+    var {data,error}=await sb.from('contactos').select('*,clientes(nombre),proveedores(nombre)').order('nombre',{ascending:true});
     if(error)throw error;
     contactos=data||[];allContactos=contactos;
     var kt=document.getElementById('cont-k-total'); if(kt)kt.textContent=contactos.length;
@@ -61,7 +88,9 @@ function renderContactosList(list){
   el.innerHTML=list.map(function(c){
     var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
     var initials=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
-    var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';
+    var empresa=c.clientes&&c.clientes.nombre
+      ? c.clientes.nombre
+      : (c.proveedores&&c.proveedores.nombre ? '🛒 '+c.proveedores.nombre : 'Sin empresa');
     return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleContacto(\''+esc(c.id)+'\')">'+
       '<div class="cliente-avatar" style="background:var(--bg-hover);color:#60a5fa;">'+esc(initials)+'</div>'+
       '<div class="cliente-info">'+
@@ -92,8 +121,13 @@ function abrirNuevoContacto(){
   document.getElementById('contacto-cliente-sel').value='';
   var empInp=document.getElementById('contacto-empresa-search');
   if(empInp)empInp.value='';
-  if(!clientes.length)loadClientes().then(initContactoEmpresaAC);
-  else initContactoEmpresaAC();
+  // Reset toggle to empresa by default
+  setContactoTipo('empresa');
+  document.getElementById('contacto-proveedor-sel') && (document.getElementById('contacto-proveedor-sel').value='');
+  document.getElementById('contacto-prov-search') && (document.getElementById('contacto-prov-search').value='');
+  if(!clientes.length) loadClientes();
+  if(!proveedores.length) loadProveedores();
+  initContactoACs();
   document.getElementById('contacto-activo').checked=true;
   document.getElementById('contacto-modal').style.display='flex';
 }
@@ -113,7 +147,26 @@ function editarContacto(id){
   var sel=document.getElementById('contacto-cliente-sel');
   sel.innerHTML='<option value="">— Sin empresa —</option>';
   clientes.forEach(function(cl){var o=document.createElement('option');o.value=cl.id;o.textContent=cl.nombre;sel.appendChild(o);});
-  sel.value=c.cliente_id||'';
+  // Restore tipo toggle based on saved data
+  if(!clientes.length) loadClientes();
+  if(!proveedores.length) loadProveedores();
+  initContactoACs();
+  if(c.proveedor_id){
+    setContactoTipo('proveedor');
+    var provObj=proveedores.find(function(p){return p.id===c.proveedor_id;});
+    if(provObj){
+      var pi=document.getElementById('contacto-prov-search'); if(pi) pi.value=provObj.nombre;
+      var ph=document.getElementById('contacto-proveedor-sel'); if(ph) ph.value=c.proveedor_id;
+    }
+  } else {
+    setContactoTipo('empresa');
+    sel.value=c.cliente_id||'';
+    var empInp=document.getElementById('contacto-empresa-search');
+    if(empInp&&c.cliente_id){
+      var cliObj=clientes.find(function(cl){return cl.id===c.cliente_id;});
+      if(cliObj) empInp.value=cliObj.nombre;
+    }
+  }
   document.getElementById('contacto-modal').style.display='flex';
 }
 
@@ -132,7 +185,8 @@ async function guardarContacto(){
     email:document.getElementById('contacto-email').value.trim()||null,
     telefono:document.getElementById('contacto-tel').value.trim()||null,
     notas:document.getElementById('contacto-notas').value.trim()||null,
-    cliente_id:document.getElementById('contacto-cliente-sel').value||null, // from ac hidden
+    cliente_id:document.getElementById('contacto-cliente-sel').value||null,
+    proveedor_id:document.getElementById('contacto-proveedor-sel')&&document.getElementById('contacto-proveedor-sel').value||null,
     activo:document.getElementById('contacto-activo').checked
   };
   try{

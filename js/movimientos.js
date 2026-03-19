@@ -264,7 +264,7 @@ function renderMovements(){
     el.innerHTML='<div class="empty-state-cta">'+
       '<div class="empty-state-icon">💸</div>'+
       '<div class="empty-state-msg">Sin movimientos registrados este mes</div>'+
-      '<button class="btn-primary" onclick="abrirFormMovimiento('venta')">+ Registrar venta</button>'+
+      '<button class="btn-primary" onclick="abrirFormMovimiento(\'venta\')">+ Registrar venta</button>'+
     '</div>';
     return;
   }

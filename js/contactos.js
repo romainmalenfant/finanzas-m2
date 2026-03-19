@@ -310,14 +310,13 @@ async function guardarContacto(){
   try{
     var {error}=await sb.from('contactos').upsert([c]);
     if(error)throw error;
+    // Save origin BEFORE cerrarModalContacto clears it
+    var _orig=window._contactoOrigin||null;
     cerrarModalContacto();
     showStatus('✓ Contacto guardado');
     loadContactos();
     // Refresh parent detail panel without full reload
-    if(window._contactoOrigin){
-      var _orig=window._contactoOrigin;
-      window._contactoOrigin=null;
-      // Reset detail-modal display so verDetalle re-renders fresh (no stack push)
+    if(_orig){
       var _dm=document.getElementById('detail-modal');
       if(_dm) _dm.style.display='none';
       if(_orig.tipo==='empresa') verDetalleEmpresa(_orig.id);

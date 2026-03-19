@@ -664,6 +664,27 @@ async function verDetalleCotizacion(id){
         '</table></div>'+
       '</div>';
 
+    // Nice-to-have 1: contactos del cliente vinculado a esta cotización
+    if(c.cliente_id){
+      var {data:cotConts}=await sb.from('contactos').select('*').eq('cliente_id',c.cliente_id).order('nombre');
+      body+=
+        '<div class="detail-section">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+          '<div class="detail-section-title" style="margin-bottom:0;">Contactos de '+esc(c.cliente_nombre||'cliente')+'</div>'+
+          '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+c.cliente_id+'\',\''+esc(c.cliente_nombre||'')+'\')" style="font-size:11px;">+ Nuevo</button>'+
+        '</div>'+
+        renderBuscarContactoHTML('empresa',c.cliente_id,c.cliente_nombre||'')+
+        ((cotConts||[]).length
+          ?(cotConts).map(function(ct){
+              var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
+              return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+ 
+                '<div><div style="font-size:12px;font-weight:500;color:#3B82F6;">'+esc(nombre)+'</div>'+
+                '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
+                '<span style="font-size:11px;color:var(--text-3);">→</span></div>';
+            }).join('')
+          :'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contactos</div>')+
+        '</div>';
+    }
     document.getElementById('detail-body').innerHTML = body;
   }catch(e){
     console.error('Detalle cotizacion:',e);

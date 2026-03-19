@@ -203,7 +203,9 @@ function render(){
 }
 
 function renderChart(m){
-  var ctx=document.getElementById('myChart');ctx.style.background='transparent';
+  var ctx=document.getElementById('myChart');
+  if(!ctx)return; // canvas not in DOM yet
+  ctx.style.background='transparent';
   var vals=[m.ventas,m.cobr,m.gastos,m.cxc];
   var bg=['#34d39933','#60a5fa33','#f8717133','#fbbf2433'];
   var br=['#34d399','#60a5fa','#f87171','#fbbf24'];

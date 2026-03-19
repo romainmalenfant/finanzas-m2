@@ -14,9 +14,9 @@ var _cxcRows=null, _cxpRows=null, _ytdMvmts=null;
 // Derives from in-memory movements — no extra query needed
 async function loadFinanzasKPIs(){
   try{
-    // Use already-loaded movements array (from loadMovements)
+    // P1-a: ventas from ventasMes (facturas), cobranza/gastos from movements (movimientos_v2)
+    var ventas=(ventasMes||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var rows=movements||[];
-    var ventas=rows.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cobr=rows.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var gastos=rows.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var util=ventas-gastos;
@@ -309,11 +309,15 @@ async function loadDashboard(){
   var añoAñoAnterior=año-1;
 
   try{
-    // YTD — todos los movimientos del año
-    var {data:ytdData}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año);
-    var ytd=ytdData||[];
+    // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
+    var dashResults=await Promise.all([
+      sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
+      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
+    ]);
+    var ytd=dashResults[0].data||[];
+    var factYTD=dashResults[1].data||[];
 
-    var ventasYTD=ytd.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var ventasYTD=factYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var utilYTD=ventasYTD-gastoYTD;
@@ -332,8 +336,8 @@ async function loadDashboard(){
     var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
 
-    // MoM comparación
-    var ventasMes=ytd.filter(function(m){return m.categoria==='venta'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    // P1-a: MoM ventas from facturas, cobranza/gastos from movimientos_v2
+    var ventasMesVal=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrMes=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
@@ -350,10 +354,10 @@ async function loadDashboard(){
       var arrow=pct>=0?'↑':'↓';
       return '<span style="color:'+color+';">'+arrow+' '+Math.abs(pct)+'% vs '+MONTHS[mismoMesAñoAnterior-1]+' '+añoAñoAnterior+'</span>';
     }
-    document.getElementById('db-ventas-mom').innerHTML=momBadge(ventasMes,ventasLY,'Ventas '+MONTHS[mesActual-1]);
+    document.getElementById('db-ventas-mom').innerHTML=momBadge(ventasMesVal,ventasLY,'Ventas '+MONTHS[mesActual-1]);
     document.getElementById('db-cobr-mom').innerHTML=momBadge(cobrMes,cobrLY,'Cobr. '+MONTHS[mesActual-1]);
     document.getElementById('db-gasto-mom').innerHTML=momBadge(gastoMes,gastoLY,'Gasto '+MONTHS[mesActual-1]);
-    document.getElementById('db-util-mom').innerHTML=momBadge(ventasMes-gastoMes,ventasLY-gastoLY,'Util. '+MONTHS[mesActual-1]);
+    document.getElementById('db-util-mom').innerHTML=momBadge(ventasMesVal-gastoMes,ventasLY-gastoLY,'Util. '+MONTHS[mesActual-1]);
 
     // Gráfica 12 meses — incluye año anterior si necesario
     var meses12=[]; var labels12=[]; var vData=[]; var cData=[];
@@ -363,14 +367,19 @@ async function loadDashboard(){
       labels12.push(MONTHS[d.getMonth()].slice(0,3));
     }
     var needsPrevYear=meses12[0].y<año;
-    var allChartData=ytd.slice();
+    var allCobrData=ytd.slice();
+    var allVentasFactData=factYTD.slice();
     if(needsPrevYear){
-      var {data:prevYearData}=await sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1);
-      allChartData=allChartData.concat(prevYearData||[]);
+      var prevResults=await Promise.all([
+        sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1),
+        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada')
+      ]);
+      allCobrData=allCobrData.concat(prevResults[0].data||[]);
+      allVentasFactData=allVentasFactData.concat(prevResults[1].data||[]);
     }
     meses12.forEach(function(mo){
-      var ventasMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-      var cobrMo=allChartData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+      var ventasMo=allVentasFactData.filter(function(f){return f.year===mo.y&&f.month===mo.m;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+      var cobrMo=allCobrData.filter(function(m){return m.year===mo.y&&m.month===mo.m&&m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
       vData.push(ventasMo); cData.push(cobrMo);
     });
 

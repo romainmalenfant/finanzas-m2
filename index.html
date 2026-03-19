@@ -644,10 +644,6 @@
     </div>
 
 
-      <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos</div></div>
-      <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
-    </div>
-
     <!-- CxC y CxP -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;">
 
@@ -717,7 +713,7 @@
     <!-- Últimos movimientos -->
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
       <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Últimos movimientos de flujo</div></div>
-      <div id="db-ultimos-mvmts"><div class="empty-state">Cargando...</div></div>
+      <div id="db-ultimos-mvmts"></div>
     </div>
 
     <!-- Hidden for JS compatibility -->
@@ -725,7 +721,7 @@
   </div>
 
   <!-- FAB — Registrar cobranza / gasto -->
-  <div id="fab-container" style="position:fixed;bottom:2rem;right:2rem;z-index:450;display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+  <div id="fab-container" style="position:fixed;bottom:2rem;right:2rem;z-index:450;display:none;flex-direction:column;align-items:flex-end;gap:10px;">
     <div id="fab-menu" style="display:none;flex-direction:column;align-items:flex-end;gap:8px;margin-bottom:4px;">
       <button onclick="cerrarFAB();abrirFormMovimiento('cobranza')"
         style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:20px;background:var(--bg-card);border:0.5px solid var(--border);box-shadow:0 2px 12px var(--shadow);cursor:pointer;font-family:inherit;font-size:13px;font-weight:500;color:var(--text-1);">
@@ -973,7 +969,7 @@
           <span class="mvmt-count" id="mvmt-count">0 movimientos</span>
         </div>
       </div>
-      <div id="mvmts-list"><div class="empty-state">Sin movimientos registrados este mes</div></div>
+      <div id="mvmts-list"></div>
     </div>
   </div>
 

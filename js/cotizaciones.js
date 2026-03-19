@@ -11,9 +11,8 @@ async function loadCotizaciones(){
   try{
     var {data,error} = await sb.from('cotizaciones')
       .select('*')
-      .eq('year', cotYearFilter)
       .order('created_at',{ascending:false})
-      .limit(300);
+      .limit(500);
     if(error)throw error;
     cotizaciones = data||[]; allCotizaciones = cotizaciones;
     // Init year filter

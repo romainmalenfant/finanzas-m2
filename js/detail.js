@@ -427,7 +427,8 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
     var {data:byProj} = await sb.from('movimientos_v2')
       .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
       .eq('origen','sat_emitida')
-      .eq('proyecto_id', proyId);
+      .eq('proyecto_id', proyId)
+      .limit(50);
     queries = byProj||[];
 
     // Also get unlinked invoices for this client (to allow linking)
@@ -437,7 +438,8 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
         .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
         .eq('origen','sat_emitida')
         .eq('cliente_id', clienteId)
-        .is('proyecto_id', null);
+        .is('proyecto_id', null)
+        .limit(50);
       unlinked = byClient||[];
     }
 

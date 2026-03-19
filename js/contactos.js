@@ -149,20 +149,24 @@ function abrirNuevoContacto(){
 // Abre el modal de nuevo contacto pre-vinculado a una empresa o proveedor
 function abrirNuevoContactoConVinculo(tipo, id, nombre){
   abrirNuevoContacto();
-  // Esperar a que el modal y los ACs estén listos
   setTimeout(function(){
     setContactoTipo(tipo);
     if(tipo==='empresa'){
       var inp=document.getElementById('contacto-empresa-search');
       var hid=document.getElementById('contacto-cliente-sel');
-      if(inp) inp.value=nombre||'';
+      if(inp){ inp.value=nombre||''; inp.readOnly=true; inp.style.opacity='.6'; inp.style.cursor='not-allowed'; }
       if(hid) hid.value=id||'';
     } else {
       var inp=document.getElementById('contacto-prov-search');
       var hid=document.getElementById('contacto-proveedor-sel');
-      if(inp) inp.value=nombre||'';
+      if(inp){ inp.value=nombre||''; inp.readOnly=true; inp.style.opacity='.6'; inp.style.cursor='not-allowed'; }
       if(hid) hid.value=id||'';
     }
+    // Lock the toggle — no tiene sentido cambiar la entidad de origen
+    var btnEmp=document.getElementById('cont-tipo-empresa');
+    var btnProv=document.getElementById('cont-tipo-proveedor');
+    if(btnEmp){ btnEmp.disabled=true; btnEmp.style.opacity='.5'; btnEmp.style.cursor='not-allowed'; }
+    if(btnProv){ btnProv.disabled=true; btnProv.style.opacity='.5'; btnProv.style.cursor='not-allowed'; }
   }, 120);
 }
 
@@ -271,7 +275,18 @@ function editarContacto(id){
   document.getElementById('contacto-modal').style.display='flex';
 }
 
-function cerrarModalContacto(){document.getElementById('contacto-modal').style.display='none';}
+function cerrarModalContacto(){
+  document.getElementById('contacto-modal').style.display='none';
+  // Restaurar campos bloqueados al cerrar
+  var empInp=document.getElementById('contacto-empresa-search');
+  var provInp=document.getElementById('contacto-prov-search');
+  var btnEmp=document.getElementById('cont-tipo-empresa');
+  var btnProv=document.getElementById('cont-tipo-proveedor');
+  if(empInp){ empInp.readOnly=false; empInp.style.opacity=''; empInp.style.cursor=''; }
+  if(provInp){ provInp.readOnly=false; provInp.style.opacity=''; provInp.style.cursor=''; }
+  if(btnEmp){ btnEmp.disabled=false; btnEmp.style.opacity=''; btnEmp.style.cursor=''; }
+  if(btnProv){ btnProv.disabled=false; btnProv.style.opacity=''; btnProv.style.cursor=''; }
+}
 
 async function guardarContacto(){
   var nombre=document.getElementById('contacto-nombre').value.trim();

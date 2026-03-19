@@ -218,21 +218,14 @@ function renderClientesList(list){
 }
 
 // Override loadClientes to also store allClientes
-var _origLoadClientes=null;
 async function loadClientes(forceRefresh){
-  if(!forceRefresh){
-    var cached=cacheGet('clientes');
-    if(cached){
-      clientes=cached; allClientes=cached;
-      var kt=document.getElementById('cli-k-total'); if(kt)kt.textContent=clientes.length;
-      renderClientesList(clientes); return;
-    }
-  }
   try{
-    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
-    if(error)throw error;
-    clientes=data||[]; allClientes=clientes;
-    cacheSet('clientes',clientes);
+    clientes=await fetchWithCache('clientes',async function(){
+      var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
+      if(error)throw error;
+      return data||[];
+    },forceRefresh);
+    allClientes=clientes;
     var kt=document.getElementById('cli-k-total'); if(kt)kt.textContent=clientes.length;
     renderClientesList(clientes);
   }catch(e){console.error('Clientes:',e);}

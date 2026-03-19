@@ -695,7 +695,7 @@ async function verDetalleCotizacion(id){
 // ── Empresa config (editar aquí) ─────────────────────────
 var EMPRESA_CONFIG = {
   nombre:    'Grupo M2',
-  slogan:    'Maquinado Industrial de Precisión',
+  slogan:    'Maquinados Industriales',
   direcciones: [
     'Querétaro: Blvd. Bernardo Quintana 123, Col. Centro, C.P. 76000',
     'Tampico: Av. Hidalgo 456, Col. Industrial, C.P. 89000'
@@ -706,7 +706,9 @@ var EMPRESA_CONFIG = {
   banco:     'BBVA · CLABE: 012345678901234567 · Cuenta: 1234567890',
   legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
              'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
-  logo:      null // se carga automáticamente desde el DOM
+  logo:      null, // se carga automáticamente desde el DOM
+  firma_nombre: 'Ing. [Nombre]',
+  firma_cargo:  'Director General'
 };
 
 // ── PDF ───────────────────────────────────────────────────
@@ -734,134 +736,182 @@ async function generarPDFCotizacion(id){
     var pw = doc.internal.pageSize.getWidth();  // 279
     var ph = doc.internal.pageSize.getHeight(); // 216
 
-    // ── Header bar ───────────────────────────────────────
-    doc.setFillColor(11,14,23);
-    doc.rect(0,0,pw,38,'F');
+    // ── Paleta Grupo M2 (manual de identidad) ────────────
+    var C = {
+      white:   [255,255,255],
+      bgPage:  [252,252,252],     // blanco casi puro
+      accent:  [232,25,44],       // rojo M2 #E8192C
+      accentL: [254,226,226],     // rojo pastel muy suave
+      accentD: [139,0,0],         // rojo oscuro/vino #8B0000
+      gray1:   [245,245,245],     // gris muy claro
+      gray2:   [176,176,176],     // gris medio #B0B0B0
+      gray3:   [107,107,107],     // gris oscuro #6B6B6B
+      text:    [51,51,51],        // carbon #333333
+      carbon:  [28,28,28],        // casi negro para header
+      silver:  [200,200,200],     // plateado metálico
+    };
 
-    // Logo from DOM
+    // Fondo blanco / muy suave
+    doc.setFillColor(...C.bgPage);
+    doc.rect(0,0,pw,ph,'F');
+
+    // ── Header: franja de acento izquierda + datos empresa ─
+    doc.setFillColor(...C.accent);
+    doc.rect(0,0,8,ph,'F'); // barra lateral azul
+
+    // Bloque header
+    doc.setFillColor(...C.accentL);
+    doc.roundedRect(12, 8, pw-22, 30, 3, 3, 'F');
+
+    // Logo
     try{
       var imgEl = document.querySelector('.sidebar-logo img');
-      if(imgEl && imgEl.src){
-        doc.addImage(imgEl.src,'PNG',10,5,22,22);
-      }
+      if(imgEl && imgEl.src) doc.addImage(imgEl.src,'PNG',16,10,20,20);
     }catch(e){}
 
-    // Company name
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text(EMPRESA_CONFIG.nombre, 38, 17);
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.setTextColor(148,163,184);
-    doc.text(EMPRESA_CONFIG.slogan, 38, 24);
+    // Nombre y slogan
+    doc.setTextColor(...C.accentD);
+    doc.setFontSize(17); doc.setFont('helvetica','bold');
+    doc.text(EMPRESA_CONFIG.nombre, 40, 20);
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+    doc.setTextColor(...C.gray3);
+    doc.text(EMPRESA_CONFIG.slogan, 40, 27);
+    doc.text(EMPRESA_CONFIG.web+' · '+EMPRESA_CONFIG.tel, 40, 33);
 
-    // Cotizacion number & date (right)
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(18); doc.setFont('helvetica','bold');
-    doc.text(c.numero||'COTIZACIÓN', pw-12, 16, {align:'right'});
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.setTextColor(148,163,184);
-    doc.text('Fecha: '+fmtDateFull(c.fecha), pw-12, 22, {align:'right'});
-    doc.text('Vigencia: '+(c.vigencia_dias||15)+' días a partir de esta fecha', pw-12, 28, {align:'right'});
+    // Número cotización (derecha del header)
+    doc.setFontSize(20); doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.accent);
+    doc.text(c.numero||'COTIZACIÓN', pw-14, 20, {align:'right'});
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(...C.gray3);
+    doc.text('Fecha: '+fmtDateFull(c.fecha), pw-14, 27, {align:'right'});
+    doc.text('Vigencia: '+(c.vigencia_dias||15)+' días', pw-14, 33, {align:'right'});
 
-    var y = 48;
+    var y = 46;
 
-    // ── Client & contact info ─────────────────────────────
-    doc.setFillColor(18,23,42);
-    doc.roundedRect(10, y-4, 120, contactoNombre?22:16, 2, 2, 'F');
-    doc.setTextColor(71,85,105);
-    doc.setFontSize(8); doc.setFont('helvetica','bold');
-    doc.text('DIRIGIDO A', 14, y+2);
-    doc.setTextColor(226,232,240);
+    // ── Cliente ───────────────────────────────────────────
+    doc.setFillColor(...C.gray1);
+    doc.roundedRect(12, y, 120, contactoNombre?20:14, 2, 2, 'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.accent);
+    doc.text('DIRIGIDO A', 16, y+5);
     doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.text(c.cliente_nombre||'', 14, y+9);
+    doc.setTextColor(...C.text);
+    doc.text(c.cliente_nombre||'', 16, y+11);
     if(contactoNombre){
-      doc.setFontSize(9); doc.setFont('helvetica','normal');
-      doc.setTextColor(148,163,184);
-      doc.text('Atención: '+contactoNombre, 14, y+16);
+      doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+      doc.setTextColor(...C.gray3);
+      doc.text('Atn. '+contactoNombre, 16, y+17);
+    }
+
+    // ── Notas (si existen, al lado del cliente) ───────────
+    if(c.notas){
+      doc.setFillColor(...C.gray1);
+      doc.roundedRect(136, y, pw-148, contactoNombre?20:14, 2, 2, 'F');
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.accent);
+      doc.text('NOTAS', 140, y+5);
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
+      var notasInline = doc.splitTextToSize(c.notas, pw-160);
+      doc.text(notasInline.slice(0,2), 140, y+11);
     }
 
     // ── Items table ───────────────────────────────────────
-    y = contactoNombre ? 76 : 70;
+    y = contactoNombre ? 72 : 66;
 
     var tableData = items.map(function(item){
       return [
-        {content: (item.descripcion||'')+(item.material?' Material: '+item.material:'')+(item.notas?' '+item.notas:''), styles:{fontSize:9}},
+        {content:(item.descripcion||'')+(item.material?' · '+item.material:'')+(item.notas?' · '+item.notas:''), styles:{fontSize:8.5, textColor:C.text}},
         item.tipo==='maquinado'?'Maquinado':item.tipo==='servicio'?'Servicio':'Producto',
-        (item.cantidad||0)+' '+(item.unidad||''),
+        (item.cantidad||0)+' '+(item.unidad||'pza'),
         fmt(item.precio_unitario||0),
-        {content: fmt(item.subtotal||0), styles:{fontStyle:'bold', textColor:[52,211,153]}}
+        {content:fmt(item.subtotal||0), styles:{fontStyle:'bold', textColor:C.accentD}}
       ];
     });
 
     doc.autoTable({
-      head:[['Descripción','Tipo','Cantidad','P. Unitario','Subtotal']],
+      head:[['Descripción','Tipo','Cant.','P. Unitario','Subtotal']],
       body: tableData,
       startY: y,
-      margin:{left:10, right:10},
-      styles:{fontSize:9, cellPadding:3, lineColor:[26,32,53], lineWidth:0.3},
-      headStyles:{fillColor:[11,14,23], textColor:[148,163,184], fontStyle:'bold', fontSize:8},
-      alternateRowStyles:{fillColor:[15,20,32]},
-      bodyStyles:{fillColor:[18,23,42], textColor:[203,213,225]},
+      margin:{left:12, right:12},
+      styles:{fontSize:8.5, cellPadding:3.5, lineColor:C.gray1, lineWidth:0.3, textColor:C.text},
+      headStyles:{fillColor:C.accent, textColor:C.white, fontStyle:'bold', fontSize:8},
+      alternateRowStyles:{fillColor:C.gray1},
+      bodyStyles:{fillColor:C.white},
       columnStyles:{
         0:{cellWidth:'auto'},
-        1:{cellWidth:28, halign:'center'},
-        2:{cellWidth:28, halign:'center'},
+        1:{cellWidth:26, halign:'center'},
+        2:{cellWidth:24, halign:'center'},
         3:{cellWidth:30, halign:'right'},
-        4:{cellWidth:35, halign:'right'}
+        4:{cellWidth:33, halign:'right'}
       }
     });
 
     var finalY = doc.lastAutoTable.finalY + 6;
 
-    // ── Totals (right side) ───────────────────────────────
-    var tx = pw - 10;
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    doc.setTextColor(100,116,139);
-    doc.text('Subtotal:', tx - 35, finalY); doc.setTextColor(203,213,225); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
+    // ── Totals ────────────────────────────────────────────
+    var tx = pw - 14;
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
+    doc.setTextColor(...C.gray3);
+    doc.text('Subtotal:', tx-38, finalY);
+    doc.setTextColor(...C.text); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
+    finalY += 5.5;
+    doc.setTextColor(...C.gray3); doc.text('IVA (16%):', tx-38, finalY);
+    doc.setTextColor(...C.text); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
     finalY += 6;
-    doc.setTextColor(100,116,139);
-    doc.text('IVA (16%):', tx - 35, finalY); doc.setTextColor(203,213,225); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
-    finalY += 7;
-    doc.setFillColor(11,14,23);
-    doc.roundedRect(tx-70, finalY-5, 70, 10, 2, 2, 'F');
-    doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.setTextColor(52,211,153);
-    doc.text('TOTAL:', tx - 35, finalY+2);
-    doc.text(fmt(c.total||0), tx, finalY+2, {align:'right'});
+    doc.setFillColor(...C.accentL);
+    doc.roundedRect(tx-72, finalY-5, 72, 11, 2, 2, 'F');
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    doc.setTextColor(...C.accentD);
+    doc.text('TOTAL:', tx-38, finalY+3);
+    doc.text(fmt(c.total||0), tx, finalY+3, {align:'right'});
 
-    // ── Notes ─────────────────────────────────────────────
-    if(c.notas){
-      finalY += 14;
-      doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(100,116,139);
-      doc.text('NOTAS:', 10, finalY);
-      doc.setFont('helvetica','normal'); doc.setTextColor(148,163,184);
-      var notasLines = doc.splitTextToSize(c.notas, 160);
-      doc.text(notasLines, 10, finalY+5);
-      finalY += 5 + notasLines.length*4;
+    // ── Condiciones de pago (si existen) ─────────────────
+    if(c.condiciones_pago){
+      finalY += 12;
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.accent);
+      doc.text('CONDICIONES DE PAGO:', 12, finalY);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3); doc.setFontSize(8);
+      doc.text(c.condiciones_pago, 12, finalY+5);
+      finalY += 5;
     }
 
-    // ── Footer ────────────────────────────────────────────
-    var footerY = ph - 30;
-    doc.setFillColor(11,14,23);
-    doc.rect(0, footerY, pw, 30, 'F');
+    // ── Firma ─────────────────────────────────────────────
+    var firmaX = pw - 80;
+    var firmaY = Math.min(finalY + 14, ph - 50);
+    doc.setDrawColor(...C.gray2);
+    doc.setLineWidth(0.4);
+    doc.line(firmaX, firmaY, firmaX+60, firmaY);
+    doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...C.text);
+    doc.text(EMPRESA_CONFIG.firma_nombre, firmaX+30, firmaY+5, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3); doc.setFontSize(7.5);
+    doc.text(EMPRESA_CONFIG.firma_cargo, firmaX+30, firmaY+10, {align:'center'});
 
-    // Addresses
-    doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+    // ── Footer ────────────────────────────────────────────
+    var footerH = 22;
+    var footerY = ph - footerH;
+    doc.setFillColor(...C.accentL);
+    doc.rect(0, footerY, pw, footerH, 'F');
+    doc.setFillColor(...C.accent);
+    doc.rect(0, footerY, 8, footerH, 'F');
+
+    // Addresses (left col)
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
     EMPRESA_CONFIG.direcciones.forEach(function(dir, i){
-      doc.text('📍 '+dir, 10, footerY+7+(i*5));
+      doc.text(dir, 12, footerY+6+(i*5));
     });
 
     // Contact info (center)
-    var cx = pw/2;
-    doc.setTextColor(148,163,184);
-    doc.text('🌐 '+EMPRESA_CONFIG.web, cx, footerY+7, {align:'center'});
-    doc.text('📞 '+EMPRESA_CONFIG.tel+'   ✉ '+EMPRESA_CONFIG.email, cx, footerY+12, {align:'center'});
-    doc.text('🏦 '+EMPRESA_CONFIG.banco, cx, footerY+17, {align:'center'});
+    doc.setTextColor(...C.accentD);
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+    doc.text(EMPRESA_CONFIG.web, pw/2, footerY+6, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...C.gray3);
+    doc.text(EMPRESA_CONFIG.tel+'   |   '+EMPRESA_CONFIG.email, pw/2, footerY+11, {align:'center'});
+    doc.text(EMPRESA_CONFIG.banco, pw/2, footerY+16, {align:'center'});
 
-    // Legal
-    doc.setTextColor(71,85,105); doc.setFontSize(6.5);
-    var legalLines = doc.splitTextToSize(EMPRESA_CONFIG.legal, pw-20);
-    doc.text(legalLines, pw/2, footerY+23, {align:'center'});
+    // Legal (right col)
+    doc.setFontSize(6); doc.setTextColor(...C.gray2);
+    var legalLines = doc.splitTextToSize(EMPRESA_CONFIG.legal, 70);
+    doc.text(legalLines, pw-14, footerY+5, {align:'right'});
 
     doc.save((c.numero||'cotizacion')+'.pdf');
     showStatus('✓ PDF generado');

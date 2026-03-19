@@ -60,7 +60,7 @@ async function responderConsulta(){
     }else{
       var {data:allMvmts}=await sb.from('movimientos_v2')
         .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
-        .eq('year',año).order('fecha',{ascending:false});
+        .eq('year',año).order('fecha',{ascending:false}).limit(2000);
       mvmts=allMvmts||[];
       cacheSet('ytd_'+año,mvmts);
     }

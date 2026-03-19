@@ -23,16 +23,16 @@ const CAT_BADGE  = {venta:'bv',cobranza:'bc',gasto:'bg',compra:'bg',cuenta_por_c
 // Fuente de verdad para tabs.js y search.js
 // Para agregar un módulo: solo añadir aquí
 var APP_MODULES = [
-  { id: 'dashboard',    label: 'Dashboard',    icon: '📊', color: '#60a5fa', showPeriod: false },
-  { id: 'finanzas',     label: 'Finanzas',     icon: '💰', color: '#34d399', showPeriod: true  },
-  { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄', color: '#34d399', showPeriod: false },
-  { id: 'proyectos',    label: 'Proyectos',    icon: '📋', color: '#fbbf24', showPeriod: false },
-  { id: 'clientes',     label: 'Empresas',     icon: '🏢', color: '#60a5fa', showPeriod: false },
-  { id: 'proveedores',  label: 'Proveedores',  icon: '🛒', color: '#f87171', showPeriod: false },
-  { id: 'contactos',    label: 'Contactos',    icon: '👤', color: '#a78bfa', showPeriod: false },
-  { id: 'empleados',    label: 'Empleados',    icon: '👥', color: '#94a3b8', showPeriod: false },
-  { id: 'sat',          label: 'SAT & Banco',  icon: '🏦', color: '#fb923c', showPeriod: true  },
-  { id: 'facturas',     label: 'Facturas',     icon: '🧾', color: '#a78bfa', showPeriod: false }
+  { id: 'dashboard',    label: 'Dashboard',    icon: '📊', color: '#E8192C', showPeriod: false },
+  { id: 'finanzas',     label: 'Flujo',        icon: '🏦', color: '#6B6B6B', showPeriod: true  },
+  { id: 'cotizaciones', label: 'Cotizaciones', icon: '📄', color: '#E8192C', showPeriod: false },
+  { id: 'proyectos',    label: 'Proyectos',    icon: '📋', color: '#B0B0B0', showPeriod: false },
+  { id: 'clientes',     label: 'Empresas',     icon: '🏢', color: '#E8192C', showPeriod: false },
+  { id: 'proveedores',  label: 'Proveedores',  icon: '🛒', color: '#6B6B6B', showPeriod: false },
+  { id: 'contactos',    label: 'Contactos',    icon: '👤', color: '#8B0000', showPeriod: false },
+  { id: 'empleados',    label: 'Empleados',    icon: '👥', color: '#6B6B6B', showPeriod: false },
+  { id: 'sat',          label: 'SAT & Banco',  icon: '🏦', color: '#B0B0B0', showPeriod: true  },
+  { id: 'facturas',     label: 'Facturas',     icon: '🧾', color: '#E8192C', showPeriod: false }
 ];
 
 // Índice por id para lookups O(1) — evita .find() en cada render

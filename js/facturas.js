@@ -134,7 +134,7 @@ function renderFacturasList(list){
         '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(nombre.slice(0,35))+'</div>'+
           (f.concepto?'<div style="font-size:10px;color:var(--text-3);">'+esc(f.concepto.slice(0,35))+'</div>':'')+
         '</td>'+
-        '<td class="muted">'+(f.sin_factura?'<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;">VTA</span> '+(f.numero_vta||'—'):(f.numero_factura||'—'))+'</td>'+
+        '<td class="muted">'+(f.sin_factura?'<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;">VTA</span> '+esc(f.numero_vta||'—'):esc(f.numero_factura||'—'))+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha||'')+(f.fecha&&dias>0?' <span style="color:'+semColor+';font-size:10px;">'+dias+'d</span>':'')+'</td>'+
         '<td><span style="padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:'+metodoBg+';color:'+metodoColor+';">'+(f.metodo_pago||'PUE')+'</span></td>'+
         '<td class="muted" style="font-size:11px;">'+(f.proyecto_id?'<span style="color:#3B82F6;">Vinculado</span>':'—')+'</td>'+

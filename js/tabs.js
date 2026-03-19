@@ -19,6 +19,8 @@ if(typeof APP_MODULES === 'undefined'){
 // ── switchTab ─────────────────────────────────────────────
 // Depende de APP_MODULES y APP_MODULES_MAP definidos en config.js
 function switchTab(tab, btn){
+  // Hide FAB when switching away from dashboard/flujo
+  if(tab!=='dashboard'&&tab!=='finanzas'&&typeof hideFAB==='function') hideFAB();
   // Ocultar todos usando el registro central
   APP_MODULES.forEach(function(m){
     var el=document.getElementById('tab-'+m.id);

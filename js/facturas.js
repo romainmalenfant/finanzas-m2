@@ -5,6 +5,9 @@ var facturasYearFilter = new Date().getFullYear();
 
 // ── Load ─────────────────────────────────────────────────
 async function loadFacturas(){
+  // U2 — skeleton mientras carga
+  var listEl=document.getElementById('fact-list');
+  if(listEl)listEl.innerHTML=[1,2,3,4,5].map(function(){return '<div class="sk-card"><div class="sk-avatar skeleton"></div><div class="sk-card-body"><div class="sk-line skeleton"></div><div class="sk-line-sm skeleton"></div></div></div>';}).join("");
   try{
     var yearSel = document.getElementById('fact-year-filter');
     if(yearSel && !yearSel.options.length){
@@ -113,7 +116,20 @@ function filtrarFacturas(q){
 function renderFacturasList(list){
   var el = document.getElementById('fact-list');
   if(!list.length){
-    el.innerHTML='<div class="empty-state">Sin facturas en esta categoría</div>';
+    var ctaLabels={
+      emitidas:'+ Nueva factura emitida',
+      recibidas:'+ Nueva factura recibida',
+      directas:'+ Registrar venta directa',
+      conciliadas:'Sin facturas conciliadas',
+      complementos:'Sin complementos PPD pendientes'
+    };
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">🧾</div>'+
+      '<div class="empty-state-msg">Sin facturas en esta categoría</div>'+
+      (facturasTipo==='emitidas'||facturasTipo==='recibidas'||facturasTipo==='directas'?
+        '<button class="btn-primary" onclick="abrirNuevaFactura()">'+
+        (ctaLabels[facturasTipo]||'+ Nueva factura')+'</button>':'')+
+    '</div>';
     return;
   }
   var hoy = new Date();
@@ -134,7 +150,7 @@ function renderFacturasList(list){
         '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(nombre.slice(0,35))+'</div>'+
           (f.concepto?'<div style="font-size:10px;color:var(--text-3);">'+esc(f.concepto.slice(0,35))+'</div>':'')+
         '</td>'+
-        '<td class="muted">'+(f.sin_factura?'<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;">VTA</span> '+esc(f.numero_vta||'—'):esc(f.numero_factura||'—'))+'</td>'+
+        '<td class="muted">'+(f.sin_factura?'<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;">VTA</span> '+(f.numero_vta||'—'):(f.numero_factura||'—'))+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha||'')+(f.fecha&&dias>0?' <span style="color:'+semColor+';font-size:10px;">'+dias+'d</span>':'')+'</td>'+
         '<td><span style="padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:'+metodoBg+';color:'+metodoColor+';">'+(f.metodo_pago||'PUE')+'</span></td>'+
         '<td class="muted" style="font-size:11px;">'+(f.proyecto_id?'<span style="color:#3B82F6;">Vinculado</span>':'—')+'</td>'+

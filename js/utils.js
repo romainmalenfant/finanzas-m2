@@ -83,9 +83,15 @@ async function loadMovements(){
   var listEl=document.getElementById('mvmts-list');
   if(listEl)listEl.innerHTML=[1,2,3,4,5].map(function(){return '<div class="sk-card"><div class="sk-avatar skeleton"></div><div class="sk-card-body"><div class="sk-line skeleton"></div><div class="sk-line-sm skeleton"></div></div></div>';}).join("");
   try{
-    var {data,error}=await sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false});
-    if(error)throw error;
-    movements=data||[];
+    // P1-a: load movimientos (cobranza/gasto/BBVA) AND ventas from facturas in parallel
+    var results=await Promise.all([
+      sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false}),
+      sb.from('facturas').select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
+        .eq('tipo','emitida').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false})
+    ]);
+    if(results[0].error)throw results[0].error;
+    movements=results[0].data||[];
+    ventasMes=(results[1].data||[]).filter(function(f){return f.estatus!=='cancelada';});
     setSyncState(true);
     render();
     loadYTD();
@@ -97,15 +103,24 @@ async function loadMovements(){
 
 async function loadYTD(){
   try{
-    var {data,error}=await sb.from(TABLE).select('categoria,monto').eq('year',curYear);
-    if(error)return;
-    var ytd=calcMetrics(data||[]);
-    document.getElementById('ytd-ventas').textContent=fmt(ytd.ventas);
-    document.getElementById('ytd-cobr').textContent=fmt(ytd.cobr);
-    document.getElementById('ytd-gasto').textContent=fmt(ytd.gastos);
-    document.getElementById('ytd-cxc').textContent=fmt(ytd.cxc);
-    document.getElementById('ytd-util').textContent=fmt(ytd.util);
-    document.getElementById('ytd-flujo').textContent=fmt(ytd.flujo);
+    // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
+    var results=await Promise.all([
+      sb.from(TABLE).select('categoria,monto').eq('year',curYear),
+      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',curYear).neq('estatus','cancelada')
+    ]);
+    var mvData=results[0].data||[];
+    var ventasYTD=(results[1].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var cobr=mvData.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastos=mvData.filter(function(m){return m.categoria==='gasto'||m.categoria==='compra';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cxc=mvData.filter(function(m){return m.categoria==='cuenta_por_cobrar';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var util=ventasYTD-gastos;
+    var flujo=cobr-gastos;
+    document.getElementById('ytd-ventas').textContent=fmt(ventasYTD);
+    document.getElementById('ytd-cobr').textContent=fmt(cobr);
+    document.getElementById('ytd-gasto').textContent=fmt(gastos);
+    document.getElementById('ytd-cxc').textContent=fmt(cxc);
+    document.getElementById('ytd-util').textContent=fmt(util);
+    document.getElementById('ytd-flujo').textContent=fmt(flujo);
   }catch(e){console.error('YTD error:',e);}
 }
 

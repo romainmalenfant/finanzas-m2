@@ -1,7 +1,7 @@
 // ── Proveedores DB & UI ──────────────────────────────────
 async function loadProveedores(){
   try{
-    var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
+    var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true}).limit(500);
     if(error)throw error;
     proveedores=data||[];
     renderProveedores();
@@ -207,7 +207,7 @@ function renderProveedoresList(list){
 async function loadProveedores(forceRefresh){
   try{
     proveedores=await fetchWithCache('proveedores',async function(){
-      var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
+      var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true}).limit(500);
       if(error)throw error;
       return data||[];
     },forceRefresh);

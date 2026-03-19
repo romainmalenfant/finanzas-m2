@@ -126,7 +126,10 @@ async function eliminarProveedor(id){
   try{
     await deleteProveedor(id);
     proveedores=proveedores.filter(function(x){return x.id!==id;});
-    renderProveedores();
+    allProveedores=proveedores;
+    cacheInvalidate('proveedores');
+    renderProveedoresList(proveedores);
+    showStatus('✓ Proveedor eliminado');
   }catch(e){showError('No se pudo eliminar: '+e.message);}
 }
 

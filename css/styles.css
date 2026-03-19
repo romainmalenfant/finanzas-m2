@@ -152,6 +152,21 @@ select option{background:var(--bg-card);color:var(--text-1);}
 .st-atrasado{background:#fee2e2;color:#dc2626;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap;display:inline-block;}
 [data-theme="dark"] .st-atrasado{background:#2a0d0d;color:#f87171;}
 .modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--kbar-bg);z-index:300;display:none;align-items:center;justify-content:center;}
+
+/* ── U3: Transiciones modales y tabs ── */
+/* Modal box: entrada suave con scale + opacity */
+.modal-overlay{transition:opacity .15s ease;}
+.modal-box,.detail-modal-box{
+  animation:modal-in .18s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes modal-in{
+  from{opacity:0;transform:scale(.97) translateY(6px);}
+  to  {opacity:1;transform:scale(1)   translateY(0);}
+}
+/* Tab content: fade-in al cambiar de pestaña */
+.tabs > div[id^="tab-"],[id^="tab-"]{animation:fadein .15s ease;}
+/* Extender fadein a más elementos de lista */
+.cliente-card,.proj-card,.mvmt-item,.kanban-card{animation:fadein .2s ease;}
 .modal-box{background:var(--bg-card);border:0.5px solid var(--border);border-radius:14px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px var(--shadow);}
 .modal-hdr{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.25rem;border-bottom:0.5px solid var(--border);flex-shrink:0;background:var(--bg-card);}
 .modal-title{font-size:15px;font-weight:600;color:var(--text-1);}
@@ -290,6 +305,19 @@ select option{background:var(--bg-card);color:var(--text-1);}
 .mvmt-amount{font-size:14px;font-weight:600;flex-shrink:0;white-space:nowrap;}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;}
 .badge-user{background:var(--bg-hover);color:var(--text-3);}
+
+/* ── U1: Paleta semántica de badges ── */
+/* Uso: class="badge badge-success" en lugar de style="background:#dcfce7;color:#16a34a" */
+.badge-success{background:#dcfce7;color:#16a34a;}
+.badge-warning{background:#fef3c7;color:#d97706;}
+.badge-danger {background:#fee2e2;color:#dc2626;}
+.badge-info   {background:#dbeafe;color:#1d4ed8;}
+.badge-neutral{background:#f1f5f9;color:#64748b;}
+[data-theme="dark"] .badge-success{background:#0d2a14;color:#34d399;}
+[data-theme="dark"] .badge-warning{background:#2a1a0d;color:#fbbf24;}
+[data-theme="dark"] .badge-danger {background:#2a0d0d;color:#f87171;}
+[data-theme="dark"] .badge-info   {background:#0d1f3c;color:#60a5fa;}
+[data-theme="dark"] .badge-neutral{background:var(--bg-hover);color:var(--text-3);}
 .btn-del{background:none;border:none;cursor:pointer;color:var(--text-4);font-size:16px;line-height:1;padding:2px 4px;border-radius:4px;flex-shrink:0;}
 .btn-del:hover,.btn-del-own:hover{color:#f87171;}
 

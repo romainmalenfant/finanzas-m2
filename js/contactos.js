@@ -23,8 +23,18 @@ function setContactoTipo(tipo){
   }
 }
 
+function _resetACInput(id){
+  // Clona el input para eliminar todos los listeners anteriores (fix Bug 4)
+  var el=document.getElementById(id);
+  if(!el)return;
+  var clone=el.cloneNode(true);
+  el.parentNode.replaceChild(clone,el);
+}
+
 function initContactoACs(){
   if(!document.getElementById('contacto-empresa-search')) return;
+  _resetACInput('contacto-empresa-search');
+  _resetACInput('contacto-prov-search');
   makeAutocomplete('contacto-empresa-search','contacto-cliente-sel','contacto-empresa-dd',
     function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
     null
@@ -156,9 +166,76 @@ function abrirNuevoContactoConVinculo(tipo, id, nombre){
   }, 120);
 }
 
+
+// ── Búsqueda inline de contacto (Bug 2 / Nice-to-have 1 & 2) ──────────
+// Genera HTML de un widget inline de búsqueda de contacto
+function renderBuscarContactoHTML(tipo, entityId, entityNombre){
+  var uid=entityId.replace(/[^a-z0-9]/gi,'').slice(0,12);
+  return '<div style="margin-top:8px;" id="cont-buscar-wrap-'+uid+'">'+
+    '<div style="position:relative;">'+
+      '<input type="text" id="cont-buscar-inp-'+uid+'"'+
+        ' placeholder="Buscar contacto existente..."'+
+        ' autocomplete="off"'+
+        ' oninput="buscarContactoInline(this.value,\''+tipo+'\',\''+entityId+'\',\''+esc(entityNombre)+'\',\''+uid+'\')"'+
+        ' style="width:100%;padding:7px 10px;font-size:12px;border:0.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-1);">'+
+      '<div id="cont-buscar-dd-'+uid+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:600;max-height:180px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px var(--shadow);"></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function buscarContactoInline(q, tipo, entityId, entityNombre, uid){
+  var dd=document.getElementById('cont-buscar-dd-'+uid);
+  if(!dd)return;
+  var ql=(q||'').toLowerCase().trim();
+  if(!ql){dd.style.display='none';return;}
+
+  // Filter contacts not already linked to this entity
+  var matches=(contactos||[]).filter(function(c){
+    if(tipo==='empresa'&&c.cliente_id===entityId)return false; // already linked
+    if(tipo==='proveedor'&&c.proveedor_id===entityId)return false;
+    var nombre=((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
+    return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
+  }).slice(0,6);
+
+  dd.style.display='block';
+  dd.innerHTML=matches.map(function(c){
+    var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
+    return '<div style="padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:12px;"'+
+      ' onmousedown="asociarContactoExistente(\''+c.id+'\',\''+tipo+'\',\''+entityId+'\');document.getElementById(\'cont-buscar-dd-'+uid+'\').style.display=\'none\'">'+
+      '<div style="font-weight:500;color:var(--text-1);">'+esc(nombre)+'</div>'+
+      '<div style="font-size:10px;color:var(--text-3);">'+(c.cargo||'')+(c.email?' · '+c.email:'')+'</div>'+
+    '</div>';
+  }).join('')+
+  '<div style="padding:9px 12px;cursor:pointer;font-size:12px;color:#60a5fa;font-weight:500;border-top:0.5px solid var(--border);"'+
+    ' onmousedown="document.getElementById(\'cont-buscar-dd-'+uid+'\').style.display=\'none\';abrirNuevoContactoConVinculo(\''+tipo+'\',\''+entityId+'\',\''+esc(entityNombre)+'\')"'+
+  '>+ Crear nuevo contacto</div>';
+}
+
+async function asociarContactoExistente(contactoId, tipo, entityId){
+  try{
+    var update=tipo==='empresa' ? {cliente_id:entityId,proveedor_id:null} : {proveedor_id:entityId,cliente_id:null};
+    var {error}=await sb.from('contactos').update(update).eq('id',contactoId);
+    if(error)throw error;
+    showStatus('✓ Contacto asociado');
+    loadContactos();
+    // Refresh the current detail view
+    if(tipo==='empresa') verDetalleEmpresa(entityId);
+    else verDetalleProveedor(entityId);
+  }catch(e){showError('Error: '+e.message);}
+}
+
 function editarContacto(id){
   var c=contactos.find(function(x){return x.id===id;});
   if(!c)return;
+  // Bug 3: limpiar TODOS los campos de vinculación antes de cargar el nuevo contacto
+  var empInpE=document.getElementById('contacto-empresa-search');
+  var provInpE=document.getElementById('contacto-prov-search');
+  var hidCli=document.getElementById('contacto-cliente-sel');
+  var hidProv=document.getElementById('contacto-proveedor-sel');
+  if(empInpE) empInpE.value='';
+  if(provInpE) provInpE.value='';
+  if(hidCli) hidCli.value='';
+  if(hidProv) hidProv.value='';
   document.getElementById('contacto-id-edit').value=c.id;
   document.getElementById('contacto-modal-title').textContent='Editar contacto';
   document.getElementById('contacto-nombre').value=c.nombre||'';

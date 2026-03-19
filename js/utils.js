@@ -163,3 +163,17 @@ function makeAutocomplete(inputId, hiddenId, dropdownId, getItems, onSelect){
     }, 150);
   });
 }
+
+// ── fetchWithCache ────────────────────────────────────────
+// Abstracción del patrón: verificar caché → query → guardar caché
+// queryFn: async function que retorna el array de datos
+// Nota: cacheGet/cacheSet definidas en dashboard.js, disponibles en runtime post-login
+async function fetchWithCache(key, queryFn, forceRefresh){
+  if(!forceRefresh){
+    var cached=cacheGet(key);
+    if(cached)return cached;
+  }
+  var data=await queryFn();
+  cacheSet(key,data);
+  return data;
+}

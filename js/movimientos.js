@@ -275,15 +275,22 @@ function sortAndRender(){
 
 function renderMovements(){
   var el=document.getElementById('mvmts-list');
+  if(!el) return; // safety guard
   var ct=document.getElementById('mvmt-count');
   var total=movements.length+ventasMes.length;
   ct.textContent=total+' movimiento'+(total!==1?'s':'');
   if(!movements.length&&!ventasMes.length){
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🏦</div>'+
-      '<div class="empty-state-msg">Sin movimientos de flujo este mes</div>'+
-      '<div style="font-size:11px;color:var(--text-3);">Los movimientos aparecen al importar estado de cuenta BBVA o registrar una cobranza o gasto</div>'+
-    '</div>';
+    el.innerHTML=
+      '<div class="empty-state-cta">'+
+        '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;">'+
+          '<rect x="2" y="5" width="20" height="14" rx="2"/>'+
+          '<path d="M2 10h20"/>'+
+          '<circle cx="7" cy="15" r="1"/>'+
+          '<path d="M11 15h6"/>'+
+        '</svg>'+
+        '<div class="empty-state-msg">Sin movimientos de flujo este mes</div>'+
+        '<div style="font-size:11px;color:var(--text-4);margin-top:4px;">Importa un estado de cuenta BBVA o registra una cobranza o gasto</div>'+
+      '</div>';
     return;
   }
   sortAndRender();

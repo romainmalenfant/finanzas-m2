@@ -148,6 +148,7 @@ function abrirNuevoContacto(){
 
 // Abre el modal de nuevo contacto pre-vinculado a una empresa o proveedor
 function abrirNuevoContactoConVinculo(tipo, id, nombre){
+  window._contactoOrigin = {tipo:tipo, id:id}; // remember parent to refresh after save
   abrirNuevoContacto();
   setTimeout(function(){
     setContactoTipo(tipo);
@@ -276,6 +277,7 @@ function editarContacto(id){
 }
 
 function cerrarModalContacto(){
+  window._contactoOrigin=null; // clear origin on cancel
   document.getElementById('contacto-modal').style.display='none';
   // Restaurar campos bloqueados al cerrar
   var empInp=document.getElementById('contacto-empresa-search');
@@ -311,6 +313,16 @@ async function guardarContacto(){
     cerrarModalContacto();
     showStatus('✓ Contacto guardado');
     loadContactos();
+    // Refresh parent detail panel without full reload
+    if(window._contactoOrigin){
+      var _orig=window._contactoOrigin;
+      window._contactoOrigin=null;
+      // Reset detail-modal display so verDetalle re-renders fresh (no stack push)
+      var _dm=document.getElementById('detail-modal');
+      if(_dm) _dm.style.display='none';
+      if(_orig.tipo==='empresa') verDetalleEmpresa(_orig.id);
+      else verDetalleProveedor(_orig.id);
+    }
   }catch(e){showError('Error: '+e.message);}
   finally{btn.disabled=false;btn.textContent='Guardar';}
 }

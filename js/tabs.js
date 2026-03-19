@@ -1,3 +1,21 @@
+// ── Fallback si config_append.js no fue aplicado aún ────
+if(typeof APP_MODULES === 'undefined'){
+  console.warn('APP_MODULES no definido. Agrega config_append.js a config.js');
+  var APP_MODULES = [
+    {id:'dashboard',label:'Dashboard',icon:'📊',color:'#60a5fa',showPeriod:false},
+    {id:'finanzas',label:'Finanzas',icon:'💰',color:'#34d399',showPeriod:true},
+    {id:'cotizaciones',label:'Cotizaciones',icon:'📄',color:'#34d399',showPeriod:false},
+    {id:'proyectos',label:'Proyectos',icon:'📋',color:'#fbbf24',showPeriod:false},
+    {id:'clientes',label:'Empresas',icon:'🏢',color:'#60a5fa',showPeriod:false},
+    {id:'proveedores',label:'Proveedores',icon:'🛒',color:'#f87171',showPeriod:false},
+    {id:'contactos',label:'Contactos',icon:'👤',color:'#a78bfa',showPeriod:false},
+    {id:'empleados',label:'Empleados',icon:'👥',color:'#94a3b8',showPeriod:false},
+    {id:'sat',label:'SAT & Banco',icon:'🏦',color:'#fb923c',showPeriod:true},
+    {id:'facturas',label:'Facturas',icon:'🧾',color:'#a78bfa',showPeriod:false}
+  ];
+  var APP_MODULES_MAP = Object.fromEntries(APP_MODULES.map(function(m){return [m.id,m];}));
+}
+
 // ── switchTab ─────────────────────────────────────────────
 // Depende de APP_MODULES y APP_MODULES_MAP definidos en config.js
 function switchTab(tab, btn){

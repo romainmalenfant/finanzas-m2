@@ -445,6 +445,38 @@ async function verDetalleProyecto(id){
             '<span style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</span>'+
           '</div>';
         }).join('')+'</div>':'');
+    // F3: Cotizaciones vinculadas a este proyecto/cliente
+    var cotFilter = p.cliente_id
+      ? {col:'cliente_id', val:p.cliente_id}
+      : {col:'nombre_cliente_ilike', val:p.nombre_cliente};
+    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre').order('fecha',{ascending:false}).limit(10);
+    if(p.cliente_id) cotQuery=cotQuery.eq('cliente_id',p.cliente_id);
+    else cotQuery=cotQuery.ilike('cliente_nombre','%'+(p.nombre_cliente||'')+'%');
+    var {data:cots}=await cotQuery;
+    var EST_COLORS_LOCAL={borrador:'#64748b',enviada:'#60a5fa',en_negociacion:'#a78bfa',cerrada:'#34d399',perdida:'#f87171'};
+    var EST_LABELS_LOCAL={borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Cerrada ✓',perdida:'Perdida'};
+    body+=
+      '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+        '<div class="detail-section-title" style="margin-bottom:0;">Cotizaciones</div>'+
+      '</div>'+
+      ((cots||[]).length
+        ?(cots).map(function(cot){
+            var ec=EST_COLORS_LOCAL[cot.estatus]||'#64748b';
+            var el=EST_LABELS_LOCAL[cot.estatus]||cot.estatus;
+            return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleCotizacion(\''+cot.id+'\')">'+ 
+              '<div>'+
+                '<div style="display:flex;align-items:center;gap:6px;">'+
+                  '<span style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(cot.numero||'COT')+'</span>'+
+                  '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:'+ec+'22;color:'+ec+';">'+esc(el)+'</span>'+
+                '</div>'+
+                '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+fmtDateFull(cot.fecha)+'</div>'+
+              '</div>'+
+              '<span style="font-weight:600;color:var(--text-1);">'+fmt(cot.total||0)+'</span>'+
+            '</div>';
+          }).join('')
+        :'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin cotizaciones vinculadas</div>')+
+      '</div>';
+
     _setDetailBody(body);
 
     // Load and render SAT invoices linked to this project

@@ -48,12 +48,10 @@ function buscarKBar(q){
   if(!ql.trim()){
     res.innerHTML=
       '<div class="kbar-section">Navegación rápida</div>'+
-      ['dashboard','finanzas','proyectos','clientes','proveedores','contactos','empleados','sat'].map(function(t){
-        var labels={dashboard:'Dashboard',finanzas:'Finanzas',proyectos:'Proyectos',clientes:'Empresas',proveedores:'Proveedores',contactos:'Contactos',empleados:'Empleados',sat:'SAT & Banco'};
-        var icons={dashboard:'📊',finanzas:'💰',proyectos:'📋',clientes:'🏢',proveedores:'🛒',contactos:'👤',empleados:'👥',sat:'🏦'};
-        return '<div class="kbar-item" onclick="kbarGoTo(\'+t+\')">'+
-          '<div class="kbar-item-icon" style="background:#12172a;">'+icons[t]+'</div>'+
-          '<div class="kbar-item-main"><div class="kbar-item-name">'+labels[t]+'</div></div>'+
+      APP_MODULES.map(function(m){
+        return '<div class="kbar-item" onclick="kbarGoTo(\''+m.id+'\')">'+
+          '<div class="kbar-item-icon" style="background:#12172a;">'+m.icon+'</div>'+
+          '<div class="kbar-item-main"><div class="kbar-item-name">'+m.label+'</div></div>'+
         '</div>';
       }).join('')+
       '<div class="kbar-section" style="margin-top:4px;">Acciones</div>'+
@@ -209,10 +207,7 @@ document.addEventListener('keydown',function(e){
     if(kb&&kb.style.display==='flex'){cerrarKBar();return;}
     // Close detail modal
     var dm=document.getElementById('detail-modal');
-    if(dm&&dm.style.display==='flex'){
-      if(typeof _detailStack!=='undefined'&&_detailStack.length>0){detailGoBack();return;}
-      cerrarDetail();return;
-    }
+    if(dm&&dm.style.display==='flex'){dm.style.display='none';return;}
     // Close any open modal (flex = open)
     var modals=['cot-modal','conv-modal','form-mvmt-modal','proj-modal',
                 'cliente-modal','prov-modal','contacto-modal','empleado-modal',

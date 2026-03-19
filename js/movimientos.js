@@ -288,6 +288,34 @@ function renderMovements(){
 }
 
 
+
+// ── FAB — Registrar movimiento ────────────────────────────
+var _fabOpen = false;
+function toggleFAB(){
+  _fabOpen = !_fabOpen;
+  var menu = document.getElementById('fab-menu');
+  var icon = document.getElementById('fab-icon');
+  var btn  = document.getElementById('fab-btn');
+  if(menu){ menu.style.display = _fabOpen ? 'flex' : 'none'; }
+  if(icon){ icon.textContent  = _fabOpen ? '✕' : '＋'; }
+  if(btn) { btn.style.transform = _fabOpen ? 'rotate(45deg)' : ''; btn.style.background = _fabOpen ? '#ef4444' : '#3B82F6'; }
+}
+function cerrarFAB(){
+  _fabOpen = false;
+  var menu = document.getElementById('fab-menu');
+  var icon = document.getElementById('fab-icon');
+  var btn  = document.getElementById('fab-btn');
+  if(menu) menu.style.display = 'none';
+  if(icon) icon.textContent = '＋';
+  if(btn)  { btn.style.transform = ''; btn.style.background = '#3B82F6'; }
+}
+// Close FAB when clicking outside
+document.addEventListener('click', function(e){
+  if(!_fabOpen) return;
+  var container = document.getElementById('fab-container');
+  if(container && !container.contains(e.target)) cerrarFAB();
+});
+
 // ── Detección de duplicados ──────────────────────────────
 function findDuplicate(monto, fecha, categoria){
   // Solo compara dentro de la misma dirección: ingresos vs ingresos, egresos vs egresos

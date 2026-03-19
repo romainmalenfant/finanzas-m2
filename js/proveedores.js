@@ -191,19 +191,13 @@ function renderProveedoresList(list){
 }
 
 async function loadProveedores(forceRefresh){
-  if(!forceRefresh){
-    var cached=cacheGet('proveedores');
-    if(cached){
-      proveedores=cached; allProveedores=cached;
-      var kt=document.getElementById('prov-k-total'); if(kt)kt.textContent=proveedores.length;
-      renderProveedoresList(proveedores); return;
-    }
-  }
   try{
-    var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
-    if(error)throw error;
-    proveedores=data||[]; allProveedores=proveedores;
-    cacheSet('proveedores',proveedores);
+    proveedores=await fetchWithCache('proveedores',async function(){
+      var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true});
+      if(error)throw error;
+      return data||[];
+    },forceRefresh);
+    allProveedores=proveedores;
     var kt=document.getElementById('prov-k-total'); if(kt)kt.textContent=proveedores.length;
     renderProveedoresList(proveedores);
   }catch(e){console.error('Proveedores:',e);}

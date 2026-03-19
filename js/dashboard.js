@@ -1,3 +1,8 @@
+
+// ── FAB visibility — show only on dashboard and flujo ────
+function showFAB(){ var f=document.getElementById('fab-container'); if(f) f.style.display='flex'; }
+function hideFAB(){ var f=document.getElementById('fab-container'); cerrarFAB(); if(f) f.style.display='none'; }
+
 // ── Cache layer ───────────────────────────────────────────
 var _cache={};
 var CACHE_TTL=5*60*1000; // 5 minutos
@@ -413,10 +418,15 @@ async function loadDashboard(){
     loadCxP();
 
     // Últimos movimientos
+    showFAB();
     var {data:ultimos}=await sb.from('movimientos_v2').select('*').order('fecha',{ascending:false}).limit(8);
     var me=getUserName();
     var ultiEl=document.getElementById('db-ultimos-mvmts');
-    if(!(ultimos&&ultimos.length)){ultiEl.innerHTML='<div class="empty-state">Sin movimientos</div>';return;}
+    if(!(ultimos&&ultimos.length)){
+      ultiEl.innerHTML='<div class="empty-state-cta"><div class="empty-state-icon">📭</div>'+
+        '<div class="empty-state-msg">Sin movimientos de flujo recientes</div></div>';
+      return;
+    }
     ultiEl.innerHTML=ultimos.map(function(m){
       return '<div class="mvmt-item">'+
         '<div class="mvmt-dot" style="background:'+(CAT_COLORS[m.categoria]||'#475569')+'"></div>'+

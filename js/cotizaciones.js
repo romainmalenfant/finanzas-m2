@@ -868,6 +868,23 @@ var KANBAN_COLS = [
   {key:'perdida',      label:'Perdida',           icon:'❌', limit90:true}
 ];
 
+// ── U6: Kanban touch/mobile support ──────────────────────
+// Mueve una card entre columnas — funciona en touch Y desktop
+async function kanbanMoveCard(e, cotId, fromEstatus, toEstatus){
+  e.stopPropagation();
+  if(fromEstatus===toEstatus) return;
+  if(toEstatus==='cerrada'){
+    await cambiarEstatusCot(cotId,'cerrada');
+    return;
+  }
+  try{
+    await sb.from('cotizaciones').update({estatus:toEstatus}).eq('id',cotId);
+    showStatus('✓ Movida a '+EST_LABELS[toEstatus]);
+    await loadCotizaciones();
+    if(cotView==='kanban') renderKanban();
+  }catch(err){showError('Error: '+err.message);}
+}
+
 function renderKanban(){
   var el = document.getElementById('cot-kanban-wrap');
   var hoy = new Date();
@@ -887,6 +904,19 @@ function renderKanban(){
 
     var cardsHTML = cards.map(function(c){
       var dias = Math.floor((hoy - new Date(c.created_at||c.fecha)) / 864e5);
+      var colIdx = KANBAN_COLS.findIndex(function(k){return k.key===col.key;});
+      var prevCol = colIdx > 0 ? KANBAN_COLS[colIdx-1] : null;
+      var nextCol = colIdx < KANBAN_COLS.length-1 ? KANBAN_COLS[colIdx+1] : null;
+      var prevBtn = prevCol
+        ? '<button class="btn-sm" style="font-size:10px;padding:2px 6px;flex:1;" '
+          +'onclick="kanbanMoveCard(event,\''+c.id+'\',\''+col.key+'\',\''+prevCol.key+'\')"'
+          +' title="Mover a '+"'"+prevCol.label+"'"+'">&larr; '+prevCol.label+'</button>'
+        : '<span style="flex:1"></span>';
+      var nextBtn = nextCol
+        ? '<button class="btn-sm" style="font-size:10px;padding:2px 6px;flex:1;text-align:right;" '
+          +'onclick="kanbanMoveCard(event,\''+c.id+'\',\''+col.key+'\',\''+nextCol.key+'\')"'
+          +' title="Mover a '+"'"+nextCol.label+"'"+'">' +nextCol.label+' &rarr;</button>'
+        : '<span style="flex:1"></span>';
       return '<div class="kanban-card" onclick="verDetalleCotizacion(\''+c.id+'\')" draggable="true" '+
         'ondragstart="kanbanDragStart(event,\''+c.id+'\')">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
@@ -896,6 +926,9 @@ function renderKanban(){
         '<div style="font-size:12px;font-weight:500;color:var(--text-1);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.cliente_nombre||'Sin cliente')+'</div>'+
         '<div style="font-size:13px;font-weight:700;color:var(--text-1);">'+fmt(c.total||0)+'</div>'+
         (c.notas?'<div style="font-size:10px;color:var(--text-3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(c.notas)+'</div>':'')+
+        '<div style="display:flex;justify-content:space-between;gap:4px;margin-top:8px;" onclick="event.stopPropagation()">'+
+          prevBtn+nextBtn+
+        '</div>'+
       '</div>';
     }).join('');
 

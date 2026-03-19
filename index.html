@@ -744,7 +744,7 @@
   </div>
 
   <!-- Modal contacto -->
-  <div class="modal-overlay" id="contacto-modal" style="z-index:200;padding:1rem;">
+  <div class="modal-overlay" id="contacto-modal" style="z-index:600;padding:1rem;">
     <div class="modal-box" style="max-width:480px;">
       <div class="modal-hdr">
         <div class="modal-title" id="contacto-modal-title">Nuevo contacto</div>
@@ -756,12 +756,26 @@
           <div class="form-group"><label>Nombre *</label><input type="text" id="contacto-nombre" placeholder="Juan"></div>
           <div class="form-group"><label>Apellido</label><input type="text" id="contacto-apellido" placeholder="García"></div>
         </div>
+        <!-- Toggle: el contacto pertenece a una empresa O a un proveedor, no ambos -->
         <div class="form-group">
-          <label>Empresa</label>
-          <div class="ac-wrap">
+          <label>Pertenece a</label>
+          <div style="display:flex;gap:0;border:0.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:10px;">
+            <button type="button" id="cont-tipo-empresa" class="etiq-btn active" style="border-radius:0;border:none;flex:1;"
+              onclick="setContactoTipo('empresa')">🏢 Empresa (cliente)</button>
+            <button type="button" id="cont-tipo-proveedor" class="etiq-btn" style="border-radius:0;border:none;border-left:0.5px solid var(--border);flex:1;"
+              onclick="setContactoTipo('proveedor')">🛒 Proveedor</button>
+          </div>
+          <!-- Empresa autocomplete -->
+          <div id="cont-campo-empresa" class="ac-wrap">
             <input type="text" id="contacto-empresa-search" placeholder="Buscar empresa..." autocomplete="off">
             <input type="hidden" id="contacto-cliente-sel">
             <div class="ac-dropdown" id="contacto-empresa-dd"></div>
+          </div>
+          <!-- Proveedor autocomplete -->
+          <div id="cont-campo-proveedor" class="ac-wrap" style="display:none;">
+            <input type="text" id="contacto-prov-search" placeholder="Buscar proveedor..." autocomplete="off">
+            <input type="hidden" id="contacto-proveedor-sel">
+            <div class="ac-dropdown" id="contacto-prov-dd"></div>
           </div>
         </div>
         <div class="form-row">

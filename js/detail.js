@@ -42,8 +42,7 @@ function _updateDetailNav(){
   var bcInner = document.getElementById('detail-breadcrumb-inner');
 
   if(_detailStack.length>0){
-    backBtn.style.display='block';
-    backBtn.textContent='← '+_detailStack[_detailStack.length-1].titulo;
+    backBtn.style.display='none'; // breadcrumb handles navigation
     // Breadcrumb
     bc.style.display='block';
     bcInner.innerHTML = _detailStack.map(function(entry, i){
@@ -258,6 +257,20 @@ async function verDetalleProveedor(id){
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha||'')+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
+    // Contactos del proveedor
+    var {data:contsP}=await sb.from('contactos').select('*').eq('proveedor_id',String(id)).order('nombre');
+    body+=
+      '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+        '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
+      '</div>'+
+      ((contsP||[]).length?(contsP).map(function(ct){
+        var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
+        return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+ 
+          '<div><div style="font-size:12px;font-weight:500;color:#3B82F6;">'+esc(nombre)+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
+          '<span style="font-size:11px;color:var(--text-3);">→</span></div>';
+      }).join(''):'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contactos</div>')+
+      '</div>';
     _setDetailBody(body);
   }catch(e){
     console.error('Detalle proveedor:',e);
@@ -269,20 +282,25 @@ async function verDetalleContacto(id){
   _pushDetail();
   var c=contactos.find(function(x){return x.id===id;});
   if(!c){
-    var {data}=await sb.from('contactos').select('*,clientes(nombre)').eq('id',id).maybeSingle();
+    var {data}=await sb.from('contactos').select('*,clientes(nombre),proveedores(nombre)').eq('id',id).maybeSingle();
     if(!data)return;
     c=data;
   }
   var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
   var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
-  var empresa=c.clientes&&c.clientes.nombre?c.clientes.nombre:'Sin empresa';
+  var esProveedor = !c.cliente_id && !!c.proveedor_id;
+  var empresa = c.clientes&&c.clientes.nombre
+    ? c.clientes.nombre
+    : (c.proveedores&&c.proveedores.nombre ? c.proveedores.nombre : 'Sin empresa');
   var body=
     '<div class="detail-section"><div class="detail-grid">'+
       '<div class="detail-field"><div class="detail-field-label">Cargo</div><div class="detail-field-value">'+(c.cargo||'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Empresa</div>'+
+      '<div class="detail-field"><div class="detail-field-label">'+(esProveedor?'Proveedor':'Empresa')+'</div>'+
       (c.cliente_id?
         '<div class="detail-field-value" style="color:#3B82F6;cursor:pointer;" onclick="verDetalleEmpresa(\''+c.cliente_id+'\')">' + esc(empresa) + '</div>'
-        :'<div class="detail-field-value">'+esc(empresa)+'</div>')+
+      : c.proveedor_id
+        ? '<div class="detail-field-value" style="color:#f87171;cursor:pointer;" onclick="verDetalleProveedor(\''+c.proveedor_id+'\')">' + esc(empresa) + '</div>'
+        : '<div class="detail-field-value">'+esc(empresa)+'</div>')+
       '</div>'+
       '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>':'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+'</div></div>'+

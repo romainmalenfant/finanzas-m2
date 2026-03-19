@@ -198,6 +198,8 @@ function render(){
   renderChart(m);
   renderMovements();
   loadFinanzasKPIs();
+  // Show FAB when on flujo tab
+  if(typeof showFAB==='function') showFAB();
 }
 
 function renderChart(m){
@@ -278,9 +280,9 @@ function renderMovements(){
   ct.textContent=total+' movimiento'+(total!==1?'s':'');
   if(!movements.length&&!ventasMes.length){
     el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">💸</div>'+
-      '<div class="empty-state-msg">Sin movimientos registrados este mes</div>'+
-      '<button class="btn-primary" onclick="abrirFormMovimiento(\'venta\')">+ Registrar venta</button>'+
+      '<div class="empty-state-icon">🏦</div>'+
+      '<div class="empty-state-msg">Sin movimientos de flujo este mes</div>'+
+      '<div style="font-size:11px;color:var(--text-3);">Los movimientos aparecen al importar estado de cuenta BBVA o registrar una cobranza o gasto</div>'+
     '</div>';
     return;
   }

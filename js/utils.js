@@ -85,7 +85,9 @@ async function loadMovements(){
   try{
     // P1-a: load movimientos (cobranza/gasto/BBVA) AND ventas from facturas in parallel
     var results=await Promise.all([
-      sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false}),
+      sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1)
+        .in('origen',['manual','banco_abono','banco_cargo'])
+        .order('fecha',{ascending:false}),
       sb.from('facturas').select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
         .eq('tipo','emitida').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false})
     ]);

@@ -5,6 +5,14 @@ async function handlePDF(input){
   var file=input.files[0];
   if(!file)return;
   input.value='';
+
+  // T5 — límite de tamaño: PDFs > 10MB probablemente no son facturas SAT
+  var MAX_MB=10;
+  if(file.size > MAX_MB*1024*1024){
+    showError('El archivo pesa más de '+MAX_MB+'MB. Solo se aceptan facturas SAT (PDF ligeros).');
+    return;
+  }
+
   var userName=getUserName();
   if(!userName){
     var n=prompt('¿Cuál es tu nombre?');
@@ -504,6 +512,16 @@ async function importarBBVAMultiple(input){
   var files=Array.from(input.files||[]);
   if(!files.length)return;
   input.value='';
+
+  // T5 — límite de tamaño: estados de cuenta BBVA raramente superan 15MB
+  var MAX_MB=15;
+  var oversized=files.filter(function(f){return f.size>MAX_MB*1024*1024;});
+  if(oversized.length){
+    showError(oversized.length+' archivo(s) superan '+MAX_MB+'MB y no se procesarán: '+oversized.map(function(f){return f.name;}).join(', '));
+    files=files.filter(function(f){return f.size<=MAX_MB*1024*1024;});
+    if(!files.length)return;
+  }
+
   showStatus('Leyendo '+files.length+' PDF'+(files.length>1?'s':'')+' BBVA...',0);
   var totalRows=[];
   try{

@@ -79,6 +79,9 @@ function setSyncState(online){var el=document.getElementById('sync-indicator');e
 
 // ── Supabase SDK ─────────────────────────────────────────
 async function loadMovements(){
+  // U2 — skeleton mientras carga
+  var listEl=document.getElementById('mvmts-list');
+  if(listEl)listEl.innerHTML=[1,2,3,4,5].map(function(){return '<div class="sk-card"><div class="sk-avatar skeleton"></div><div class="sk-card-body"><div class="sk-line skeleton"></div><div class="sk-line-sm skeleton"></div></div></div>';}).join("");
   try{
     var {data,error}=await sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false});
     if(error)throw error;

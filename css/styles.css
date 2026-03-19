@@ -400,3 +400,79 @@ input[type="checkbox"],input[type="radio"]{width:auto;accent-color:#3B82F6;}
 .ac-item:hover{background:var(--bg-hover);}
 .ac-item-name{font-size:13px;font-weight:500;color:var(--text-1);}
 .ac-item-sub{font-size:11px;color:var(--text-3);}
+
+/* ── U2: Skeleton loaders ── */
+/* Uso: innerHTML = '<div class="skeleton skeleton-list">...</div>' mientras carga */
+@keyframes shimmer{
+  0%  {background-position:200% 0;}
+  100%{background-position:-200% 0;}
+}
+.skeleton{
+  background:linear-gradient(90deg,var(--bg-card-2) 25%,var(--bg-hover) 50%,var(--bg-card-2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.4s ease-in-out infinite;
+  border-radius:6px;
+}
+/* Bloques skeleton predefinidos */
+.sk-line{height:12px;margin-bottom:8px;border-radius:4px;}
+.sk-line-sm{height:10px;width:60%;margin-bottom:6px;border-radius:4px;}
+.sk-line-lg{height:16px;margin-bottom:10px;border-radius:4px;}
+.sk-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;}
+.sk-card{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 1rem;border-bottom:0.5px solid var(--border);
+}
+.sk-card-body{flex:1;}
+
+/* ── U4: Clases utilitarias ── */
+/* Tipografía */
+.txt-xs  {font-size:10px;}
+.txt-sm  {font-size:11px;}
+.txt-base{font-size:12px;}
+.txt-md  {font-size:13px;}
+.txt-muted   {color:var(--text-3);}
+.txt-subtle  {color:var(--text-4);}
+.txt-primary {color:var(--text-1);}
+.txt-secondary{color:var(--text-2);}
+.txt-green{color:#34d399;}
+.txt-red  {color:#f87171;}
+.txt-amber{color:#fbbf24;}
+.txt-blue {color:#60a5fa;}
+.fw-500{font-weight:500;}
+.fw-600{font-weight:600;}
+.fw-700{font-weight:700;}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Layout */
+.flex       {display:flex;}
+.flex-col   {display:flex;flex-direction:column;}
+.items-center{align-items:center;}
+.justify-between{justify-content:space-between;}
+.gap-4 {gap:4px;}
+.gap-6 {gap:6px;}
+.gap-8 {gap:8px;}
+.gap-12{gap:12px;}
+.flex-shrink-0{flex-shrink:0;}
+.w-full{width:100%;}
+.cursor-pointer{cursor:pointer;}
+.overflow-x-auto{overflow-x:auto;}
+.span-2{grid-column:span 2;}
+.text-right{text-align:right;}
+
+/* Espaciado */
+.mt-4 {margin-top:4px;}
+.mt-6 {margin-top:6px;}
+.mt-8 {margin-top:8px;}
+.mt-12{margin-top:12px;}
+.mb-0 {margin-bottom:0;}
+.mb-6 {margin-bottom:6px;}
+.mb-8 {margin-bottom:8px;}
+.p-16 {padding:16px;}
+
+/* U5: Empty state con CTA */
+.empty-state-cta{
+  text-align:center;padding:2.5rem 1rem;color:var(--text-3);font-size:13px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-state-icon{font-size:28px;opacity:.5;}
+.empty-state-msg {font-size:13px;color:var(--text-3);}

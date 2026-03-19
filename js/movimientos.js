@@ -1,5 +1,6 @@
 // ── Etiqueta de gasto ────────────────────────────────────
 var etiquetaSeleccionada='';
+var ventasMes = []; // P1-a: ventas del mes cargadas desde facturas
 function detectarGasto(texto){
   var t=texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var esGasto=t.match(/pag[ao]|nomin|compr[ao]|gast|egres|proveedor|renta|servicio|material|herramienta|combustible|luz\b|agua\b|telefon|internet|manten|reparac|flete|envio|seguro|impuest|iva|isr|sueldo|mutuo|utilidad/);
@@ -173,8 +174,10 @@ async function processMovement(){
 
 // ── Metrics ──────────────────────────────────────────────
 function computeMetrics(){
+  // P1-a: ventas vienen de ventasMes (facturas), el resto de movements (movimientos_v2)
+  var v=ventasMes.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
   function sum(cats){return movements.filter(function(m){return cats.includes(m.categoria);}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);}
-  var v=sum(['venta']),c=sum(['cobranza']),g=sum(['gasto','compra']),x=sum(['cuenta_por_cobrar']);
+  var c=sum(['cobranza']),g=sum(['gasto','compra']),x=sum(['cuenta_por_cobrar']);
   return{ventas:v,cobr:c,gastos:g,cxc:x,util:v-g,flujo:c-g};
 }
 
@@ -231,7 +234,19 @@ function sortList(list, sortKey){
 
 function sortAndRender(){
   var sortKey=document.getElementById('mvmt-sort').value;
-  var sorted=sortList(movements, sortKey);
+  // P1-a: merge movements (cobranza/gasto) + ventasMes (from facturas)
+  var ventasAsMov=ventasMes.map(function(f){
+    return {
+      id:f.id, fecha:f.fecha, monto:f.total,
+      tipo:'ingreso', categoria:'venta', origen:'factura',
+      contraparte:f.receptor_nombre||'',
+      descripcion:'Venta'+(f.concepto?' · '+f.concepto:'')+(f.receptor_nombre?' → '+f.receptor_nombre:''),
+      numero_factura:f.sin_factura?f.numero_vta:f.numero_factura,
+      usuario:null, _esFact:true
+    };
+  });
+  var merged=movements.concat(ventasAsMov);
+  var sorted=sortList(merged, sortKey);
   var me=getUserName();
   var el=document.getElementById('mvmts-list');
   el.innerHTML=sorted.map(function(m){
@@ -259,8 +274,9 @@ function sortAndRender(){
 function renderMovements(){
   var el=document.getElementById('mvmts-list');
   var ct=document.getElementById('mvmt-count');
-  ct.textContent=movements.length+' movimiento'+(movements.length!==1?'s':'');
-  if(!movements.length){
+  var total=movements.length+ventasMes.length;
+  ct.textContent=total+' movimiento'+(total!==1?'s':'');
+  if(!movements.length&&!ventasMes.length){
     el.innerHTML='<div class="empty-state-cta">'+
       '<div class="empty-state-icon">💸</div>'+
       '<div class="empty-state-msg">Sin movimientos registrados este mes</div>'+

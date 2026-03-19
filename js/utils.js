@@ -90,8 +90,10 @@ async function loadMovements(){
         .eq('tipo','emitida').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false})
     ]);
     if(results[0].error)throw results[0].error;
+    // Facturas query failure is non-fatal — degrade gracefully
     movements=results[0].data||[];
-    ventasMes=(results[1].data||[]).filter(function(f){return f.estatus!=='cancelada';});
+    ventasMes=results[1].error ? [] : (results[1].data||[]).filter(function(f){return f.estatus!=='cancelada';});
+    if(results[1].error) console.warn('loadMovements: facturas query failed:', results[1].error.message);
     setSyncState(true);
     render();
     loadYTD();

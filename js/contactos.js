@@ -125,11 +125,35 @@ function abrirNuevoContacto(){
   setContactoTipo('empresa');
   document.getElementById('contacto-proveedor-sel') && (document.getElementById('contacto-proveedor-sel').value='');
   document.getElementById('contacto-prov-search') && (document.getElementById('contacto-prov-search').value='');
-  if(!clientes.length) loadClientes();
-  if(!proveedores.length) loadProveedores();
-  initContactoACs();
+  // Garantizar que ambos arrays estén cargados antes de registrar los ACs
+  var loads = [];
+  if(!clientes.length)    loads.push(loadClientes());
+  if(!proveedores.length) loads.push(loadProveedores());
+  Promise.all(loads).then(function(){ initContactoACs(); });
+  // Si ya estaban cargados, inicializar de inmediato también
+  if(!loads.length) initContactoACs();
   document.getElementById('contacto-activo').checked=true;
   document.getElementById('contacto-modal').style.display='flex';
+}
+
+// Abre el modal de nuevo contacto pre-vinculado a una empresa o proveedor
+function abrirNuevoContactoConVinculo(tipo, id, nombre){
+  abrirNuevoContacto();
+  // Esperar a que el modal y los ACs estén listos
+  setTimeout(function(){
+    setContactoTipo(tipo);
+    if(tipo==='empresa'){
+      var inp=document.getElementById('contacto-empresa-search');
+      var hid=document.getElementById('contacto-cliente-sel');
+      if(inp) inp.value=nombre||'';
+      if(hid) hid.value=id||'';
+    } else {
+      var inp=document.getElementById('contacto-prov-search');
+      var hid=document.getElementById('contacto-proveedor-sel');
+      if(inp) inp.value=nombre||'';
+      if(hid) hid.value=id||'';
+    }
+  }, 120);
 }
 
 function editarContacto(id){

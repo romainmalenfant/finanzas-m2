@@ -241,7 +241,7 @@ function sortAndRender(){
       '<div class="mvmt-info">'+
         '<div class="mvmt-desc">'+esc(m.descripcion)+(m.contraparte?' · <span style="font-weight:400">'+esc(m.contraparte)+'</span>':'')+'</div>'+
         '<div class="mvmt-meta">'+
-          '<span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||esc(m.categoria))+'</span>'+
+          '<span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||m.categoria)+'</span>'+
           (m.etiqueta?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.etiqueta)+'</span>':'')+
           (m.metodo_pago?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.metodo_pago)+'</span>':'')+
           (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#dbeafe;color:#1d4ed8;">'+esc(m.moneda)+'</span>':'')+
@@ -260,7 +260,14 @@ function renderMovements(){
   var el=document.getElementById('mvmts-list');
   var ct=document.getElementById('mvmt-count');
   ct.textContent=movements.length+' movimiento'+(movements.length!==1?'s':'');
-  if(!movements.length){el.innerHTML='<div class="empty-state">Sin movimientos registrados este mes</div>';return;}
+  if(!movements.length){
+    el.innerHTML='<div class="empty-state-cta">'+
+      '<div class="empty-state-icon">💸</div>'+
+      '<div class="empty-state-msg">Sin movimientos registrados este mes</div>'+
+      '<button class="btn-primary" onclick="abrirFormMovimiento('venta')">+ Registrar venta</button>'+
+    '</div>';
+    return;
+  }
   sortAndRender();
 }
 

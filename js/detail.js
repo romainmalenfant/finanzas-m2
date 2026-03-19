@@ -158,8 +158,9 @@ async function verDetalleEmpresa(id){
         }).join('')+'</div>':'') +
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
-        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+id+'\',\''+esc(c.nombre)+'\')" style="font-size:11px;">+ Nuevo contacto</button>'+
+        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+id+'\',\''+esc(c.nombre)+'\')" style="font-size:11px;">+ Nuevo</button>'+
       '</div>'+
+      renderBuscarContactoHTML('empresa',id,c.nombre)+
       ((conts||[]).length?(conts).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
         return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+
@@ -263,8 +264,9 @@ async function verDetalleProveedor(id){
     body+=
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
-        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'proveedor\',\''+id+'\',\''+esc(p.nombre)+'\')" style="font-size:11px;">+ Nuevo contacto</button>'+
+        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'proveedor\',\''+id+'\',\''+esc(p.nombre)+'\')" style="font-size:11px;">+ Nuevo</button>'+
       '</div>'+
+      renderBuscarContactoHTML('proveedor',id,p.nombre)+
       ((contsP||[]).length?(contsP).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
         return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+ 
@@ -421,7 +423,11 @@ async function verDetalleProyecto(id){
       '<div class="detail-section">'+
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
           '<div class="detail-section-title" style="margin-bottom:0;">Contacto clave</div>'+
+          (empresa?'<button class="btn-sm" style="font-size:11px;" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+empresa.id+'\',\''+esc(empresa.nombre)+'\')" >+ Nuevo</button>':'')+ 
         '</div>'+
+        (empresa?renderBuscarContactoHTML('empresa',empresa.id,empresa.nombre||''):'')+
+        '<div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">'+
+          (empresa?'Busca un contacto de '+esc(empresa.nombre)+' para asignar como clave':'')+'</div>'+
         (contactoClave?
           '<div class="detail-list-item">'+
             '<div><div style="font-size:13px;font-weight:500;color:var(--text-1);">'+(contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:'')+'</div>'+

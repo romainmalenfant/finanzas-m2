@@ -158,6 +158,7 @@ async function verDetalleEmpresa(id){
         }).join('')+'</div>':'') +
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
+        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+id+'\',\''+esc(c.nombre)+'\')" style="font-size:11px;">+ Nuevo contacto</button>'+
       '</div>'+
       ((conts||[]).length?(conts).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
@@ -262,6 +263,7 @@ async function verDetalleProveedor(id){
     body+=
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
+        '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'proveedor\',\''+id+'\',\''+esc(p.nombre)+'\')" style="font-size:11px;">+ Nuevo contacto</button>'+
       '</div>'+
       ((contsP||[]).length?(contsP).map(function(ct){
         var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
@@ -307,6 +309,12 @@ async function verDetalleContacto(id){
       '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activo':'Inactivo')+'</div></div>'+
       (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value">'+esc(c.notas)+'</div></div>':'')+''+
     '</div></div>';
+  // Botón asociar empresa/proveedor si no tiene ninguno
+  body += '<div class="detail-section" style="display:flex;gap:8px;flex-wrap:wrap;">'+
+    '<button class="btn-sm" onclick="cerrarDetail();editarContacto(\''+id+'\')" style="font-size:11px;">'+
+    ((!c.cliente_id&&!c.proveedor_id)?'🔗 Asociar empresa / proveedor':'✏️ Editar contacto')+
+    '</button>'+
+  '</div>';
   abrirDetail(nombre,empresa+' · '+(c.cargo||''),ini,body,function(){cerrarDetail();editarContacto(id);});
 }
 

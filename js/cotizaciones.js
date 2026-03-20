@@ -409,6 +409,7 @@ function abrirNuevaCotizacion(){
   document.getElementById('cot-id-edit').value = '';
   document.getElementById('cot-modal-title').textContent = 'Nueva cotización';
   poblarClientesCot(null);
+  var _ct=document.getElementById('cot-titulo'); if(_ct) _ct.value='';
   document.getElementById('cot-cliente-id').value = '';
   document.getElementById('cot-cliente-search').value = '';
   document.getElementById('cot-fecha').value = new Date().toISOString().split('T')[0];
@@ -435,6 +436,7 @@ function editarCotizacion(id){
   document.getElementById('cot-modal-title').textContent = 'Editar cotización';
   if(!clientes.length) loadClientes().then(function(){poblarClientesCot(c.cliente_id||null);});
   else poblarClientesCot(c.cliente_id||null);
+  var _ct2=document.getElementById('cot-titulo'); if(_ct2) _ct2.value=c.titulo||'';
   document.getElementById('cot-cliente-id').value = c.cliente_id||'';
   document.getElementById('cot-cliente-search').value = c.cliente_nombre||'';
   // Pre-fill proyecto if set
@@ -695,6 +697,7 @@ async function guardarCotizacion(){
   var contactoId = (document.getElementById('cot-contacto-id')||{}).value||null;
   var proyectoId = (document.getElementById('cot-proj-id')||{}).value||null;
   var sel = document.getElementById('cot-cliente-sel');
+  var tituloVal = (document.getElementById('cot-titulo')||{}).value||'';
   var clienteNombre = clienteId && clientes.find(function(c){return c.id===clienteId;}) ?
     clientes.find(function(c){return c.id===clienteId;}).nombre :
     document.getElementById('cot-cliente-search').value.trim();
@@ -713,9 +716,10 @@ async function guardarCotizacion(){
     btn.disabled=true; btn.textContent='Guardando...';
 
     var cotData = {
-      cliente_id: clienteId,
-    contacto_id: contactoId,
-    proyecto_id: proyectoId,
+      titulo:      tituloVal||null,
+      cliente_id:  clienteId,
+      contacto_id: contactoId,
+      proyecto_id: proyectoId,
       cliente_nombre: clienteNombre,
       fecha: fecha,
       vigencia_dias: parseInt(document.getElementById('cot-vigencia').value)||15,
@@ -1129,16 +1133,16 @@ var EMPRESA_CONFIG = {
   nombre:    'Grupo M2',
   slogan:    'Maquinados Industriales',
   direcciones: [
-    'Querétaro: Blvd. Bernardo Quintana 123, Col. Centro, C.P. 76000',
-    'Tampico: Av. Hidalgo 456, Col. Industrial, C.P. 89000'
+    'Cam, Carr. Pie de Gallo Km 0.10 L3, 76220 Santa Rosa Jáuregui, Querétaro',
+    'Priv. Chairel 100 A, 89359, Tampico, Tamaulipas'
   ],
-  web:       'www.grupom2.mx',
-  tel:       '+52 442 000 0000',
-  email:     'contacto@grupom2.mx',
-  banco:     'BBVA · CLABE: 012345678901234567 · Cuenta: 1234567890',
+  web:       'www.grupom2.com.mx',
+  tel:       '+52 56 5035 8701',
+  email:     'contacto@grupom2.com.mx',
+  banco:     'BBVA · CLABE: 012680001205003565 · Cuenta: 0120500356',
   legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
              'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
-  logo:      null, // se carga automáticamente desde el DOM
+  logo:      null,
   firma_nombre: 'Ing. [Nombre]',
   firma_cargo:  'Director General'
 };
@@ -1235,6 +1239,15 @@ async function generarPDFCotizacion(id){
       doc.text('Atn. '+contactoNombre, 16, y+17);
     }
 
+    // ── Título / objeto general ──────────────────────────
+    if(c.titulo){
+      var tituloY = contactoNombre ? y+22 : y+16;
+      doc.setFontSize(9); doc.setFont('helvetica','bolditalic');
+      doc.setTextColor(...C.accentD);
+      doc.text(c.titulo, 16, tituloY);
+      y += 8;
+    }
+
     // ── Notas (si existen, al lado del cliente) ───────────
     if(c.notas){
       doc.setFillColor(...C.gray1);
@@ -1290,11 +1303,18 @@ async function generarPDFCotizacion(id){
     doc.setTextColor(...C.text); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
     finalY += 6;
     doc.setFillColor(...C.accentL);
-    doc.roundedRect(tx-72, finalY-5, 72, 11, 2, 2, 'F');
+    // Calcular ancho exacto del contenido TOTAL: + monto
+    var totalLabel = 'TOTAL:';
+    var totalMonto = fmt(c.total||0);
     doc.setFontSize(10); doc.setFont('helvetica','bold');
+    var labelW = doc.getTextWidth(totalLabel);
+    var montoW = doc.getTextWidth(totalMonto);
+    var rectW = labelW + montoW + 14; // padding 7px cada lado
+    var rectX = tx - montoW - labelW - 14;
+    doc.roundedRect(rectX, finalY-5, rectW, 11, 2, 2, 'F');
     doc.setTextColor(...C.accentD);
-    doc.text('TOTAL:', tx-38, finalY+3);
-    doc.text(fmt(c.total||0), tx, finalY+3, {align:'right'});
+    doc.text(totalLabel, rectX+7, finalY+3);
+    doc.text(totalMonto, tx, finalY+3, {align:'right'});
 
     // ── Condiciones de pago (si existen) ─────────────────
     if(c.condiciones_pago){

@@ -619,24 +619,28 @@ document.addEventListener('click',function(e){
  * Called when client changes.
  */
 function precargarContactosCot(){
-  var clienteId = document.getElementById('cot-cliente-id').value;
-  var inp  = document.getElementById('cot-contacto-search');
-  var hid  = document.getElementById('cot-contacto-id');
-  var dd   = document.getElementById('cot-contacto-dd');
-  if(!inp || !dd) return;
-  // Reset contact selection when client changes
-  inp.value = '';
+  // Called on client change — reset contact field and reload dropdown
+  var inp = document.getElementById('cot-contacto-search');
+  var hid = document.getElementById('cot-contacto-id');
+  if(inp) inp.value = '';
   if(hid) hid.value = '';
-  dd.innerHTML = '';
-  dd.style.display = 'none';
-  if(!clienteId) return;
-  // Filter contacts that belong to this client
-  var clienteContactos = (contactos||[]).filter(function(c){
-    return c.cliente_id === clienteId;
-  });
-  if(!clienteContactos.length) return;
-  // Show pre-populated list
-  _renderContactoCotDD(clienteContactos, dd);
+  actualizarBtnClear && actualizarBtnClear('cot-contacto-id','cot-contacto-clear');
+  mostrarContactosCot();
+}
+
+function mostrarContactosCot(){
+  // Called on focus — show contacts for selected client without resetting the field
+  var clienteId = document.getElementById('cot-cliente-id').value;
+  var dd = document.getElementById('cot-contacto-dd');
+  if(!dd) return;
+  var pool = clienteId
+    ? (contactos||[]).filter(function(c){ return c.cliente_id === clienteId; })
+    : [];
+  if(!pool.length){
+    dd.style.display = 'none';
+    return;
+  }
+  _renderContactoCotDD(pool.slice(0,10), dd);
   dd.style.display = 'block';
 }
 
@@ -649,16 +653,15 @@ function buscarContactoCot(q){
   var dd = document.getElementById('cot-contacto-dd');
   if(!dd) return;
   var ql = (q||'').toLowerCase().trim();
-  // Pool: prefer contacts from selected client, else all
+  if(!ql){ mostrarContactosCot(); return; }
+  // Pool: contacts from selected client only
   var pool = clienteId
     ? (contactos||[]).filter(function(c){ return c.cliente_id === clienteId; })
     : (contactos||[]);
-  var matches = ql
-    ? pool.filter(function(c){
-        var nombre = ((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
-        return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
-      }).slice(0,8)
-    : pool.slice(0,8);
+  var matches = pool.filter(function(c){
+    var nombre = ((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
+    return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
+  }).slice(0,10);
   if(!matches.length){ dd.style.display = 'none'; return; }
   _renderContactoCotDD(matches, dd);
   dd.style.display = 'block';

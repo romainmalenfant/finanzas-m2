@@ -444,6 +444,7 @@ async function editarFactura(id){
 
 // ── Con/sin factura SAT toggle ─────────────────────────
 var _factEsSinSat = false; // false = con factura SAT, true = venta directa
+var _ivaDebounce  = null;  // debounce timer for subtotal input
 
 function setFactConSat(conSat){
   _factEsSinSat = !conSat;
@@ -459,13 +460,17 @@ function setFactConSat(conSat){
   // Labels
   if(subLabel) subLabel.textContent = conSat ? 'Subtotal (sin IVA)' : 'Monto';
 
-  // IVA: always readonly (auto-calculated in both modes)
+  // IVA & Total: locked visually via CSS only.
+  // NEVER use el.readOnly — Chrome ignores JS .value assignments on readOnly inputs.
   function lockField(el, lock){
     if(!el) return;
-    el.readOnly = lock;
-    el.style.background = lock ? 'var(--bg-card-2)' : '';
-    el.style.color      = lock ? 'var(--text-3)'   : '';
-    el.style.cursor     = lock ? 'default'         : '';
+    // Visual lock: style only, no readOnly attribute
+    el.setAttribute('tabindex', lock ? '-1' : '0');
+    el.style.background     = lock ? 'var(--bg-card-2)' : '';
+    el.style.cursor         = lock ? 'not-allowed'      : '';
+    el.style.pointerEvents  = lock ? 'none'             : '';
+    // Remove readOnly so JS .value = ... always works
+    el.readOnly = false;
   }
   lockField(ivaInput, true);   // IVA always locked
   lockField(totInput, true);   // Total always locked (auto-calculated)
@@ -659,6 +664,12 @@ function precargarProyectosFact(){
       }
     });
   }, 100);
+}
+
+// Debounced version — fires 700ms after user stops typing in subtotal
+function calcFactIvaDebounced(){
+  clearTimeout(_ivaDebounce);
+  _ivaDebounce = setTimeout(calcFactIva, 700);
 }
 
 function initFactACs(){

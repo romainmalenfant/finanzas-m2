@@ -199,18 +199,24 @@ function renderFacturasEmitidas(list){
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas emitidas importadas</div>';return;}
   el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
-    '<th>Cliente / RFC</th><th>No. Factura</th><th>Fecha</th><th style="text-align:right;">Total</th><th>Estado</th>'+
+    '<th>Cliente / RFC</th><th>No. Factura</th><th>Fecha</th><th style="text-align:right;">Total</th><th style="text-align:right;">Pagado</th><th>Estado</th>'+
     '</tr></thead><tbody>'+
     sorted.map(function(f){
-      var cobrada=f.conciliado;
+      var estPago=f.estatus_pago||'pendiente';
+      var montoPagado=parseFloat(f.monto_pagado)||0;
+      var total=parseFloat(f.monto)||0;
       var numFac=f.numero_factura||'—';
-      return '<tr>'+
-        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||'-').slice(0,40))+'</div>'+
+      var badgeBg=estPago==='pagada'?'#dbeafe':estPago==='parcial'?'#fef3c7':'#dcfce7';
+      var badgeColor=estPago==='pagada'?'#1d4ed8':estPago==='parcial'?'#d97706':'#16a34a';
+      var badgeLabel=estPago==='pagada'?'Pagada':estPago==='parcial'?'Parcial':'Pendiente';
+      return '<tr style="cursor:pointer;" onclick="abrirConciliacionIndividual(''+esc(f.id)+'')">'+
+        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,40))+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
         '<td class="muted">'+esc(numFac)+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
-        '<td class="monto" style="color:#16a34a;">'+fmt(parseFloat(f.monto)||0)+'</td>'+
-        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(cobrada?'#dbeafe':'#dcfce7')+';color:'+(cobrada?'#1d4ed8':'#16a34a')+';">'+(cobrada?'Cobrada':'Vigente')+'</span></td>'+
+        '<td class="monto" style="color:#16a34a;">'+fmt(total)+'</td>'+
+        '<td class="monto" style="color:'+(montoPagado>0?'#1d4ed8':'#94a3b8')+';">'+fmt(montoPagado)+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+badgeBg+';color:'+badgeColor+';">'+badgeLabel+'</span></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';
@@ -222,18 +228,26 @@ function renderMovsBanco(list){
   var sorted=sortList(lastBanco,sortKey);
   var el=document.getElementById('banco-list');
   var ct=document.getElementById('banco-count');
-  ct.textContent=sorted.length+' movimiento'+(sorted.length!==1?'s':'');
+  // Count unlinked abonos
+  var sinVincular=sorted.filter(function(m){return m.origen==='banco_abono'&&!m.conciliado;}).length;
+  ct.textContent=sorted.length+' movimiento'+(sorted.length!==1?'s':'')+(sinVincular?' · '+sinVincular+' sin vincular':'');
   if(!sorted.length){el.innerHTML='<div class="empty-state">Sin movimientos bancarios importados</div>';return;}
   el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
-    '<th>Fecha</th><th>Descripción</th><th style="text-align:right;">Importe</th><th>Tipo</th>'+
+    '<th>Fecha</th><th>Descripción</th><th style="text-align:right;">Importe</th><th>Tipo</th><th>Vínculo</th>'+
     '</tr></thead><tbody>'+
     sorted.map(function(m){
       var esAbono=m.origen==='banco_abono';
+      var vinculado=m.conciliado;
+      var vinculoBadge=!esAbono?'':
+        vinculado
+          ?'<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:#dbeafe;color:#1d4ed8;">Vinculado</span>'
+          :'<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:#fef3c7;color:#d97706;cursor:pointer;" onclick="abrirConciliacionPago(''+esc(m.id)+'')">Vincular →</span>';
       return '<tr>'+
         '<td class="muted">'+fmtDate(m.fecha)+'</td>'+
         '<td style="font-size:12px;color:var(--text-1);">'+esc((m.descripcion||'-').slice(0,55))+'</td>'+
         '<td class="monto" style="color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'+':'−')+fmt(parseFloat(m.monto)||0)+'</td>'+
         '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(esAbono?'#dcfce7':'#fee2e2')+';color:'+(esAbono?'#16a34a':'#dc2626')+';">'+(esAbono?'Abono':'Cargo')+'</span></td>'+
+        '<td>'+vinculoBadge+'</td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';
@@ -608,66 +622,410 @@ function parseBBVAPositional(items){
   return movimientos.filter(function(m){var k=m.fecha+'_'+(m.cargo||m.abono);if(seen[k])return false;seen[k]=true;return true;});
 }
 
-// ── Conciliación automática ──────────────────────────────
+// ── Conciliación — estado en memoria ─────────────────────
+// [T7] concilMatches → M2State alias en config.js
+var _concilPagoActual = null; // movimiento bancario abierto en popup individual
+
+// ── Helper: calcular distribución FIFO ───────────────────
+function calcularFIFO(montoPago, facturasPendientes){
+  // Ordena por fecha ASC (más antigua primero)
+  var sorted = facturasPendientes.slice().sort(function(a,b){
+    return new Date(a.fecha+'T12:00') - new Date(b.fecha+'T12:00');
+  });
+  var restante = montoPago;
+  var distribucion = [];
+  sorted.forEach(function(f){
+    if(restante <= 0){ distribucion.push({factura:f, monto:0}); return; }
+    var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
+    var aplicar = Math.min(restante, pendiente);
+    distribucion.push({factura:f, monto:Math.round(aplicar*100)/100});
+    restante = Math.round((restante - aplicar)*100)/100;
+  });
+  return {distribucion:distribucion, sobrante:restante};
+}
+
+// ── Nivel de confianza del match ─────────────────────────
+function nivelConfianza(abono, factura){
+  var descLower = (abono.descripcion||'').toLowerCase();
+  var rfcF = (factura.receptor_rfc||factura.rfc_contraparte||'').toLowerCase();
+  var nombreF = (factura.receptor_nombre||factura.contraparte||'').toLowerCase().slice(0,10);
+  // Nivel 1: RFC aparece en descripción
+  if(rfcF && descLower.includes(rfcF)) return 'alta';
+  // Nivel 1b: nombre parcial en descripción
+  if(nombreF.length > 4 && descLower.includes(nombreF)) return 'alta';
+  // Nivel 2: monto match ±5% + ventana 60 días
+  var montoAbono = parseFloat(abono.monto)||0;
+  var montoFact = parseFloat(factura.total)||0;
+  var diff = Math.abs(montoAbono - montoFact) / Math.max(montoFact, 1);
+  var dias = (new Date(abono.fecha+'T12:00') - new Date(factura.fecha+'T12:00')) / 864e5;
+  if(diff <= 0.05 && dias >= -1 && dias <= 60) return 'media';
+  return 'baja';
+}
+
+// ── Conciliación masiva ───────────────────────────────────
 async function conciliarMes(){
   var btn=document.getElementById('btn-conciliar');
   var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
   var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
-  btn.disabled=true;btn.textContent='Conciliando...';
+  btn.disabled=true; btn.textContent='Analizando...';
   try{
-    var [{data:emitidas},{data:abonos}]=await Promise.all([
-      sb.from('movimientos_v2').select('*').eq('year',año).eq('month',mes).eq('conciliado',false).eq('origen','sat_emitida'),
-      sb.from('movimientos_v2').select('*').eq('year',año).eq('month',mes).eq('conciliado',false).eq('origen','banco_abono')
+    // Facturas emitidas pendientes del período (desde tabla facturas)
+    var [{data:facturas},{data:abonos}] = await Promise.all([
+      sb.from('facturas')
+        .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
+        .eq('tipo','emitida').eq('year',año).neq('estatus_pago','pagada').neq('estatus','cancelada')
+        .order('fecha',{ascending:true}),
+      sb.from('movimientos_v2')
+        .select('*').eq('year',año).eq('month',mes).eq('origen','banco_abono').eq('conciliado',false)
+        .order('fecha',{ascending:true})
     ]);
-    emitidas=emitidas||[];abonos=abonos||[];
-    var matches=[];var abonosUsados=new Set();
-    emitidas.forEach(function(f){
-      var fechaF=new Date(f.fecha+'T12:00');
-      var match=abonos.find(function(a){
-        if(abonosUsados.has(a.id))return false;
-        var diff=Math.abs(Number(a.monto)-(parseFloat(f.monto)||0))/Math.max((parseFloat(f.monto)||0),1);
-        if(diff>0.05)return false;
-        var dias=(new Date(a.fecha+'T12:00')-fechaF)/(1000*60*60*24);
-        return dias>=-1&&dias<=60;
+    facturas = facturas||[]; abonos = abonos||[];
+    if(!abonos.length){ showStatus('No hay abonos bancarios sin vincular en este período.'); return; }
+    if(!facturas.length){ showStatus('No hay facturas pendientes de pago.'); return; }
+
+    // Generar matches sugeridos por cliente
+    var matches = [];
+    var abonosUsados = new Set();
+
+    abonos.forEach(function(abono){
+      if(abonosUsados.has(abono.id)) return;
+      // Buscar facturas del mismo cliente (por RFC o cliente_id)
+      var rfcAbono = (abono.rfc_contraparte||'').toLowerCase();
+      var factsCli = facturas.filter(function(f){
+        var rfcF = (f.receptor_rfc||'').toLowerCase();
+        if(rfcAbono && rfcF && rfcAbono === rfcF) return true;
+        if(abono.cliente_id && f.cliente_id && abono.cliente_id === f.cliente_id) return true;
+        return false;
       });
-      if(match){abonosUsados.add(match.id);matches.push({factura:f,abono:match});}
+
+      // Si no hay match por cliente, intentar por monto exacto
+      if(!factsCli.length){
+        factsCli = facturas.filter(function(f){
+          var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
+          var diff = Math.abs((parseFloat(abono.monto)||0) - pendiente) / Math.max(pendiente,1);
+          return diff <= 0.02;
+        });
+      }
+
+      if(!factsCli.length) return; // sin match
+
+      var fifo = calcularFIFO(parseFloat(abono.monto)||0, factsCli);
+      var confianza = nivelConfianza(abono, factsCli[0]);
+      matches.push({ abono:abono, distribucion:fifo.distribucion, sobrante:fifo.sobrante, confianza:confianza });
+      abonosUsados.add(abono.id);
     });
-    if(!matches.length){showStatus('No se encontraron matches automáticos.');btn.disabled=false;btn.textContent='⚡ Conciliar automáticamente';return;}
-    mostrarPreviewConciliacion(matches,año,mes);
-  }catch(e){showError('Error: '+e.message);}
-  finally{btn.disabled=false;btn.textContent='⚡ Conciliar automáticamente';}
+
+    if(!matches.length){ showStatus('No se encontraron matches. Usa "Vincular →" en cada abono para vincular manualmente.'); return; }
+    mostrarPreviewConciliacionMasiva(matches, año, mes);
+  }catch(e){ showError('Error: '+e.message); console.error(e); }
+  finally{ btn.disabled=false; btn.textContent='⚡ Conciliar automáticamente'; }
 }
 
-// [T7] concilMatches → M2State alias en config.js
-function mostrarPreviewConciliacion(matches,año,mes){
-  concilMatches=matches;
-  var total=matches.reduce(function(a,m){return a+Number(m.factura.monto);},0);
-  var html='<div style="padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;margin-bottom:14px;"><b>'+matches.length+' coincidencias</b> · <b style="color:#3B6D11">'+fmt(total)+'</b></div>'+
-    '<div class="sat-row sat-row-hdr" style="grid-template-columns:1fr 1fr 90px;"><span>Factura</span><span>Abono bancario</span><span style="text-align:right">Monto</span></div>'+
-    matches.map(function(m){return '<div class="sat-row" style="grid-template-columns:1fr 1fr 90px;align-items:start;"><div><div style="font-size:12px;font-weight:500;">'+esc((m.factura.contraparte||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.factura.fecha)+'</div></div><div><div style="font-size:12px;font-weight:500;">'+esc((m.abono.descripcion||'-').slice(0,30))+'</div><div style="font-size:10px;color:#888780;">'+fmtDate(m.abono.fecha)+'</div></div><div style="text-align:right;font-weight:500;color:#3B6D11;">'+fmt(parseFloat(m.factura.monto)||0)+'</div></div>';}).join('');
-  document.getElementById('sat-preview-title').textContent='Confirmar conciliación — '+MONTHS[mes-1]+' '+año;
-  document.getElementById('sat-preview-body').innerHTML=html;
-  document.getElementById('btn-confirmar-sat').textContent='Confirmar';
-  document.getElementById('btn-confirmar-sat').onclick=confirmarConciliacion;
-  document.getElementById('sat-preview-modal').style.display='block';
-}
+// ── Preview conciliación masiva ───────────────────────────
+function mostrarPreviewConciliacionMasiva(matches, año, mes){
+  concilMatches = matches;
+  var totalMonto = matches.reduce(function(a,m){ return a+(parseFloat(m.abono.monto)||0); },0);
+  var confianzaColors = {alta:'#16a34a', media:'#d97706', baja:'#dc2626'};
+  var confianzaBg = {alta:'#dcfce7', media:'#fef3c7', baja:'#fee2e2'};
 
-async function confirmarConciliacion(){
-  var btn=document.getElementById('btn-confirmar-sat');
-  btn.disabled=true;btn.textContent='Guardando...';
-  try{
-    for(var i=0;i<concilMatches.length;i++){
-      var m=concilMatches[i];
-      await sb.from('movimientos_v2').update({conciliado:true,movimiento_relacionado_id:m.abono.id}).eq('id',m.factura.id);
-      await sb.from('movimientos_v2').update({conciliado:true,movimiento_relacionado_id:m.factura.id}).eq('id',m.abono.id);
+  var html = '<div style="padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;margin-bottom:14px;">'+
+    '<b>'+matches.length+' pagos</b> listos para vincular · Total: <b style="color:#3B6D11">'+fmt(totalMonto)+'</b><br>'+
+    '<span style="font-size:11px;color:#73726c;">Revisa la distribución. Puedes ajustar los montos antes de confirmar.</span></div>';
+
+  matches.forEach(function(m, mi){
+    var conf = m.confianza;
+    html += '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;">';
+    // Abono header
+    html += '<div style="padding:10px 14px;background:var(--bg-card-2);display:flex;justify-content:space-between;align-items:center;">'+
+      '<div>'+
+        '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((m.abono.descripcion||'Sin descripción').slice(0,50))+'</div>'+
+        '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+'</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;">'+
+        '<span style="padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;background:'+confianzaBg[conf]+';color:'+confianzaColors[conf]+';">'+
+          (conf==='alta'?'✓ Alta confianza':conf==='media'?'~ Media confianza':'? Baja confianza')+'</span>'+
+        '<span style="font-size:14px;font-weight:700;color:#16a34a;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span>'+
+      '</div>'+
+    '</div>';
+    // Distribución FIFO editable
+    html += '<div style="padding:10px 14px;">';
+    html += '<div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Distribución FIFO (editable)</div>';
+    m.distribucion.filter(function(d){ return d.monto > 0; }).forEach(function(d, di){
+      var pendiente = (parseFloat(d.factura.total)||0) - (parseFloat(d.factura.monto_pagado)||0);
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-weight:500;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+
+            esc(d.factura.receptor_nombre||d.factura.receptor_rfc||'?')+
+            (d.factura.numero_factura?' · '+esc(d.factura.numero_factura):'')+
+          '</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(d.factura.fecha)+' · Pendiente: '+fmt(pendiente)+'</div>'+
+        '</div>'+
+        '<input type="number" '+
+          'id="concil-monto-'+mi+'-'+di+'" '+
+          'value="'+d.monto+'" min="0" max="'+pendiente+'" step="0.01" '+
+          'style="width:100px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;text-align:right;background:var(--bg-input);color:var(--text-1);" '+
+          'oninput="recalcSobrante('+mi+')" '+
+          'data-match-idx="'+mi+'" data-dist-idx="'+di+'" data-factura-id="'+d.factura.id+'" data-pendiente="'+pendiente+'">'+
+      '</div>';
+    });
+    // Sobrante
+    if(m.sobrante > 0){
+      html += '<div id="concil-sobrante-'+mi+'" style="font-size:11px;color:#d97706;margin-top:4px;">⚠️ Sobrante: '+fmt(m.sobrante)+' → se registrará como saldo a favor del cliente</div>';
+    } else {
+      html += '<div id="concil-sobrante-'+mi+'" style="font-size:11px;color:#16a34a;margin-top:4px;">✓ Sin sobrante</div>';
     }
-    document.getElementById('btn-confirmar-sat').onclick=confirmarImportSAT;
+    html += '</div></div>';
+  });
+
+  document.getElementById('sat-preview-title').textContent = 'Confirmar conciliación — '+MONTHS[mes-1]+' '+año;
+  document.getElementById('sat-preview-body').innerHTML = html;
+  document.getElementById('btn-confirmar-sat').textContent = 'Confirmar '+matches.length+' pagos';
+  document.getElementById('btn-confirmar-sat').onclick = confirmarConciliacionMasiva;
+  document.getElementById('sat-preview-modal').style.display = 'block';
+}
+
+function recalcSobrante(matchIdx){
+  var m = concilMatches[matchIdx];
+  if(!m) return;
+  var montoPago = parseFloat(m.abono.monto)||0;
+  var totalAplicado = 0;
+  m.distribucion.filter(function(d){ return d.monto > 0; }).forEach(function(d, di){
+    var inp = document.getElementById('concil-monto-'+matchIdx+'-'+di);
+    if(inp) totalAplicado += parseFloat(inp.value)||0;
+  });
+  var sobrante = Math.round((montoPago - totalAplicado)*100)/100;
+  var el = document.getElementById('concil-sobrante-'+matchIdx);
+  if(el){
+    if(sobrante > 0.01){
+      el.style.color='#d97706';
+      el.textContent='⚠️ Sobrante: '+fmt(sobrante)+' → saldo a favor del cliente';
+    } else if(sobrante < -0.01){
+      el.style.color='#dc2626';
+      el.textContent='⛔ Excede el monto del pago en '+fmt(Math.abs(sobrante));
+    } else {
+      el.style.color='#16a34a';
+      el.textContent='✓ Sin sobrante';
+    }
+  }
+}
+
+async function confirmarConciliacionMasiva(){
+  var btn = document.getElementById('btn-confirmar-sat');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  var errores = 0, ok = 0;
+  try{
+    for(var mi = 0; mi < concilMatches.length; mi++){
+      var m = concilMatches[mi];
+      var montoPago = parseFloat(m.abono.monto)||0;
+      var totalAplicado = 0;
+      var distribFinal = [];
+      var di = 0;
+      for(var k = 0; k < m.distribucion.length; k++){
+        if(m.distribucion[k].monto <= 0) continue;
+        var inp = document.getElementById('concil-monto-'+mi+'-'+di);
+        var montoAplicar = inp ? (parseFloat(inp.value)||0) : m.distribucion[k].monto;
+        if(montoAplicar > 0){
+          distribFinal.push({facturaId: m.distribucion[k].factura.id, monto: montoAplicar, factura: m.distribucion[k].factura});
+          totalAplicado += montoAplicar;
+        }
+        di++;
+      }
+      var sobrante = Math.round((montoPago - totalAplicado)*100)/100;
+      try{
+        await aplicarPago(m.abono.id, distribFinal, sobrante);
+        ok++;
+      }catch(e){ console.error('Error aplicando pago '+m.abono.id, e); errores++; }
+    }
     cerrarSATPreview();
-    showStatus('✓ '+concilMatches.length+' facturas conciliadas');
-    concilMatches=[];
+    showStatus('✓ '+ok+' pagos conciliados'+(errores?' · '+errores+' con error':''));
+    concilMatches = [];
     loadSATData();
-  }catch(e){showError('Error: '+e.message);}
-  finally{btn.disabled=false;}
+  }catch(e){ showError('Error: '+e.message); }
+  finally{ btn.disabled=false; btn.textContent='Confirmar'; }
+}
+
+// ── Conciliación individual (desde abono específico) ──────
+async function abrirConciliacionPago(movimientoId){
+  try{
+    var {data:abono} = await sb.from('movimientos_v2').select('*').eq('id',movimientoId).maybeSingle();
+    if(!abono){ showError('Movimiento no encontrado'); return; }
+    _concilPagoActual = abono;
+
+    // Buscar facturas pendientes — sin filtro de cliente si no hay RFC
+    var query = sb.from('facturas')
+      .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
+      .eq('tipo','emitida').neq('estatus_pago','pagada').neq('estatus','cancelada')
+      .order('fecha',{ascending:true}).limit(20);
+
+    if(abono.cliente_id) query = query.eq('cliente_id', abono.cliente_id);
+    else if(abono.rfc_contraparte) query = query.eq('receptor_rfc', abono.rfc_contraparte);
+
+    var {data:facturasCli} = await query;
+    facturasCli = facturasCli||[];
+
+    // Si no hay facturas del cliente, buscar todas las pendientes
+    if(!facturasCli.length){
+      var {data:todasPend} = await sb.from('facturas')
+        .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
+        .eq('tipo','emitida').neq('estatus_pago','pagada').neq('estatus','cancelada')
+        .order('fecha',{ascending:true}).limit(20);
+      facturasCli = todasPend||[];
+    }
+
+    var fifo = calcularFIFO(parseFloat(abono.monto)||0, facturasCli);
+    mostrarPreviewConciliacionMasiva([{abono:abono, distribucion:fifo.distribucion, sobrante:fifo.sobrante, confianza:'baja'}], curYear, curMonth+1);
+  }catch(e){ showError('Error: '+e.message); }
+}
+
+// ── Desde factura: ver pagos vinculados ───────────────────
+async function abrirConciliacionIndividual(facturaId){
+  try{
+    var {data:factura} = await sb.from('facturas').select('*').eq('id',facturaId).maybeSingle();
+    if(!factura){ showError('Factura no encontrada'); return; }
+
+    // Ver pagos ya vinculados
+    var {data:pagos} = await sb.from('pagos_facturas')
+      .select('*, movimientos_v2(*)')
+      .eq('factura_id',facturaId)
+      .order('created_at',{ascending:true});
+    pagos = pagos||[];
+
+    var pendiente = (parseFloat(factura.total)||0) - (parseFloat(factura.monto_pagado)||0);
+    var html = '<div style="padding:12px;background:var(--bg-card-2);border-radius:8px;margin-bottom:14px;font-size:13px;">'+
+      '<div style="font-weight:600;color:var(--text-1);">'+esc(factura.receptor_nombre||factura.receptor_rfc||'?')+'</div>'+
+      '<div style="font-size:11px;color:var(--text-3);">'+(factura.numero_factura||'Sin folio')+' · '+fmtDate(factura.fecha)+'</div>'+
+      '<div style="display:flex;gap:16px;margin-top:8px;">'+
+        '<div><div style="font-size:10px;color:var(--text-3);">Total</div><div style="font-weight:600;color:#16a34a;">'+fmt(parseFloat(factura.total)||0)+'</div></div>'+
+        '<div><div style="font-size:10px;color:var(--text-3);">Pagado</div><div style="font-weight:600;color:#1d4ed8;">'+fmt(parseFloat(factura.monto_pagado)||0)+'</div></div>'+
+        '<div><div style="font-size:10px;color:var(--text-3);">Pendiente</div><div style="font-weight:600;color:'+(pendiente>0?'#d97706':'#16a34a')+';">'+fmt(pendiente)+'</div></div>'+
+      '</div>'+
+    '</div>';
+
+    if(pagos.length){
+      html += '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;">Pagos registrados</div>';
+      pagos.forEach(function(p){
+        var mov = p.movimientos_v2;
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border-light);font-size:12px;">'+
+          '<div>'+
+            '<div style="font-weight:500;color:var(--text-1);">'+esc((mov&&mov.descripcion||'Pago manual').slice(0,45))+'</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+(mov?fmtDate(mov.fecha):'—')+'</div>'+
+          '</div>'+
+          '<span style="font-weight:600;color:#1d4ed8;">'+fmt(parseFloat(p.monto_aplicado)||0)+'</span>'+
+        '</div>';
+      });
+    } else {
+      html += '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin pagos registrados.</div>';
+    }
+
+    if(pendiente > 0){
+      html += '<div style="margin-top:14px;padding-top:10px;border-top:0.5px solid var(--border);">'+
+        '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Vincular abono bancario</div>'+
+        '<select id="concil-abono-sel" style="width:100%;padding:7px 10px;font-size:12px;border:0.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-1);">'+
+          '<option value="">— Seleccionar abono —</option>'+
+        '</select>'+
+        '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;">'+
+          '<label style="font-size:11px;color:var(--text-3);">Monto a aplicar</label>'+
+          '<input type="number" id="concil-monto-manual" value="'+pendiente+'" min="0.01" step="0.01" style="width:120px;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;text-align:right;background:var(--bg-input);color:var(--text-1);">'+
+        '</div>'+
+        '<button class="btn-primary" style="margin-top:10px;width:100%;" onclick="confirmarVinculoManual(''+facturaId+'')">Confirmar vínculo</button>'+
+      '</div>';
+    }
+
+    document.getElementById('sat-preview-title').textContent = 'Detalle de factura · '+esc(factura.numero_factura||'Sin folio');
+    document.getElementById('sat-preview-body').innerHTML = html;
+    document.getElementById('btn-confirmar-sat').textContent = 'Cerrar';
+    document.getElementById('btn-confirmar-sat').onclick = cerrarSATPreview;
+    document.getElementById('sat-preview-modal').style.display = 'block';
+
+    // Cargar abonos sin vincular en el select
+    cargarAbonosSinVincular(factura.cliente_id, factura.receptor_rfc);
+  }catch(e){ showError('Error: '+e.message); }
+}
+
+async function cargarAbonosSinVincular(clienteId, rfcReceptor){
+  var sel = document.getElementById('concil-abono-sel');
+  if(!sel) return;
+  var query = sb.from('movimientos_v2').select('id,fecha,descripcion,monto,rfc_contraparte')
+    .eq('origen','banco_abono').eq('conciliado',false).order('fecha',{ascending:false}).limit(30);
+  var {data:abonos} = await query;
+  abonos = (abonos||[]);
+  // Priorizar abonos del mismo cliente/RFC al tope
+  abonos.sort(function(a,b){
+    var aMatch = (rfcReceptor && (a.rfc_contraparte||'').toLowerCase()===rfcReceptor.toLowerCase());
+    var bMatch = (rfcReceptor && (b.rfc_contraparte||'').toLowerCase()===rfcReceptor.toLowerCase());
+    return (bMatch?1:0)-(aMatch?1:0);
+  });
+  sel.innerHTML = '<option value="">— Seleccionar abono —</option>';
+  abonos.forEach(function(a){
+    var opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = fmtDate(a.fecha)+' · '+fmt(parseFloat(a.monto)||0)+' · '+(a.descripcion||'').slice(0,35);
+    sel.appendChild(opt);
+  });
+}
+
+async function confirmarVinculoManual(facturaId){
+  var sel = document.getElementById('concil-abono-sel');
+  var montoInp = document.getElementById('concil-monto-manual');
+  if(!sel||!sel.value){ showError('Selecciona un abono bancario'); return; }
+  var montoAplicar = parseFloat(montoInp&&montoInp.value)||0;
+  if(montoAplicar <= 0){ showError('El monto debe ser mayor a 0'); return; }
+  try{
+    var {data:factura} = await sb.from('facturas').select('id,total,monto_pagado,cliente_id,receptor_rfc').eq('id',facturaId).maybeSingle();
+    if(!factura) throw new Error('Factura no encontrada');
+    await aplicarPago(sel.value, [{facturaId:facturaId, monto:montoAplicar, factura:factura}], 0);
+    cerrarSATPreview();
+    showStatus('✓ Pago vinculado correctamente');
+    loadSATData();
+  }catch(e){ showError('Error: '+e.message); }
+}
+
+// ── Núcleo: aplicar pago a facturas + escribir pagos_facturas ─
+async function aplicarPago(movimientoId, distribucion, sobrante){
+  for(var i=0; i<distribucion.length; i++){
+    var d = distribucion[i];
+    if(!d.monto || d.monto <= 0) continue;
+
+    // 1. Insertar en pagos_facturas
+    var {error:epf} = await sb.from('pagos_facturas').insert({
+      movimiento_id: movimientoId,
+      factura_id: d.facturaId,
+      monto_aplicado: d.monto
+    });
+    if(epf && epf.code !== '23505') throw epf; // ignorar duplicados
+
+    // 2. Actualizar monto_pagado y estatus_pago en factura
+    var nuevoMontoPagado = (parseFloat(d.factura.monto_pagado)||0) + d.monto;
+    var totalFactura = parseFloat(d.factura.total)||0;
+    var nuevoEstatus = nuevoMontoPagado >= totalFactura*0.999 ? 'pagada'
+      : nuevoMontoPagado > 0 ? 'parcial' : 'pendiente';
+    var {error:ef} = await sb.from('facturas').update({
+      monto_pagado: Math.round(nuevoMontoPagado*100)/100,
+      estatus_pago: nuevoEstatus,
+      conciliado: nuevoEstatus === 'pagada',
+      fecha_pago: nuevoEstatus === 'pagada' ? new Date().toISOString().split('T')[0] : null,
+      movimiento_banco_id: movimientoId
+    }).eq('id', d.facturaId);
+    if(ef) throw ef;
+  }
+
+  // 3. Marcar el movimiento bancario como conciliado
+  var {error:em} = await sb.from('movimientos_v2').update({
+    conciliado: true,
+    factura_vinculada_id: distribucion.length===1 ? distribucion[0].facturaId : null
+  }).eq('id', movimientoId);
+  if(em) throw em;
+
+  // 4. Si hay sobrante, actualizar saldo_favor del cliente
+  if(sobrante > 0.01){
+    var clienteId = distribucion[0] && distribucion[0].factura && distribucion[0].factura.cliente_id;
+    if(clienteId){
+      // Sumar al saldo_favor existente
+      var {data:cli} = await sb.from('clientes').select('saldo_favor').eq('id',clienteId).maybeSingle();
+      var saldoActual = parseFloat(cli&&cli.saldo_favor)||0;
+      await sb.from('clientes').update({ saldo_favor: Math.round((saldoActual+sobrante)*100)/100 }).eq('id',clienteId);
+    }
+  }
 }
 
 // ── Antigüedad de cartera ────────────────────────────────

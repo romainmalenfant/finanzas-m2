@@ -673,11 +673,11 @@ async function conciliarMes(){
     var [{data:facturas},{data:abonos}] = await Promise.all([
       sb.from('facturas')
         .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
-        .eq('tipo','emitida').eq('year',año).neq('estatus_pago','pagada').neq('estatus','cancelada')
+        .eq('tipo','emitida').neq('estatus_pago','pagada').neq('estatus','cancelada')
         .order('fecha',{ascending:true}),
       sb.from('movimientos_v2')
-        .select('*').eq('year',año).eq('month',mes).eq('origen','banco_abono').eq('conciliado',false)
-        .order('fecha',{ascending:true})
+        .select('*').eq('origen','banco_abono').eq('conciliado',false)
+        .order('fecha',{ascending:true}).limit(200)
     ]);
     facturas = facturas||[]; abonos = abonos||[];
     if(!abonos.length){ showStatus('No hay abonos bancarios sin vincular en este período.'); return; }

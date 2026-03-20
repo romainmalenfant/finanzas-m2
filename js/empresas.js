@@ -39,37 +39,111 @@ async function insertEntrega(entrega){
 // ── Clientes UI ──────────────────────────────────────────
 var clienteModalFromForm=false;
 
+// -- T6: Pure render functions --
+
+function renderClienteCard(c, variant){
+  // variant: 'full' (renderClientes) | 'list' (renderClientesList)
+  var condFull = {'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
+  var condShort = {'inmediato':'Pago inm.','15':'15d','30':'30d','45':'45d','60':'60d','90':'90d'};
+  var condLabels = variant==='full' ? condFull : condShort;
+
+  var initials = (c.nombre||'?').split(' ').slice(0,2)
+    .map(function(w){return w[0];}).join('').toUpperCase();
+
+  var card = document.createElement('div');
+  card.className = 'cliente-card';
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', function(){ verDetalleEmpresa(c.id); });
+
+  var avatar = document.createElement('div');
+  avatar.className = 'cliente-avatar';
+  avatar.textContent = initials;
+
+  var info = document.createElement('div');
+  info.className = 'cliente-info';
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'cliente-nombre';
+  nameEl.textContent = c.nombre;
+
+  var meta = document.createElement('div');
+  meta.className = 'cliente-meta';
+  var metaParts = [];
+  if(c.rfc)    metaParts.push('RFC: '+c.rfc);
+  if(c.ciudad) metaParts.push(c.ciudad);
+  metaParts.push(condLabels[c.condiciones_pago]||(variant==='full'?'Crédito 30d':'30d'));
+  meta.textContent = metaParts.join(' · ');
+
+  info.appendChild(nameEl);
+  info.appendChild(meta);
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;';
+
+  if(variant==='list'){
+    var contsBtn = document.createElement('button');
+    contsBtn.className = 'btn-sm';
+    contsBtn.textContent = 'Contactos';
+    contsBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      verContactosCliente(c.id, c.nombre);
+    });
+    actions.appendChild(contsBtn);
+  }
+
+  var editBtn = document.createElement('button');
+  editBtn.className = 'btn-sm';
+  editBtn.textContent = 'Editar';
+  editBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    editarCliente(c.id);
+  });
+  actions.appendChild(editBtn);
+
+  card.appendChild(avatar);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function renderTop5Rows(top5, container, amountColor){
+  container.innerHTML = '';
+  if(!top5.length){ container.textContent = container.dataset.empty||'Sin datos'; return; }
+  var frag = document.createDocumentFragment();
+  top5.forEach(function(d, i){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:8px;';
+    var label = document.createElement('span');
+    label.style.cssText = 'color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    label.textContent = (i+1)+'. '+d[0];
+    var amount = document.createElement('span');
+    amount.style.cssText = 'color:'+amountColor+';flex-shrink:0;';
+    amount.textContent = fmt(d[1]);
+    row.appendChild(label);
+    row.appendChild(amount);
+    frag.appendChild(row);
+  });
+  container.appendChild(frag);
+}
+
 function renderClientes(){
-  var el=document.getElementById('clientes-list');
-  var ct=document.getElementById('clientes-count');
-  if(!el)return;
-  ct.textContent=clientes.length+' empresa'+(clientes.length!==1?'s':'');
+  var el = document.getElementById('clientes-list');
+  var ct = document.getElementById('clientes-count');
+  if(!el) return;
+  ct.textContent = clientes.length + ' empresa' + (clientes.length!==1?'s':'');
+  el.innerHTML = '';
   if(!clientes.length){
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🏢</div>'+
-      '<div class="empty-state-msg">Sin empresas registradas</div>'+
-      '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>'+
-    '</div>';
+    var empty = document.createElement('div');
+    empty.className = 'empty-state-cta';
+    empty.innerHTML = '<div class="empty-state-icon">🏢</div>'
+      + '<div class="empty-state-msg">Sin empresas registradas</div>'
+      + '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>';
+    el.appendChild(empty);
     return;
   }
-  var condLabels={'inmediato':'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','45':'Crédito 45d','60':'Crédito 60d','90':'Crédito 90d'};
-  el.innerHTML=clientes.map(function(c){
-    var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')" >'+
-      '<div class="cliente-avatar">'+esc(initials)+'</div>'+
-      '<div class="cliente-info">'+
-        '<div class="cliente-nombre">'+esc(c.nombre)+'</div>'+
-        '<div class="cliente-meta">'+
-          (c.rfc?'RFC: '+esc(c.rfc)+' · ':'')+
-          (c.ciudad?esc(c.ciudad)+' · ':'')+
-          (condLabels[c.condiciones_pago]||'Crédito 30d')+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="event.stopPropagation();editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  clientes.forEach(function(c){ frag.appendChild(renderClienteCard(c, 'full')); });
+  el.appendChild(frag);
 }
 
 function abrirNuevoCliente(fromForm){
@@ -165,14 +239,8 @@ async function loadClientesKPIs(){
     });
     var top5fac=Object.entries(byCliente).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var topEl=document.getElementById('cli-k-top');
-    if(top5fac.length){
-      topEl.innerHTML=top5fac.map(function(d,i){
-        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
-          '<span style="color:#34d399;flex-shrink:0;">'+fmt(d[1])+'</span>'+
-        '</div>';
-      }).join('');
-    }else{topEl.textContent='Sin ventas registradas';}
+    renderTop5Rows(top5fac, topEl, '#34d399');
+    if(!top5fac.length) topEl.textContent='Sin ventas registradas';
 
     // Top 5 deudores — nombre completo
     var {data:deudasRaw}=await sb.from('facturas').select('receptor_nombre,total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
@@ -181,14 +249,8 @@ async function loadClientesKPIs(){
     (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+(parseFloat(m.monto)||0);});
     var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var deudorEl=document.getElementById('cli-k-deudor');
-    if(top5deu.length){
-      deudorEl.innerHTML=top5deu.map(function(d,i){
-        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(i+1)+'. '+esc(d[0])+'</span>'+
-          '<span style="color:#fbbf24;flex-shrink:0;">'+fmt(d[1])+'</span>'+
-        '</div>';
-      }).join('');
-    }else{deudorEl.textContent='Sin facturas pendientes';}
+    renderTop5Rows(top5deu, deudorEl, '#fbbf24');
+    if(!top5deu.length) deudorEl.textContent='Sin facturas pendientes';
   }catch(e){console.error('Clientes KPIs:',e);}
 }
 
@@ -206,35 +268,22 @@ function filtrarClientes(q){
 }
 
 function renderClientesList(list){
-  var el=document.getElementById('clientes-list');
-  var ct=document.getElementById('clientes-count');
-  ct.textContent=list.length+' empresa'+(list.length!==1?'s':'');
+  var el = document.getElementById('clientes-list');
+  var ct = document.getElementById('clientes-count');
+  ct.textContent = list.length + ' empresa' + (list.length!==1?'s':'');
+  el.innerHTML = '';
   if(!list.length){
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🏢</div>'+
-      '<div class="empty-state-msg">Sin empresas</div>'+
-      '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>'+
-    '</div>';
+    var empty = document.createElement('div');
+    empty.className = 'empty-state-cta';
+    empty.innerHTML = '<div class="empty-state-icon">🏢</div>'
+      + '<div class="empty-state-msg">Sin empresas</div>'
+      + '<button class="btn-primary" onclick="abrirNuevoCliente(false)">+ Nueva empresa</button>';
+    el.appendChild(empty);
     return;
   }
-  var condLabels={'inmediato':'Pago inm.','15':'15d','30':'30d','45':'45d','60':'60d','90':'90d'};
-  el.innerHTML=list.map(function(c){
-    var initials=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleEmpresa(\''+esc(c.id)+'\')">'+
-
-      '<div class="cliente-avatar">'+esc(initials)+'</div>'+
-      '<div class="cliente-info">'+
-        '<div class="cliente-nombre">'+esc(c.nombre)+'</div>'+
-        '<div class="cliente-meta">'+(c.rfc?'RFC: '+esc(c.rfc)+' · ':'')+
-        (c.ciudad?esc(c.ciudad)+' · ':'')+
-        (condLabels[c.condiciones_pago]||'30d')+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="event.stopPropagation();verContactosCliente(\''+esc(c.id)+'\',\''+esc(c.nombre)+'\')">Contactos</button>'+
-        '<button class="btn-sm" onclick="event.stopPropagation();editarCliente(\''+esc(c.id)+'\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  list.forEach(function(c){ frag.appendChild(renderClienteCard(c, 'list')); });
+  el.appendChild(frag);
 }
 
 // Override loadClientes to also store allClientes

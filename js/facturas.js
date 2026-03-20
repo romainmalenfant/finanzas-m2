@@ -404,6 +404,34 @@ async function cancelarFactura(id){
 }
 
 // ── Nueva / Editar factura ────────────────────────────────
+
+// ── Fecha vencimiento — calculada desde condiciones del cliente/proveedor ──
+var DIAS_CONDICIONES = {inmediato:0,'15':15,'30':30,'45':45,'60':60,'90':90};
+
+function calcularVencimientoFact(){
+  var fechaEl  = document.getElementById('fact-fecha');
+  var vencEl   = document.getElementById('fact-vencimiento');
+  if(!fechaEl || !vencEl || !fechaEl.value) return;
+  // Si el usuario ya puso una fecha manual, no pisar
+  if(vencEl.dataset.manual === 'true') return;
+  var tipo     = document.getElementById('fact-tipo').value;
+  var clienteId = document.getElementById('fact-cliente-id').value;
+  var provId    = document.getElementById('fact-prov-id').value;
+  var dias = 30; // default
+  if(tipo === 'emitida' && clienteId){
+    var cli = (clientes||[]).find(function(c){ return c.id === clienteId; });
+    if(cli && cli.condiciones_pago != null)
+      dias = DIAS_CONDICIONES[cli.condiciones_pago] != null ? DIAS_CONDICIONES[cli.condiciones_pago] : 30;
+  } else if(tipo === 'recibida' && provId){
+    var prov = (proveedores||[]).find(function(p){ return p.id === provId; });
+    if(prov && prov.condiciones_pago != null)
+      dias = DIAS_CONDICIONES[prov.condiciones_pago] != null ? DIAS_CONDICIONES[prov.condiciones_pago] : 30;
+  }
+  var fechaBase = new Date(fechaEl.value + 'T12:00');
+  fechaBase.setDate(fechaBase.getDate() + dias);
+  vencEl.value = fechaBase.toISOString().split('T')[0];
+}
+
 function abrirNuevaFactura(){
   document.getElementById('fact-id-edit').value='';
   document.getElementById('fact-modal-title').textContent='Nueva factura';
@@ -423,6 +451,7 @@ function abrirNuevaFactura(){
   document.getElementById('fact-proj-id').value='';
   document.getElementById('fact-proj-search').value='';
   var _fuuid=document.getElementById('fact-uuid'); if(_fuuid) _fuuid.value='';
+  var _fvenc=document.getElementById('fact-vencimiento'); if(_fvenc){_fvenc.value='';_fvenc.dataset.manual='false';}
   var _ftm=document.getElementById('fact-total-manual'); if(_ftm) _ftm.value='';
   var _fci=document.getElementById('fact-con-iva'); if(_fci) _fci.checked=true;
   _factItems=[]; _factItemId=0;
@@ -443,6 +472,7 @@ async function editarFactura(id){
   }
   document.getElementById('fact-id-edit').value=f.id;
   var _fuuid2=document.getElementById('fact-uuid'); if(_fuuid2) _fuuid2.value=f.uuid_sat||'';
+  var _fvenc2=document.getElementById('fact-vencimiento'); if(_fvenc2){_fvenc2.value=f.fecha_vencimiento||'';_fvenc2.dataset.manual=f.fecha_vencimiento?'true':'false';}
   document.getElementById('fact-modal-title').textContent='Editar factura';
   document.getElementById('fact-tipo').value=f.tipo||'emitida';
   document.getElementById('fact-metodo-pago').value=f.metodo_pago||'PUE';
@@ -733,9 +763,10 @@ function initFactACs(){
 
   makeAutocomplete('fact-cliente-search','fact-cliente-id','fact-cliente-dd',
     function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
-    function(){ setTimeout(precargarProyectosFact, 50); });
+    function(){ setTimeout(precargarProyectosFact, 50); setTimeout(calcularVencimientoFact, 60); });
   makeAutocomplete('fact-prov-search','fact-prov-id','fact-prov-dd',
-    function(){return proveedores.map(function(p){return {id:p.id,label:p.nombre,sub:p.rfc||''};});},null);
+    function(){return proveedores.map(function(p){return {id:p.id,label:p.nombre,sub:p.rfc||''};});},
+    function(){ setTimeout(calcularVencimientoFact, 60); });
   makeAutocomplete('fact-proj-search','fact-proj-id','fact-proj-dd',
     function(){return allProyectos.map(function(p){return {id:p.id,label:p.nombre_pedido||p.id,sub:p.nombre_cliente||''};});},null);
 }
@@ -777,6 +808,7 @@ async function guardarFactura(){
     iva:parseFloat(document.getElementById('fact-iva').value)||0,
     total:total,
     metodo_pago:metodoPago,
+    fecha_vencimiento:(document.getElementById('fact-vencimiento')&&document.getElementById('fact-vencimiento').value)||null,
     concepto:((_factItems||[]).map(function(i){return i.desc;}).filter(Boolean).join(', '))||document.getElementById('fact-concepto').value.trim()||null,
     notas:document.getElementById('fact-notas').value.trim()||null,
     cliente_id:clienteId,

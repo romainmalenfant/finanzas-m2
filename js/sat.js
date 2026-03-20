@@ -644,15 +644,14 @@ function calcularFIFO(montoPago, facturasPendientes){
   return {distribucion:distribucion, sobrante:restante};
 }
 
-// ── Match por monto ─────────────────────────────────────
-// Retorna las facturas cuyo monto pendiente coincide ±5% con el abono.
-// Sin restricción de fechas — un pago puede llegar meses después.
+// ── Match por monto — tolerancia ±0.5% (centavos) ───────
+// Sin restricción de fechas.
 function facturasPorMonto(montoAbono, facturas){
   return facturas.filter(function(f){
     var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
     if(pendiente <= 0) return false;
     var diff = Math.abs(montoAbono - pendiente) / Math.max(pendiente, 1);
-    return diff <= 0.05;
+    return diff <= 0.005; // ±0.5% — básicamente centavos
   });
 }
 
@@ -667,11 +666,11 @@ async function conciliarMes(){
     var [{data:facturas},{data:abonos}] = await Promise.all([
       sb.from('facturas')
         .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
-        .eq('tipo','emitida').neq('estatus_pago','pagada').neq('estatus','cancelada')
+        .eq('tipo','emitida').eq('year',año).neq('estatus_pago','pagada').neq('estatus','cancelada')
         .order('fecha',{ascending:true}),
       sb.from('movimientos_v2')
-        .select('*').eq('origen','banco_abono').eq('conciliado',false)
-        .order('fecha',{ascending:true}).limit(200)
+        .select('*').eq('year',año).eq('month',mes).eq('origen','banco_abono').eq('conciliado',false)
+        .order('fecha',{ascending:true})
     ]);
     facturas = facturas||[]; abonos = abonos||[];
     if(!abonos.length){ showStatus('No hay abonos bancarios sin vincular en este período.'); return; }
@@ -683,15 +682,14 @@ async function conciliarMes(){
 
     abonos.forEach(function(abono){
       if(abonosUsados.has(abono.id)) return;
-      // Match por monto ±5% — sin restricción de fechas
+      // Match por monto ±0.5% — sin restricción de fechas
       var montoAbono = parseFloat(abono.monto)||0;
       var factsCli = facturasPorMonto(montoAbono, facturas);
-      var tieneMatch = factsCli.length > 0;
 
       matches.push({
-        abono: abono,
-        facturas: factsCli,        // puede ser 0, 1 o varias
-        tieneMatch: tieneMatch
+        abono:    abono,
+        facturas: factsCli,       // 0 = sin match, 1 = match directo, 2+ = usuario elige
+        tieneMatch: factsCli.length > 0
       });
       abonosUsados.add(abono.id);
     });
@@ -705,62 +703,62 @@ async function conciliarMes(){
 // ── Preview conciliación masiva ───────────────────────────
 function mostrarPreviewConciliacionMasiva(matches, año, mes){
   concilMatches = matches;
+  concilMatches._facturaElegida = matches.map(function(){ return null; });
 
-  var conMatch   = matches.filter(function(m){ return m.tieneMatch; });
-  var sinMatch   = matches.filter(function(m){ return !m.tieneMatch; });
-
+  var conMatch = matches.filter(function(m){ return m.tieneMatch; });
+  var sinMatch = matches.filter(function(m){ return !m.tieneMatch; });
   var html = '';
 
-  // ── Sección 1: matches por monto ─────────────────────
+  // ── Matches por monto ─────────────────────────────────
   if(conMatch.length){
     html += '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;'+
       'letter-spacing:.04em;margin-bottom:10px;">Matches sugeridos ('+conMatch.length+')</div>';
 
-    conMatch.forEach(function(m, mi){
+    conMatch.forEach(function(m){
       var realIdx = matches.indexOf(m);
 
-      // Una sola factura → fila directa con Sí/No
       if(m.facturas.length === 1){
+        // Match único — Sí/No ejecuta inmediatamente
         var f = m.facturas[0];
         var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
         html +=
-          '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
-            '<div style="display:grid;grid-template-columns:1fr 32px 1fr auto;gap:12px;align-items:center;padding:10px 14px;">'+
+          '<div id="concil-row-'+realIdx+'" style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
+            '<div style="display:grid;grid-template-columns:1fr 28px 1fr auto;gap:10px;align-items:center;padding:10px 14px;">'+
               '<div>'+
                 '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Pago bancario</div>'+
                 '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,35))+'</div>'+
                 '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+
                   ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
               '</div>'+
-              '<div style="text-align:center;font-size:18px;color:var(--text-3);">→</div>'+
+              '<div style="text-align:center;font-size:16px;color:var(--text-3);">→</div>'+
               '<div>'+
                 '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Factura</div>'+
-                '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((f.receptor_nombre||f.receptor_rfc||'?').slice(0,35))+'</div>'+
+                '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((f.receptor_nombre||'?').slice(0,35))+'</div>'+
                 '<div style="font-size:10px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+
                   ' · '+fmtDate(f.fecha)+' · Pendiente: '+fmt(pendiente)+'</div>'+
               '</div>'+
               '<div style="display:flex;gap:6px;">'+
-                '<button onclick="toggleConcilMatch('+realIdx+', true)" id="concil-si-'+realIdx+'" '+
+                '<button id="concil-si-'+realIdx+'" onclick="toggleConcilMatch('+realIdx+', true)" '+
                   'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
                   'background:#16a34a;color:#fff;border:none;">✓ Sí</button>'+
-                '<button onclick="toggleConcilMatch('+realIdx+', false)" id="concil-no-'+realIdx+'" '+
+                '<button id="concil-no-'+realIdx+'" onclick="toggleConcilMatch('+realIdx+', false)" '+
                   'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
                   'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">✗ No</button>'+
               '</div>'+
             '</div>'+
           '</div>';
 
-      // Varias facturas con mismo monto → el usuario elige cuál
       } else {
+        // Múltiples facturas con mismo monto — usuario elige cuál
         html +=
-          '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
+          '<div id="concil-row-'+realIdx+'" style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
             '<div style="padding:10px 14px;background:var(--bg-card-2);display:flex;justify-content:space-between;align-items:center;">'+
               '<div>'+
                 '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,45))+'</div>'+
                 '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+
                   ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
               '</div>'+
-              '<span style="font-size:11px;color:#d97706;font-weight:500;">'+m.facturas.length+' facturas con mismo monto — elige una</span>'+
+              '<span style="font-size:11px;color:#d97706;">'+m.facturas.length+' facturas con mismo monto — elige una</span>'+
             '</div>'+
             '<div style="padding:8px 14px;">'+
             m.facturas.map(function(f, fi){
@@ -768,17 +766,14 @@ function mostrarPreviewConciliacionMasiva(matches, año, mes){
               return '<div style="display:flex;justify-content:space-between;align-items:center;'+
                 'padding:8px 0;border-bottom:0.5px solid var(--border-light);">'+
                 '<div>'+
-                  '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+
-                    esc((f.receptor_nombre||'?').slice(0,35))+'</div>'+
-                  '<div style="font-size:10px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+
-                    ' · '+fmtDate(f.fecha)+'</div>'+
+                  '<div style="font-size:12px;font-weight:500;">'+esc((f.receptor_nombre||'?').slice(0,35))+'</div>'+
+                  '<div style="font-size:10px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+' · '+fmtDate(f.fecha)+'</div>'+
                 '</div>'+
                 '<div style="display:flex;align-items:center;gap:8px;">'+
                   '<span style="font-size:12px;color:#16a34a;font-weight:600;">'+fmt(pendiente)+'</span>'+
-                  '<button onclick="seleccionarFacturaConcil('+realIdx+','+fi+')" '+
-                    'id="concil-fsel-'+realIdx+'-'+fi+'" '+
+                  '<button id="concil-fsel-'+realIdx+'-'+fi+'" onclick="seleccionarYconciliar('+realIdx+','+fi+')" '+
                     'style="padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;'+
-                    'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">Elegir</button>'+
+                    'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">Elegir y conciliar</button>'+
                 '</div>'+
               '</div>';
             }).join('')+
@@ -788,7 +783,7 @@ function mostrarPreviewConciliacionMasiva(matches, año, mes){
     });
   }
 
-  // ── Sección 2: sin match ──────────────────────────────
+  // ── Sin match por monto ───────────────────────────────
   if(sinMatch.length){
     html += '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;'+
       'letter-spacing:.04em;margin:'+(conMatch.length?'16px':0)+' 0 10px;">'+
@@ -804,7 +799,7 @@ function mostrarPreviewConciliacionMasiva(matches, año, mes){
                 ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
             '</div>'+
             '<button data-id="'+m.abono.id+'" '+
-              'onclick="cerrarSATPreview();setTimeout(function(){abrirConciliacionPago(this.dataset.id);}.bind(this),50)" '+
+              'onclick="var id=this.dataset.id;cerrarSATPreview();setTimeout(function(){abrirConciliacionPago(id);},50)" '+
               'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
               'background:var(--bg-hover);color:var(--brand-red);border:0.5px solid var(--brand-red);">Asignar →</button>'+
           '</div>'+
@@ -812,120 +807,78 @@ function mostrarPreviewConciliacionMasiva(matches, año, mes){
     });
   }
 
-  // Estado inicial: todos los matches con 1 factura = seleccionados
-  concilMatches._seleccion = matches.map(function(m){
-    return m.tieneMatch && m.facturas.length === 1;
-  });
-  // Factura elegida para matches con múltiples opciones
-  concilMatches._facturaElegida = matches.map(function(){ return null; });
-
-  var nSel = concilMatches._seleccion.filter(Boolean).length;
   document.getElementById('sat-preview-title').textContent = 'Conciliar pagos';
   document.getElementById('sat-preview-body').innerHTML = html;
-  document.getElementById('btn-confirmar-sat').textContent =
-    nSel > 0 ? 'Confirmar '+nSel+' match'+(nSel>1?'es':'') : 'Cerrar';
-  document.getElementById('btn-confirmar-sat').onclick =
-    nSel > 0 ? confirmarConciliacionMasiva : cerrarSATPreview;
+  // Botón de cierre — se actualiza dinámicamente
+  document.getElementById('btn-confirmar-sat').textContent = 'Cerrar';
+  document.getElementById('btn-confirmar-sat').onclick = function(){ cerrarSATPreview(); loadSATData(); };
   document.getElementById('sat-preview-modal').style.display = 'block';
 }
 
-function seleccionarFacturaConcil(matchIdx, factIdx){
-  // Marcar factura elegida visualmente
-  var m = concilMatches[matchIdx];
+// Sí → ejecuta conciliación inmediatamente
+async function toggleConcilMatch(idx, aceptar){
+  var m = concilMatches[idx];
   if(!m) return;
-  concilMatches._facturaElegida[matchIdx] = factIdx;
-  concilMatches._seleccion[matchIdx] = true;
-
-  // Update button styles
-  m.facturas.forEach(function(f, fi){
-    var btn = document.getElementById('concil-fsel-'+matchIdx+'-'+fi);
-    if(!btn) return;
-    if(fi === factIdx){
-      btn.style.background = '#16a34a'; btn.style.color = '#fff'; btn.style.borderColor = '#16a34a';
-      btn.textContent = '✓ Elegida';
-    } else {
-      btn.style.background = 'var(--bg-hover)'; btn.style.color = 'var(--text-2)'; btn.style.borderColor = 'var(--border)';
-      btn.textContent = 'Elegir';
-    }
-  });
-
-  var nSel = concilMatches._seleccion.filter(Boolean).length;
-  var btn = document.getElementById('btn-confirmar-sat');
-  if(btn){
-    btn.textContent = 'Confirmar '+nSel+' match'+(nSel>1?'es':'');
-    btn.onclick = confirmarConciliacionMasiva;
-  }
-}
-
-function toggleConcilMatch(idx, aceptar){
-  if(!concilMatches._seleccion) concilMatches._seleccion = concilMatches.map(function(){return false;});
-  concilMatches._seleccion[idx] = aceptar;
-
-  // Actualizar visual de botones
   var siBt = document.getElementById('concil-si-'+idx);
   var noBt = document.getElementById('concil-no-'+idx);
-  if(siBt){ siBt.style.background = aceptar ? '#16a34a' : 'var(--bg-hover)'; siBt.style.color = aceptar ? '#fff' : 'var(--text-2)'; }
-  if(noBt){ noBt.style.background = aceptar ? 'var(--bg-hover)' : '#dc2626'; noBt.style.color = aceptar ? 'var(--text-2)' : '#fff'; }
 
-  // Actualizar label del botón confirmar
-  var nSel = concilMatches._seleccion.filter(Boolean).length;
-  var btn = document.getElementById('btn-confirmar-sat');
-  if(btn){
-    btn.textContent = nSel > 0 ? 'Confirmar '+nSel+' match'+(nSel>1?'es':'') : 'Cerrar';
-    btn.onclick = nSel > 0 ? confirmarConciliacionMasiva : cerrarSATPreview;
+  if(!aceptar){
+    if(siBt){ siBt.disabled=true; siBt.style.background='var(--bg-hover)'; siBt.style.color='var(--text-3)'; }
+    if(noBt){ noBt.disabled=true; noBt.style.background='#fee2e2'; noBt.style.color='#dc2626'; noBt.textContent='✗ Rechazado'; }
+    return;
+  }
+
+  if(siBt){ siBt.disabled=true; siBt.textContent='Procesando...'; }
+  if(noBt) noBt.disabled=true;
+
+  var factura = m.facturas[0];
+  if(!factura){ showError('Sin factura'); if(siBt){siBt.disabled=false;siBt.textContent='✓ Sí';} if(noBt) noBt.disabled=false; return; }
+
+  try{
+    var montoPago    = parseFloat(m.abono.monto)||0;
+    var pendiente    = (parseFloat(factura.total)||0) - (parseFloat(factura.monto_pagado)||0);
+    var montoAplicar = Math.min(montoPago, pendiente);
+    var sobrante     = Math.round((montoPago - montoAplicar)*100)/100;
+    await aplicarPago(m.abono.id, [{facturaId:factura.id, monto:montoAplicar, factura:factura}], sobrante);
+    if(siBt){ siBt.textContent='✓ Conciliado'; siBt.style.background='#16a34a'; siBt.style.color='#fff'; }
+    showStatus('✓ '+fmt(montoAplicar)+' conciliado');
+  }catch(e){
+    showError('Error: '+e.message);
+    if(siBt){ siBt.disabled=false; siBt.textContent='✓ Sí'; }
+    if(noBt) noBt.disabled=false;
   }
 }
 
-function recalcSobrante(matchIdx){
+// Elegir factura en caso de múltiples matches → concilia inmediatamente
+async function seleccionarYconciliar(matchIdx, factIdx){
   var m = concilMatches[matchIdx];
   if(!m) return;
-  var montoPago = parseFloat(m.abono.monto)||0;
-  var totalAplicado = 0;
-  m.distribucion.filter(function(d){ return d.monto > 0; }).forEach(function(d, di){
-    var inp = document.getElementById('concil-monto-'+matchIdx+'-'+di);
-    if(inp) totalAplicado += parseFloat(inp.value)||0;
-  });
-  var sobrante = Math.round((montoPago - totalAplicado)*100)/100;
-  var el = document.getElementById('concil-sobrante-'+matchIdx);
-  if(el){
-    if(sobrante > 0.01){ el.style.color='#d97706'; el.textContent='⚠️ Sobrante: '+fmt(sobrante)+' → saldo a favor del cliente'; }
-    else if(sobrante < -0.01){ el.style.color='#dc2626'; el.textContent='⛔ Excede el monto del pago en '+fmt(Math.abs(sobrante)); }
-    else { el.style.color='#16a34a'; el.textContent='✓ Sin sobrante'; }
-  }
-}
+  var factura = m.facturas[factIdx];
+  if(!factura) return;
 
-async function confirmarConciliacionMasiva(){
-  var btn = document.getElementById('btn-confirmar-sat');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  var errores = 0, ok = 0;
-  try{
-    for(var mi = 0; mi < concilMatches.length; mi++){
-      if(!concilMatches._seleccion || !concilMatches._seleccion[mi]) continue;
-      var m = concilMatches[mi];
-      var montoPago = parseFloat(m.abono.monto)||0;
-
-      // Determinar la factura a usar
-      var facturaElegidaIdx = concilMatches._facturaElegida && concilMatches._facturaElegida[mi] != null
-        ? concilMatches._facturaElegida[mi] : 0;
-      var factura = m.facturas[facturaElegidaIdx];
-      if(!factura) continue;
-
-      var pendiente = (parseFloat(factura.total)||0) - (parseFloat(factura.monto_pagado)||0);
-      var montoAplicar = Math.min(montoPago, pendiente);
-      var sobrante = Math.round((montoPago - montoAplicar)*100)/100;
-      var distribFinal = [{ facturaId: factura.id, monto: montoAplicar, factura: factura }];
-
-      try{
-        await aplicarPago(m.abono.id, distribFinal, sobrante);
-        ok++;
-      }catch(e){ console.error('Error aplicando pago '+m.abono.id, e); errores++; }
+  var btn = document.getElementById('concil-fsel-'+matchIdx+'-'+factIdx);
+  if(btn){ btn.disabled=true; btn.textContent='Procesando...'; }
+  // Deshabilitar otros botones de esta fila
+  m.facturas.forEach(function(f, fi){
+    if(fi !== factIdx){
+      var b = document.getElementById('concil-fsel-'+matchIdx+'-'+fi);
+      if(b) b.disabled=true;
     }
-    cerrarSATPreview();
-    showStatus('✓ '+ok+' pago'+(ok!==1?'s':'')+' conciliado'+(ok!==1?'s':'')+(errores?' · '+errores+' con error':''));
-    concilMatches = [];
-    loadSATData();
-  }catch(e){ showError('Error: '+e.message); }
-  finally{ btn.disabled=false; }
+  });
+
+  try{
+    var montoPago    = parseFloat(m.abono.monto)||0;
+    var pendiente    = (parseFloat(factura.total)||0) - (parseFloat(factura.monto_pagado)||0);
+    var montoAplicar = Math.min(montoPago, pendiente);
+    var sobrante     = Math.round((montoPago - montoAplicar)*100)/100;
+    await aplicarPago(m.abono.id, [{facturaId:factura.id, monto:montoAplicar, factura:factura}], sobrante);
+    if(btn){ btn.textContent='✓ Conciliado'; btn.style.background='#16a34a'; btn.style.color='#fff'; btn.style.borderColor='#16a34a'; }
+    showStatus('✓ '+fmt(montoAplicar)+' conciliado');
+  }catch(e){
+    showError('Error: '+e.message);
+    if(btn){ btn.disabled=false; btn.textContent='Elegir y conciliar'; }
+    m.facturas.forEach(function(f, fi){ var b=document.getElementById('concil-fsel-'+matchIdx+'-'+fi); if(b) b.disabled=false; });
+  }
 }
 
 // ── Conciliación individual (desde abono específico) ──────

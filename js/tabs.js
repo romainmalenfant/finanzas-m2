@@ -19,8 +19,23 @@ if(typeof APP_MODULES === 'undefined'){
 // ── switchTab ─────────────────────────────────────────────
 // Depende de APP_MODULES y APP_MODULES_MAP definidos en config.js
 function switchTab(tab, btn){
-  // Hide FAB when switching away from dashboard/flujo
-  if(tab!=='dashboard'&&tab!=='finanzas'&&typeof hideFAB==='function') hideFAB();
+  // FAB: show on dashboard, finanzas, facturas with contextual options
+  var fabCobranza = document.getElementById('fab-cobranza');
+  var fabGasto    = document.getElementById('fab-gasto');
+  var fabFactura  = document.getElementById('fab-factura-emitida');
+  if(tab==='dashboard'||tab==='finanzas'){
+    if(fabCobranza) fabCobranza.style.display='flex';
+    if(fabGasto)    fabGasto.style.display='flex';
+    if(fabFactura)  fabFactura.style.display='none';
+    if(typeof showFAB==='function') showFAB();
+  } else if(tab==='facturas'){
+    if(fabCobranza) fabCobranza.style.display='none';
+    if(fabGasto)    fabGasto.style.display='none';
+    if(fabFactura)  fabFactura.style.display='flex';
+    if(typeof showFAB==='function') showFAB();
+  } else {
+    if(typeof hideFAB==='function') hideFAB();
+  }
   // Ocultar todos usando el registro central
   APP_MODULES.forEach(function(m){
     var el=document.getElementById('tab-'+m.id);

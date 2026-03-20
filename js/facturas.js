@@ -83,19 +83,39 @@ function setFacturaTipo(tipo, btn){
   facturasTipo = tipo;
   document.querySelectorAll('#fact-tipo-toggle button').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
+  // Mostrar filtro de estatus solo en emitidas y recibidas
+  var filtroEl = document.getElementById('fact-estatus-filter');
+  if(filtroEl){
+    filtroEl.style.display = (tipo==='emitidas'||tipo==='recibidas') ? 'inline-block' : 'none';
+    filtroEl.value = ''; // reset al cambiar tab
+  }
   filtrarFacturas(document.getElementById('fact-search').value||'');
 }
 
 // ── Filter & render ───────────────────────────────────────
 function filtrarFacturas(q){
   var ql = (q||'').toLowerCase();
+  var estatusFiltro = (document.getElementById('fact-estatus-filter')||{}).value||'';
+
   var filtered = allFacturas.filter(function(f){
-    // Tipo filter
-    if(facturasTipo==='emitidas')   return f.tipo==='emitida'&&f.estatus==='vigente'&&!f.conciliado&&!f.sin_factura;
+    // Tab filter
+    if(facturasTipo==='emitidas'){
+      if(f.tipo!=='emitida'||f.sin_factura) return false;
+      // Estatus filter dentro de emitidas
+      if(estatusFiltro==='pagada')    return f.conciliado || f.estatus==='pagada';
+      if(estatusFiltro==='cancelada') return f.estatus==='cancelada';
+      if(estatusFiltro==='emitida')   return !f.conciliado && f.estatus!=='cancelada';
+      return true; // "Todas"
+    }
     if(facturasTipo==='directas')    return f.tipo==='emitida'&&f.sin_factura;
-    if(facturasTipo==='recibidas')  return f.tipo==='recibida'&&f.estatus==='vigente'&&!f.conciliado;
-    if(facturasTipo==='conciliadas')return f.conciliado||f.estatus==='pagada';
-    if(facturasTipo==='complementos')return f.complemento_requerido&&!f.conciliado;
+    if(facturasTipo==='recibidas'){
+      if(f.tipo!=='recibida') return false;
+      if(estatusFiltro==='pagada')    return f.conciliado || f.estatus==='pagada';
+      if(estatusFiltro==='cancelada') return f.estatus==='cancelada';
+      if(estatusFiltro==='emitida')   return !f.conciliado && f.estatus!=='cancelada';
+      return true;
+    }
+    if(facturasTipo==='complementos') return f.complemento_requerido&&!f.conciliado;
     return true;
   }).filter(function(f){
     if(!ql)return true;
@@ -120,37 +140,55 @@ function filtrarFacturas(q){
  * Pure: no side effects, returns HTMLElement.
  */
 function renderFacturaRow(f, hoy){
-  var dias = f.fecha ? Math.floor((hoy-new Date(f.fecha))/(864e5)) : 0;
-  var semColor = dias>60?'#dc2626':dias>30?'#d97706':'#16a34a';
-  var nombre = f.tipo==='emitida'
+  var esEmitida = f.tipo === 'emitida';
+
+  // Nombre contraparte
+  var nombre = esEmitida
     ? (f.receptor_nombre||f.receptor_rfc||'—')
     : (f.emisor_nombre||f.emisor_rfc||'—');
 
-  // Estatus badge
-  var estBg,estColor,estLabel;
-  if(f.conciliado){    estBg='#fee2e2'; estColor='var(--brand-red)'; estLabel='Pagada'; }
-  else if(f.estatus==='cancelada'){ estBg='#fee2e2'; estColor='#dc2626'; estLabel='Cancelada'; }
-  else {               estBg='#dcfce7'; estColor='#16a34a'; estLabel='Vigente'; }
+  // Estatus con labels correctos por tipo
+  var estBg, estColor, estLabel;
+  if(f.conciliado || f.estatus==='pagada'){
+    estBg='#dbeafe'; estColor='#1d4ed8'; estLabel='Pagada';
+  } else if(f.estatus==='cancelada'){
+    estBg='#fee2e2'; estColor='#dc2626'; estLabel='Cancelada';
+  } else {
+    // Vigente sin pagar
+    estBg='#dcfce7'; estColor='#16a34a';
+    estLabel = esEmitida ? 'Emitida' : 'Recibida';
+  }
 
   var metodoBg    = f.metodo_pago==='PPD' ? '#fef3c7' : '#f1f5f9';
   var metodoColor = f.metodo_pago==='PPD' ? '#d97706' : '#64748b';
+
+  // Fecha vencimiento — condiciones_pago del cliente si existe
+  var fechaVenc = f.fecha_vencimiento ? fmtDate(f.fecha_vencimiento) : '—';
+  // Semáforo de vencimiento
+  var diasVenc = f.fecha_vencimiento
+    ? Math.floor((new Date(f.fecha_vencimiento+'T12:00') - hoy) / 864e5)
+    : null;
+  var vencColor = diasVenc === null ? 'var(--text-3)'
+    : diasVenc < 0  ? '#dc2626'
+    : diasVenc <= 7 ? '#d97706'
+    : '#16a34a';
+
+  // Proyecto — mostrar numero_pedido si está en memoria, si no mostrar id corto
+  var proyTexto = '—';
+  if(f.proyecto_id){
+    var proy = (allProyectos||[]).find(function(p){ return p.id === f.proyecto_id; });
+    proyTexto = proy ? (proy.nombre_pedido||proy.id.slice(0,8)) : f.proyecto_id.slice(0,8);
+  }
 
   var tr = document.createElement('tr');
   tr.style.cursor = 'pointer';
   tr.addEventListener('click', function(){ verDetalleFactura(f.id); });
 
-  function td(content){
-    var cell = document.createElement('td');
-    if(typeof content === 'string') cell.innerHTML = content;
-    else cell.appendChild(content);
-    return cell;
-  }
-
-  // Col 1: nombre + concepto
+  // Col 1: nombre contraparte
+  var nameCell = document.createElement('td');
   var nameDiv = document.createElement('div');
   nameDiv.style.cssText = 'font-size:12px;font-weight:500;color:var(--text-1);';
   nameDiv.textContent = nombre.slice(0,35);
-  var nameCell = document.createElement('td');
   nameCell.appendChild(nameDiv);
   if(f.concepto){
     var concDiv = document.createElement('div');
@@ -160,7 +198,7 @@ function renderFacturaRow(f, hoy){
   }
   tr.appendChild(nameCell);
 
-  // Col 2: folio
+  // Col 2: folio interno
   var folioCell = document.createElement('td');
   folioCell.className = 'muted';
   if(f.sin_factura){
@@ -174,19 +212,22 @@ function renderFacturaRow(f, hoy){
   }
   tr.appendChild(folioCell);
 
-  // Col 3: fecha + semáforo
+  // Col 3: fecha emisión
   var fechaCell = document.createElement('td');
   fechaCell.className = 'muted';
   fechaCell.textContent = fmtDate(f.fecha||'');
-  if(f.fecha && dias>0){
-    var diasSpan = document.createElement('span');
-    diasSpan.style.cssText = 'color:'+semColor+';font-size:10px;';
-    diasSpan.textContent = ' '+dias+'d';
-    fechaCell.appendChild(diasSpan);
-  }
   tr.appendChild(fechaCell);
 
-  // Col 4: método pago
+  // Col 4: fecha vencimiento (solo emitidas, no directas)
+  if(!f.sin_factura){
+    var vencCell = document.createElement('td');
+    vencCell.className = 'muted';
+    vencCell.style.color = vencColor;
+    vencCell.textContent = fechaVenc;
+    tr.appendChild(vencCell);
+  }
+
+  // Col 5: método pago
   var metCell = document.createElement('td');
   var metBadge = document.createElement('span');
   metBadge.style.cssText = 'padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:'+metodoBg+';color:'+metodoColor+';';
@@ -194,28 +235,21 @@ function renderFacturaRow(f, hoy){
   metCell.appendChild(metBadge);
   tr.appendChild(metCell);
 
-  // Col 5: proyecto
+  // Col 6: proyecto
   var projCell = document.createElement('td');
   projCell.className = 'muted';
-  projCell.style.fontSize = '11px';
-  if(f.proyecto_id){
-    var projSpan = document.createElement('span');
-    projSpan.style.color = 'var(--brand-red)';
-    projSpan.textContent = 'Vinculado';
-    projCell.appendChild(projSpan);
-  } else {
-    projCell.textContent = '—';
-  }
+  projCell.style.cssText = 'font-size:11px;color:var(--brand-red);';
+  projCell.textContent = proyTexto;
   tr.appendChild(projCell);
 
-  // Col 6: total
+  // Col 7: total
   var montoCell = document.createElement('td');
   montoCell.className = 'monto';
-  montoCell.style.color = f.tipo==='emitida'?'#16a34a':'#dc2626';
+  montoCell.style.color = esEmitida ? '#16a34a' : '#dc2626';
   montoCell.textContent = fmt(parseFloat(f.total)||0);
   tr.appendChild(montoCell);
 
-  // Col 7: estatus
+  // Col 8: estatus
   var estCell = document.createElement('td');
   var estBadge = document.createElement('span');
   estBadge.style.cssText = 'padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+estBg+';color:'+estColor+';';
@@ -298,11 +332,13 @@ function renderFacturasList(list){
     return;
   }
   var isRecibida = facturasTipo==='recibidas'||facturasTipo==='complementos';
+  var isDirecta  = facturasTipo==='directas';
   var table = document.createElement('table');
   table.className = 'sat-table';
   var thead = document.createElement('thead');
+  var thVenc = isDirecta ? '' : '<th>Vencimiento</th>';
   thead.innerHTML = '<tr><th>'+(isRecibida?'Proveedor':'Cliente')+'</th>'
-    + '<th>Folio</th><th>Fecha</th><th>Método</th><th>Proyecto</th>'
+    + '<th>Folio</th><th>Emisión</th>'+thVenc+'<th>Método</th><th>Proyecto</th>'
     + '<th style="text-align:right;">Total</th><th>Estatus</th></tr>';
   var tbody = document.createElement('tbody');
   var hoy = new Date();

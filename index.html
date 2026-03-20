@@ -281,15 +281,9 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>Fecha emisión *</label>
-            <input type="date" id="fact-fecha" oninput="calcularVencimientoFact()">
+            <label>Fecha *</label>
+            <input type="date" id="fact-fecha">
           </div>
-          <div class="form-group">
-            <label>Fecha vencimiento</label>
-            <input type="date" id="fact-vencimiento">
-          </div>
-        </div>
-        <div class="form-row">
           <div class="form-group">
             <label>No. Factura / Folio</label>
             <input type="text" id="fact-numero" placeholder="F-2026-001">
@@ -992,18 +986,18 @@
   <!-- Tab Flujo de Caja (ex-Finanzas) -->
   <div id="tab-finanzas" style="display:none;">
     <!-- KPIs flujo del mes -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Abonos bancarios</div><div class="mvalue c-green" id="fin-abonos">$0</div></div>
-      <div class="mcard"><div class="mlabel">Cargos bancarios</div><div class="mvalue c-red" id="fin-cargos">$0</div></div>
-      <div class="mcard"><div class="mlabel">Cobranza manual</div><div class="mvalue c-blue" id="fin-cobr">$0</div></div>
-      <div class="mcard"><div class="mlabel">Gastos manuales</div><div class="mvalue c-red" id="fin-gasto">$0</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Total ingresos</div><div class="mvalue c-green" id="fin-ingresos">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;">Banco + cobranza manual</div></div>
+      <div class="mcard"><div class="mlabel">Total egresos</div><div class="mvalue c-red" id="fin-egresos">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;">Banco + gastos manuales</div></div>
+      <div class="mcard"><div class="mlabel">Saldo neto del período</div><div class="mvalue c-util-pos" id="fin-saldo">$0</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem;">
-      <div class="mcard"><div class="mlabel">Saldo neto del período</div><div class="mvalue c-util-pos" id="fin-saldo">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;">Abonos + Cobranza − Cargos − Gastos</div></div>
-      <div class="mcard"><div class="mlabel">Total entradas</div><div class="mvalue c-green" id="fin-entradas">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;" id="fin-ventas-sub"></div></div>
-    </div>
-    <!-- Hidden IDs kept for compatibility -->
-    <span id="fin-ventas" style="display:none;"></span>
+    <!-- Hidden IDs kept for compatibility with other modules -->
+    <span id="fin-abonos" style="display:none;"></span>
+    <span id="fin-cargos" style="display:none;"></span>
+    <span id="fin-cobr"   style="display:none;"></span>
+    <span id="fin-gasto"  style="display:none;"></span>
+    <span id="fin-entradas" style="display:none;"></span>
+    <span id="fin-ventas"   style="display:none;"></span>
     <span id="fin-util" style="display:none;"></span>
     <span id="fin-flujo" style="display:none;"></span>
     <span id="fin-cxc" style="display:none;"></span>

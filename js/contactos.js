@@ -53,7 +53,7 @@ function setContactoEmpresa(id, nombre){
   if(hid) hid.value=id||'';
 }
 // ── Contactos ─────────────────────────────────────────────
-// [T7] contactos/allContactos → M2State aliases en config.js
+var contactos=[], allContactos=[];
 
 async function loadContactos(){
   try{
@@ -265,19 +265,41 @@ function buscarContactoInline(q, tipo, entityId, entityNombre, uid){
   var ql=(q||'').toLowerCase().trim();
   if(!ql){dd.style.display='none';return;}
 
-  // Filter contacts not already linked to this entity
-  var matches=(contactos||[]).filter(function(c){
-    if(tipo==='empresa'&&c.cliente_id===entityId)return false; // already linked
+  // Separar: disponibles vs bloqueados (ya tienen otra empresa)
+  var todos=(contactos||[]).filter(function(c){
+    if(tipo==='empresa'&&c.cliente_id===entityId)return false; // ya vinculado aquí
     if(tipo==='proveedor'&&c.proveedor_id===entityId)return false;
     var nombre=((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
     return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
   }).slice(0,6);
 
+  // Clasificar: disponible = sin empresa asignada o pertenece a este entity
+  function estaDisponible(c){
+    if(tipo==='empresa') return !c.cliente_id && !c.proveedor_id;
+    if(tipo==='proveedor') return !c.proveedor_id && !c.cliente_id;
+    return true;
+  }
+
   dd.style.display = 'block';
   dd.innerHTML = '';
   var frag = document.createDocumentFragment();
-  matches.forEach(function(c){
-    frag.appendChild(renderBuscarContactoItem(c, tipo, entityId, uid));
+  todos.forEach(function(c){
+    var disponible = estaDisponible(c);
+    if(disponible){
+      frag.appendChild(renderBuscarContactoItem(c, tipo, entityId, uid));
+    } else {
+      // Mostrar bloqueado con mensaje
+      var nombre = (c.nombre||'')+(c.apellido?' '+c.apellido:'');
+      var empresaActual = c.clientes&&c.clientes.nombre ? c.clientes.nombre
+        : c.proveedores&&c.proveedores.nombre ? c.proveedores.nombre : 'otra empresa';
+      var blocked = document.createElement('div');
+      blocked.style.cssText = 'padding:9px 12px;font-size:12px;opacity:.45;cursor:not-allowed;border-bottom:0.5px solid var(--border-light);';
+      blocked.title = 'Ya pertenece a ' + empresaActual;
+      blocked.innerHTML =
+        '<div style="font-weight:500;color:var(--text-1);">' + esc(nombre) + '</div>' +
+        '<div style="font-size:10px;color:#f87171;">Ya pertenece a ' + esc(empresaActual) + '</div>';
+      frag.appendChild(blocked);
+    }
   });
   var crearItem = document.createElement('div');
   crearItem.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:12px;color:var(--brand-red);font-weight:500;border-top:0.5px solid var(--border);';
@@ -293,6 +315,18 @@ function buscarContactoInline(q, tipo, entityId, entityNombre, uid){
 
 async function asociarContactoExistente(contactoId, tipo, entityId){
   try{
+    // Verificar regla de negocio: contacto no debe tener ya otra empresa
+    var contacto = (contactos||[]).find(function(c){return c.id===contactoId;});
+    if(contacto){
+      var tieneOtraEmpresa = tipo==='empresa' && contacto.cliente_id && contacto.cliente_id!==entityId;
+      var tieneOtroProveedor = tipo==='proveedor' && contacto.proveedor_id && contacto.proveedor_id!==entityId;
+      var tieneConflicto = tipo==='empresa' && contacto.proveedor_id;
+      var tieneConflicto2 = tipo==='proveedor' && contacto.cliente_id;
+      if(tieneOtraEmpresa||tieneOtroProveedor||tieneConflicto||tieneConflicto2){
+        showError('Este contacto ya pertenece a otra empresa o proveedor. No se puede reasignar.');
+        return;
+      }
+    }
     var update=tipo==='empresa' ? {cliente_id:entityId,proveedor_id:null} : {proveedor_id:entityId,cliente_id:null};
     var {error}=await sb.from('contactos').update(update).eq('id',contactoId);
     if(error)throw error;

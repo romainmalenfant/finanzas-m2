@@ -1,5 +1,5 @@
 // ── Reportes ─────────────────────────────────────────────
-var repTipo='mes';
+// [T7] repTipo → M2State alias en config.js
 
 function abrirReportes(){
   var añoActual=curYear;

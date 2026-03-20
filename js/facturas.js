@@ -361,14 +361,24 @@ async function verDetalleFactura(id){
   var nombre = f.tipo==='emitida'?(f.receptor_nombre||f.receptor_rfc||'—'):(f.emisor_nombre||f.emisor_rfc||'—');
   var ini = nombre.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'F';
   var hoy = new Date();
-  var dias = f.fecha?Math.floor((hoy-new Date(f.fecha))/(864e5)):0;
-  var semColor = dias>60?'#dc2626':dias>30?'#d97706':'#16a34a';
+  // Días para vencer (negativo = ya venció)
+  var diasVenc = f.fecha_vencimiento
+    ? Math.floor((new Date(f.fecha_vencimiento+'T12:00') - hoy) / 864e5)
+    : null;
+  var semColor = diasVenc === null ? 'var(--text-3)'
+    : diasVenc < 0  ? '#dc2626'
+    : diasVenc <= 7 ? '#d97706'
+    : '#16a34a';
+  var diasLabel = diasVenc === null ? '—'
+    : diasVenc < 0  ? Math.abs(diasVenc)+'d vencida'
+    : diasVenc === 0 ? 'Hoy'
+    : diasVenc+'d para vencer';
 
   var body =
     '<div class="detail-section"><div class="detail-kpi-grid">'+
       '<div class="detail-kpi"><div class="detail-kpi-label">Total</div><div class="detail-kpi-value '+(f.tipo==='emitida'?'c-green':'c-red')+'">'+fmt(parseFloat(f.total)||0)+'</div></div>'+
       '<div class="detail-kpi"><div class="detail-kpi-label">IVA</div><div class="detail-kpi-value" style="color:var(--text-2);">'+fmt(parseFloat(f.iva)||0)+'</div></div>'+
-      '<div class="detail-kpi"><div class="detail-kpi-label">Días</div><div class="detail-kpi-value" style="color:'+semColor+';">'+dias+'d</div></div>'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">Vencimiento</div><div class="detail-kpi-value" style="color:'+semColor+';">'+diasLabel+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">Datos</div><div class="detail-grid">'+
       '<div class="detail-field"><div class="detail-field-label">Tipo</div><div class="detail-field-value">'+(f.tipo==='emitida'?'Emitida':'Recibida')+'</div></div>'+
@@ -384,7 +394,7 @@ async function verDetalleFactura(id){
     '<div class="detail-section" style="display:flex;gap:8px;flex-wrap:wrap;">'+
       /* [T7] Marcar pagada eliminado — conciliación solo vía SAT & Banco */
       (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-sm" onclick="editarFactura(\''+f.id+'\')">Editar</button>':'')+
-      '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar</button>'+
+      '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar factura</button>'+
     '</div>';
 
   abrirDetail(nombre,'Factura '+(f.tipo==='emitida'?'emitida':'recibida'),ini,body, function(){cerrarDetail();editarFactura(f.id);});

@@ -1,6 +1,6 @@
 // ── Etiqueta de gasto ────────────────────────────────────
-var etiquetaSeleccionada='';
-var ventasMes = []; // P1-a: ventas del mes cargadas desde facturas
+// [T7] etiquetaSeleccionada → M2State alias en config.js
+// [T7] ventasMes → M2State alias en config.js
 function detectarGasto(texto){
   var t=texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var esGasto=t.match(/pag[ao]|nomin|compr[ao]|gast|egres|proveedor|renta|servicio|material|herramienta|combustible|luz\b|agua\b|telefon|internet|manten|reparac|flete|envio|seguro|impuest|iva|isr|sueldo|mutuo|utilidad/);
@@ -225,7 +225,7 @@ function renderChart(m){
 }
 
 // ── Sort helpers ─────────────────────────────────────────
-var lastEmitidas=[], lastRecibidas=[], lastBanco=[];
+// [T7] lastEmitidas/Recibidas/Banco → M2State aliases en config.js
 
 function sortList(list, sortKey){
   var sorted=list.slice();
@@ -301,7 +301,7 @@ function renderMovements(){
 
 
 // ── FAB — Registrar movimiento ────────────────────────────
-var _fabOpen = false;
+// [T7] _fabOpen → M2State alias en config.js
 function toggleFAB(){
   _fabOpen = !_fabOpen;
   var menu = document.getElementById('fab-menu');

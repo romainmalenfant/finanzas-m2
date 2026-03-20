@@ -1,10 +1,10 @@
 // ── Cotizaciones ──────────────────────────────────────────
-// [T7] cotizaciones/allCotizaciones → M2State aliases en config.js
-// [T7] cotView → M2State alias en config.js
-// [T7] cotYearFilter → M2State alias en config.js
-// [T7] cotHistorialOpen → M2State alias en config.js
-// [T7] cotItemsTemp → M2State alias en config.js
-// [T7] cotEditId → M2State alias en config.js
+var cotizaciones = [], allCotizaciones = [];
+var cotView = 'lista'; // 'lista' | 'kanban'
+var cotYearFilter = new Date().getFullYear();
+var cotHistorialOpen = false;
+var cotItemsTemp = []; // items in current form
+var cotEditId = null;
 
 // ── Load & Render ─────────────────────────────────────────
 async function loadCotizaciones(){
@@ -907,7 +907,7 @@ async function verDetalleCotizacion(id){
 
   abrirDetail(c.numero||'Cotización', c.cliente_nombre, ini,
     '<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',
-    function(){cerrarDetail();editarCotizacion(id);}
+    function(){editarCotizacion(id);}
   );
 
   try{
@@ -1023,6 +1023,94 @@ async function verDetalleCotizacion(id){
     console.error('Detalle cotizacion:',e);
     document.getElementById('detail-body').innerHTML = '<div style="padding:16px;color:#f87171;">Error: '+esc(String(e.message||e))+'</div>';
   }
+}
+
+// ── Vincular contacto a cotización ───────────────────────
+// Muestra un buscador inline de contactos de la empresa de la cotización
+// y actualiza cotizaciones.contacto_id al seleccionar.
+function vincularContactoCot(cotId, clienteId){
+  var cot = cotizaciones.find(function(x){ return x.id === cotId; });
+  if(!cot) return;
+
+  // Build inline search UI and inject into detail body
+  var uid = 'cot_' + cotId;
+  var secId = 'vinc-cont-sec-' + uid;
+  var existing = document.getElementById(secId);
+
+  // Toggle: if already open, close it
+  if(existing){ existing.remove(); return; }
+
+  var sec = document.createElement('div');
+  sec.id = secId;
+  sec.style.cssText = 'padding:10px 0 4px;';
+
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.placeholder = 'Buscar contacto...';
+  inp.autocomplete = 'off';
+  inp.style.cssText = 'width:100%;padding:7px 10px;font-size:12px;border:0.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-1);box-sizing:border-box;';
+
+  var dd = document.createElement('div');
+  dd.style.cssText = 'position:relative;background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;z-index:600;max-height:200px;overflow-y:auto;margin-top:4px;box-shadow:0 4px 16px var(--shadow);display:none;';
+
+  inp.addEventListener('input', function(){
+    var ql = (this.value||'').toLowerCase().trim();
+    dd.innerHTML = '';
+    dd.style.display = 'none';
+    if(!ql) return;
+
+    // Filter contacts from this company
+    var matches = (contactos||[]).filter(function(c){
+      if(clienteId && c.cliente_id !== clienteId) return false;
+      var nombre = ((c.nombre||'') + ' ' + (c.apellido||'')).toLowerCase();
+      return nombre.includes(ql) || (c.cargo||'').toLowerCase().includes(ql) || (c.email||'').toLowerCase().includes(ql);
+    }).slice(0, 6);
+
+    // Also search across all contacts if company filter yields nothing
+    if(!matches.length){
+      matches = (contactos||[]).filter(function(c){
+        var nombre = ((c.nombre||'') + ' ' + (c.apellido||'')).toLowerCase();
+        return nombre.includes(ql) || (c.cargo||'').toLowerCase().includes(ql);
+      }).slice(0, 6);
+    }
+
+    if(!matches.length) return;
+    dd.style.display = 'block';
+
+    matches.forEach(function(c){
+      var nombre = (c.nombre||'') + (c.apellido ? ' ' + c.apellido : '');
+      var item = document.createElement('div');
+      item.style.cssText = 'padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:12px;';
+      item.innerHTML = '<div style="font-weight:500;color:var(--text-1);">' + esc(nombre) + '</div>' +
+        '<div style="font-size:10px;color:var(--text-3);">' + esc(c.cargo||'') + (c.email ? ' · ' + esc(c.email) : '') + '</div>';
+      item.addEventListener('mousedown', function(){
+        seleccionarContactoCot(cotId, c.id, nombre);
+      });
+      dd.appendChild(item);
+    });
+  });
+
+  sec.appendChild(inp);
+  sec.appendChild(dd);
+
+  // Inject into the contacto section of the detail body
+  var detailBody = document.getElementById('detail-body');
+  if(detailBody){
+    // Find the contacto section and append after it
+    var contSection = detailBody.querySelector('.detail-section:last-of-type');
+    if(contSection) contSection.appendChild(sec);
+    else detailBody.appendChild(sec);
+    inp.focus();
+  }
+}
+
+async function seleccionarContactoCot(cotId, contactoId, nombre){
+  try{
+    await sb.from('cotizaciones').update({ contacto_id: contactoId }).eq('id', cotId);
+    showStatus('✓ Contacto vinculado: ' + nombre);
+    // Refresh detail
+    verDetalleCotizacion(cotId);
+  }catch(e){ showError('Error: ' + e.message); }
 }
 
 // ── Empresa config (editar aquí) ─────────────────────────
@@ -1362,7 +1450,7 @@ function renderKanban(){
 }
 
 // ── Drag & drop ───────────────────────────────────────────
-// [T7] _dragId → M2State alias en config.js
+var _dragId = null;
 function kanbanDragStart(e, id){ _dragId = id; e.dataTransfer.effectAllowed='move'; }
 
 async function kanbanDrop(e, newEstatus){

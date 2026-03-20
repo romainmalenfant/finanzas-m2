@@ -92,15 +92,24 @@ function poblarClientesEnProyecto(valorActual){
   document.getElementById('proj-cliente').value=valorActual||'';
   makeAutocomplete('proj-cliente-search','proj-cliente-sel','proj-cliente-dd',
     function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
-    function(item){document.getElementById('proj-cliente').value=item.label;}
+    function(item){
+      document.getElementById('proj-cliente').value=item.label;
+      // Repoblar contactos filtrados por empresa seleccionada
+      poblarContactosEnProyecto('', item.id);
+    }
   );
 }
 
-function poblarContactosEnProyecto(valorActual){
+function poblarContactosEnProyecto(valorActual, clienteId){
   var sel=document.getElementById('proj-contacto-sel');
   if(!sel)return;
   sel.innerHTML='<option value="">— Sin contacto clave —</option>';
-  contactos.forEach(function(c){
+  // Filter by company if provided, else show all
+  var pool = clienteId
+    ? (contactos||[]).filter(function(c){ return c.cliente_id===clienteId; })
+    : (contactos||[]);
+  if(!pool.length && clienteId) pool = contactos||[]; // fallback si no hay contactos de esa empresa
+  pool.forEach(function(c){
     var o=document.createElement('option');
     o.value=c.id;
     var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
@@ -129,7 +138,7 @@ function editarProyecto(id){
   document.getElementById('proj-id').value=p.id;
   document.getElementById('proj-modal-title').textContent='Editar proyecto';
   poblarClientesEnProyecto(p.nombre_cliente||'');
-  poblarContactosEnProyecto(p.contacto_id||'');
+  poblarContactosEnProyecto(p.contacto_id||'', p.cliente_id||'');
   document.getElementById('proj-pedido').value=p.nombre_pedido||'';
   document.getElementById('proj-tipo-pieza').value=p.tipo_pieza||'';
   document.getElementById('proj-total-piezas').value=p.total_piezas||0;

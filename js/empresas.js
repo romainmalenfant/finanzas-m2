@@ -254,7 +254,7 @@ async function loadClientesKPIs(){
   }catch(e){console.error('Clientes KPIs:',e);}
 }
 
-var allClientes=[];
+// [T7] allClientes → M2State alias en config.js
 function filtrarClientes(q){
   var ql=(q||'').toLowerCase();
   var filtroActivo=document.getElementById('clientes-activo-filter');

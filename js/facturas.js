@@ -461,6 +461,7 @@ function removeFactItem(id){
 
 function renderFactItems(){
   var el = document.getElementById('fact-items-list');
+  if(!el) return; // element may not exist in this context
   el.innerHTML = '';
   if(!_factItems.length){
     var msg = document.createElement('div');

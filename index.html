@@ -317,10 +317,17 @@
         </div>
         <div class="form-group">
           <label>Vincular a proyecto (opcional)</label>
-          <div class="ac-wrap">
-            <input type="text" id="fact-proj-search" placeholder="Buscar proyecto..." autocomplete="off">
-            <input type="hidden" id="fact-proj-id">
-            <div class="ac-dropdown" id="fact-proj-dd"></div>
+          <div style="display:flex;gap:6px;align-items:flex-start;">
+            <div class="ac-wrap" style="flex:1;">
+              <input type="text" id="fact-proj-search" placeholder="Buscar proyecto..." autocomplete="off">
+              <input type="hidden" id="fact-proj-id">
+              <div class="ac-dropdown" id="fact-proj-dd"></div>
+            </div>
+            <button type="button" id="fact-proj-clear" title="Quitar proyecto"
+              onclick="limpiarCampoVinculo('fact-proj-search','fact-proj-id','fact-proj-clear')"
+              style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
+                     padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
+                     flex-shrink:0;margin-top:1px;" aria-label="Quitar proyecto">×</button>
           </div>
         </div>
         <div class="form-group">
@@ -803,16 +810,30 @@
               onclick="setContactoTipo('proveedor')">🛒 Proveedor</button>
           </div>
           <!-- Empresa autocomplete -->
-          <div id="cont-campo-empresa" class="ac-wrap">
-            <input type="text" id="contacto-empresa-search" placeholder="Buscar empresa..." autocomplete="off">
-            <input type="hidden" id="contacto-cliente-sel">
-            <div class="ac-dropdown" id="contacto-empresa-dd"></div>
+          <div id="cont-campo-empresa" style="display:flex;gap:6px;align-items:flex-start;">
+            <div class="ac-wrap" style="flex:1;">
+              <input type="text" id="contacto-empresa-search" placeholder="Buscar empresa..." autocomplete="off">
+              <input type="hidden" id="contacto-cliente-sel">
+              <div class="ac-dropdown" id="contacto-empresa-dd"></div>
+            </div>
+            <button type="button" id="contacto-empresa-clear" title="Quitar empresa"
+              onclick="limpiarEmpresaContacto()"
+              style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
+                     padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
+                     flex-shrink:0;margin-top:1px;" aria-label="Quitar empresa">×</button>
           </div>
           <!-- Proveedor autocomplete -->
-          <div id="cont-campo-proveedor" class="ac-wrap" style="display:none;">
-            <input type="text" id="contacto-prov-search" placeholder="Buscar proveedor..." autocomplete="off">
-            <input type="hidden" id="contacto-proveedor-sel">
-            <div class="ac-dropdown" id="contacto-prov-dd"></div>
+          <div id="cont-campo-proveedor" style="display:none;flex;gap:6px;align-items:flex-start;">
+            <div class="ac-wrap" style="flex:1;">
+              <input type="text" id="contacto-prov-search" placeholder="Buscar proveedor..." autocomplete="off">
+              <input type="hidden" id="contacto-proveedor-sel">
+              <div class="ac-dropdown" id="contacto-prov-dd"></div>
+            </div>
+            <button type="button" id="contacto-prov-clear" title="Quitar proveedor"
+              onclick="limpiarEmpresaContacto()"
+              style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
+                     padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
+                     flex-shrink:0;margin-top:1px;" aria-label="Quitar proveedor">×</button>
           </div>
         </div>
         <div class="form-row">
@@ -1224,14 +1245,21 @@
         <!-- Contacto vinculado -->
         <div class="form-group">
           <label>Contacto <span style="font-size:10px;color:var(--text-3);">(opcional)</span></label>
-          <div class="ac-wrap">
-            <input type="text" id="cot-contacto-search" placeholder="Buscar contacto existente..."
-              autocomplete="off" oninput="buscarContactoCot(this.value)">
-            <input type="hidden" id="cot-contacto-id">
-            <div id="cot-contacto-dd" style="display:none;position:absolute;top:100%;left:0;right:0;
-              background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;
-              z-index:600;max-height:180px;overflow-y:auto;margin-top:2px;
-              box-shadow:0 4px 16px var(--shadow);"></div>
+          <div style="display:flex;gap:6px;align-items:flex-start;">
+            <div class="ac-wrap" style="flex:1;position:relative;">
+              <input type="text" id="cot-contacto-search" placeholder="Buscar contacto existente..."
+                autocomplete="off" oninput="buscarContactoCot(this.value)">
+              <input type="hidden" id="cot-contacto-id">
+              <div id="cot-contacto-dd" style="display:none;position:absolute;top:100%;left:0;right:0;
+                background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;
+                z-index:600;max-height:180px;overflow-y:auto;margin-top:2px;
+                box-shadow:0 4px 16px var(--shadow);"></div>
+            </div>
+            <button type="button" id="cot-contacto-clear" title="Quitar contacto"
+              onclick="limpiarCampoVinculo('cot-contacto-search','cot-contacto-id','cot-contacto-clear')"
+              style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
+                     padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
+                     flex-shrink:0;margin-top:1px;" aria-label="Quitar contacto">×</button>
           </div>
         </div>
         <div class="form-row">

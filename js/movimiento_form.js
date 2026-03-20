@@ -1,6 +1,6 @@
 // ── Formulario estructurado de movimiento ─────────────────
 // ── Venta factura toggle ─────────────────────────────────
-var _requiereFactura = true;
+// [T7] _requiereFactura → M2State alias en config.js
 
 function setRequiereFactura(val){
   _requiereFactura = val;
@@ -169,7 +169,7 @@ function limpiarProveedor(){
 }
 
 // Facturas pendientes del cliente seleccionado (para cobranza)
-var facturasPendientesCache=[];
+// [T7] facturasPendientesCache → M2State alias en config.js
 
 async function cargarFacturasPendientes(clienteId){
   // Reset

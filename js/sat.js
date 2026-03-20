@@ -644,22 +644,16 @@ function calcularFIFO(montoPago, facturasPendientes){
   return {distribucion:distribucion, sobrante:restante};
 }
 
-// ── Nivel de confianza del match ─────────────────────────
-function nivelConfianza(abono, factura){
-  var descLower = (abono.descripcion||'').toLowerCase();
-  var rfcF = (factura.receptor_rfc||factura.rfc_contraparte||'').toLowerCase();
-  var nombreF = (factura.receptor_nombre||factura.contraparte||'').toLowerCase().slice(0,10);
-  // Nivel 1: RFC aparece en descripción
-  if(rfcF && descLower.includes(rfcF)) return 'alta';
-  // Nivel 1b: nombre parcial en descripción
-  if(nombreF.length > 4 && descLower.includes(nombreF)) return 'alta';
-  // Nivel 2: monto match ±5% + ventana 60 días
-  var montoAbono = parseFloat(abono.monto)||0;
-  var montoFact = parseFloat(factura.total)||0;
-  var diff = Math.abs(montoAbono - montoFact) / Math.max(montoFact, 1);
-  var dias = (new Date(abono.fecha+'T12:00') - new Date(factura.fecha+'T12:00')) / 864e5;
-  if(diff <= 0.05 && dias >= -1 && dias <= 60) return 'media';
-  return 'baja';
+// ── Match por monto ─────────────────────────────────────
+// Retorna las facturas cuyo monto pendiente coincide ±5% con el abono.
+// Sin restricción de fechas — un pago puede llegar meses después.
+function facturasPorMonto(montoAbono, facturas){
+  return facturas.filter(function(f){
+    var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
+    if(pendiente <= 0) return false;
+    var diff = Math.abs(montoAbono - pendiente) / Math.max(pendiente, 1);
+    return diff <= 0.05;
+  });
 }
 
 // ── Conciliación masiva ───────────────────────────────────
@@ -689,35 +683,16 @@ async function conciliarMes(){
 
     abonos.forEach(function(abono){
       if(abonosUsados.has(abono.id)) return;
-      // Buscar facturas del mismo cliente (por RFC o cliente_id)
-      var rfcAbono = (abono.rfc_contraparte||'').toLowerCase();
-      var factsCli = facturas.filter(function(f){
-        var rfcF = (f.receptor_rfc||'').toLowerCase();
-        if(rfcAbono && rfcF && rfcAbono === rfcF) return true;
-        if(abono.cliente_id && f.cliente_id && abono.cliente_id === f.cliente_id) return true;
-        return false;
+      // Match por monto ±5% — sin restricción de fechas
+      var montoAbono = parseFloat(abono.monto)||0;
+      var factsCli = facturasPorMonto(montoAbono, facturas);
+      var tieneMatch = factsCli.length > 0;
+
+      matches.push({
+        abono: abono,
+        facturas: factsCli,        // puede ser 0, 1 o varias
+        tieneMatch: tieneMatch
       });
-
-      // Sin match por RFC/cliente — intentar por monto ±5%
-      if(!factsCli.length){
-        factsCli = facturas.filter(function(f){
-          var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
-          var diff = Math.abs((parseFloat(abono.monto)||0) - pendiente) / Math.max(pendiente,1);
-          return diff <= 0.05;
-        });
-      }
-
-      // Sin ningún match — mostrar todas las facturas pendientes (baja confianza)
-      // El usuario decide qué factura corresponde a este pago
-      if(!factsCli.length) factsCli = facturas.slice();
-
-      if(!factsCli.length) return; // no hay facturas pendientes en absoluto
-
-      var fifo = calcularFIFO(parseFloat(abono.monto)||0, factsCli);
-      var confianza = nivelConfianza(abono, factsCli[0]);
-      // _tieneMatchMonto: match fue por monto (no por RFC) — confianza media
-      var tieneMatchMonto = confianza === 'media';
-      matches.push({ abono:abono, distribucion:fifo.distribucion, sobrante:fifo.sobrante, confianza:confianza, _tieneMatchMonto:tieneMatchMonto });
       abonosUsados.add(abono.id);
     });
 
@@ -731,95 +706,105 @@ async function conciliarMes(){
 function mostrarPreviewConciliacionMasiva(matches, año, mes){
   concilMatches = matches;
 
-  // Separar en alta/media confianza vs baja (sin match claro)
-  var conMatches = matches.filter(function(m){ return m.confianza !== 'baja' || m._tieneMatchMonto; });
-  var sinMatches = matches.filter(function(m){ return m.confianza === 'baja' && !m._tieneMatchMonto; });
+  var conMatch   = matches.filter(function(m){ return m.tieneMatch; });
+  var sinMatch   = matches.filter(function(m){ return !m.tieneMatch; });
 
-  var confianzaColors = {alta:'#16a34a', media:'#d97706', baja:'#dc2626'};
-  var confianzaBg    = {alta:'#dcfce7',  media:'#fef3c7',  baja:'#fee2e2'};
-  var confianzaLabel = {alta:'✓ Alta',    media:'~ Media',   baja:'? Baja'};
-
-  var totalMatches = conMatches.length;
   var html = '';
 
-  // ── Sección 1: matches con confianza ─────────────────
-  if(conMatches.length){
+  // ── Sección 1: matches por monto ─────────────────────
+  if(conMatch.length){
     html += '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;'+
-      'letter-spacing:.04em;margin-bottom:10px;">'+
-      'Matches sugeridos ('+conMatches.length+')</div>';
+      'letter-spacing:.04em;margin-bottom:10px;">Matches sugeridos ('+conMatch.length+')</div>';
 
-    conMatches.forEach(function(m, mi){
-      var conf = m.confianza;
-      var facturaPrincipal = m.distribucion[0] && m.distribucion[0].factura;
-      var pendiente = facturaPrincipal
-        ? (parseFloat(facturaPrincipal.total)||0) - (parseFloat(facturaPrincipal.monto_pagado)||0)
-        : 0;
+    conMatch.forEach(function(m, mi){
+      var realIdx = matches.indexOf(m);
 
-      html +=
-        '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
-          // Fila principal
-          '<div style="display:grid;grid-template-columns:1fr auto 1fr auto;gap:12px;align-items:center;padding:10px 14px;">'+
-            // Abono
-            '<div>'+
-              '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Pago bancario</div>'+
-              '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,35))+'</div>'+
-              '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
+      // Una sola factura → fila directa con Sí/No
+      if(m.facturas.length === 1){
+        var f = m.facturas[0];
+        var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
+        html +=
+          '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
+            '<div style="display:grid;grid-template-columns:1fr 32px 1fr auto;gap:12px;align-items:center;padding:10px 14px;">'+
+              '<div>'+
+                '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Pago bancario</div>'+
+                '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,35))+'</div>'+
+                '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+
+                  ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
+              '</div>'+
+              '<div style="text-align:center;font-size:18px;color:var(--text-3);">→</div>'+
+              '<div>'+
+                '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Factura</div>'+
+                '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((f.receptor_nombre||f.receptor_rfc||'?').slice(0,35))+'</div>'+
+                '<div style="font-size:10px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+
+                  ' · '+fmtDate(f.fecha)+' · Pendiente: '+fmt(pendiente)+'</div>'+
+              '</div>'+
+              '<div style="display:flex;gap:6px;">'+
+                '<button onclick="toggleConcilMatch('+realIdx+', true)" id="concil-si-'+realIdx+'" '+
+                  'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
+                  'background:#16a34a;color:#fff;border:none;">✓ Sí</button>'+
+                '<button onclick="toggleConcilMatch('+realIdx+', false)" id="concil-no-'+realIdx+'" '+
+                  'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
+                  'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">✗ No</button>'+
+              '</div>'+
             '</div>'+
-            // Flecha + badge
-            '<div style="text-align:center;">'+
-              '<span style="padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;background:'+confianzaBg[conf]+';color:'+confianzaColors[conf]+';">'+confianzaLabel[conf]+'</span>'+
-              '<div style="font-size:16px;color:var(--text-3);margin-top:4px;">→</div>'+
+          '</div>';
+
+      // Varias facturas con mismo monto → el usuario elige cuál
+      } else {
+        html +=
+          '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
+            '<div style="padding:10px 14px;background:var(--bg-card-2);display:flex;justify-content:space-between;align-items:center;">'+
+              '<div>'+
+                '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,45))+'</div>'+
+                '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+
+                  ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
+              '</div>'+
+              '<span style="font-size:11px;color:#d97706;font-weight:500;">'+m.facturas.length+' facturas con mismo monto — elige una</span>'+
             '</div>'+
-            // Factura
-            '<div>'+
-              '<div style="font-size:11px;color:var(--text-3);margin-bottom:2px;">Factura</div>'+
-              (facturaPrincipal
-                ? '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc(facturaPrincipal.receptor_nombre||'?').slice(0,35)+'</div>'+
-                  '<div style="font-size:10px;color:var(--text-3);">'+(facturaPrincipal.numero_factura||'Sin folio')+' · '+fmtDate(facturaPrincipal.fecha)+' · Pendiente: '+fmt(pendiente)+'</div>'
-                : '<div style="font-size:12px;color:var(--text-3);">—</div>')+
+            '<div style="padding:8px 14px;">'+
+            m.facturas.map(function(f, fi){
+              var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
+              return '<div style="display:flex;justify-content:space-between;align-items:center;'+
+                'padding:8px 0;border-bottom:0.5px solid var(--border-light);">'+
+                '<div>'+
+                  '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+
+                    esc((f.receptor_nombre||'?').slice(0,35))+'</div>'+
+                  '<div style="font-size:10px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+
+                    ' · '+fmtDate(f.fecha)+'</div>'+
+                '</div>'+
+                '<div style="display:flex;align-items:center;gap:8px;">'+
+                  '<span style="font-size:12px;color:#16a34a;font-weight:600;">'+fmt(pendiente)+'</span>'+
+                  '<button onclick="seleccionarFacturaConcil('+realIdx+','+fi+')" '+
+                    'id="concil-fsel-'+realIdx+'-'+fi+'" '+
+                    'style="padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;'+
+                    'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">Elegir</button>'+
+                '</div>'+
+              '</div>';
+            }).join('')+
             '</div>'+
-            // Botones Sí / No
-            '<div style="display:flex;gap:6px;">'+
-              '<button onclick="toggleConcilMatch('+mi+', true)" id="concil-si-'+mi+'" '+
-                'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
-                'background:#16a34a;color:#fff;border:none;">✓ Sí</button>'+
-              '<button onclick="toggleConcilMatch('+mi+', false)" id="concil-no-'+mi+'" '+
-                'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
-                'background:var(--bg-hover);color:var(--text-2);border:0.5px solid var(--border);">✗ No</button>'+
-            '</div>'+
-          '</div>'+
-          // Panel expandible de distribución FIFO (visible cuando hay múltiples facturas)
-          (m.distribucion.filter(function(d){return d.monto>0;}).length > 1
-            ? '<div style="padding:8px 14px 10px;border-top:0.5px solid var(--border);background:var(--bg-card-2);">'+
-                '<div style="font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;margin-bottom:6px;">Distribución FIFO</div>'+
-                m.distribucion.filter(function(d){return d.monto>0;}).map(function(d,di){
-                  return '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">'+
-                    '<span>'+esc(d.factura.receptor_nombre||'?').slice(0,30)+'</span>'+
-                    '<span style="color:#16a34a;font-weight:500;">'+fmt(d.monto)+'</span>'+
-                  '</div>';
-                }).join('')+
-              '</div>'
-            : '')+
-        '</div>';
+          '</div>';
+      }
     });
   }
 
-  // ── Sección 2: sin match automático ──────────────────
-  if(sinMatches.length){
+  // ── Sección 2: sin match ──────────────────────────────
+  if(sinMatch.length){
     html += '<div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;'+
-      'letter-spacing:.04em;margin:'+(conMatches.length?'16px':0)+' 0 10px;">'+
-      'Sin match automático ('+sinMatches.length+')</div>';
+      'letter-spacing:.04em;margin:'+(conMatch.length?'16px':0)+' 0 10px;">'+
+      'Sin match por monto ('+sinMatch.length+')</div>';
 
-    sinMatches.forEach(function(m){
-      var realIdx = matches.indexOf(m);
+    sinMatch.forEach(function(m){
       html +=
-        '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;">'+
+        '<div style="border:0.5px solid var(--border);border-radius:8px;margin-bottom:8px;">'+
           '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">'+
             '<div>'+
               '<div style="font-size:12px;font-weight:600;color:var(--text-1);">'+esc((m.abono.descripcion||'').slice(0,45))+'</div>'+
-              '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
+              '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.abono.fecha)+
+                ' · <span style="color:#16a34a;font-weight:600;">+'+fmt(parseFloat(m.abono.monto)||0)+'</span></div>'+
             '</div>'+
-            '<button onclick="cerrarSATPreview();abrirConciliacionPago(\'+m.abono.id+\')" '+
+            '<button data-id="'+m.abono.id+'" '+
+              'onclick="cerrarSATPreview();setTimeout(function(){abrirConciliacionPago(this.dataset.id);}.bind(this),50)" '+
               'style="padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;'+
               'background:var(--bg-hover);color:var(--brand-red);border:0.5px solid var(--brand-red);">Asignar →</button>'+
           '</div>'+
@@ -827,17 +812,49 @@ function mostrarPreviewConciliacionMasiva(matches, año, mes){
     });
   }
 
-  // Guardar estado de selección (todos los matches con confianza = seleccionados por default)
+  // Estado inicial: todos los matches con 1 factura = seleccionados
   concilMatches._seleccion = matches.map(function(m){
-    return m.confianza !== 'baja' || m._tieneMatchMonto;
+    return m.tieneMatch && m.facturas.length === 1;
   });
+  // Factura elegida para matches con múltiples opciones
+  concilMatches._facturaElegida = matches.map(function(){ return null; });
 
+  var nSel = concilMatches._seleccion.filter(Boolean).length;
   document.getElementById('sat-preview-title').textContent = 'Conciliar pagos';
   document.getElementById('sat-preview-body').innerHTML = html;
-  var nSel = concilMatches._seleccion.filter(Boolean).length;
-  document.getElementById('btn-confirmar-sat').textContent = nSel > 0 ? 'Confirmar '+nSel+' match'+(nSel>1?'es':'') : 'Cerrar';
-  document.getElementById('btn-confirmar-sat').onclick = nSel > 0 ? confirmarConciliacionMasiva : cerrarSATPreview;
+  document.getElementById('btn-confirmar-sat').textContent =
+    nSel > 0 ? 'Confirmar '+nSel+' match'+(nSel>1?'es':'') : 'Cerrar';
+  document.getElementById('btn-confirmar-sat').onclick =
+    nSel > 0 ? confirmarConciliacionMasiva : cerrarSATPreview;
   document.getElementById('sat-preview-modal').style.display = 'block';
+}
+
+function seleccionarFacturaConcil(matchIdx, factIdx){
+  // Marcar factura elegida visualmente
+  var m = concilMatches[matchIdx];
+  if(!m) return;
+  concilMatches._facturaElegida[matchIdx] = factIdx;
+  concilMatches._seleccion[matchIdx] = true;
+
+  // Update button styles
+  m.facturas.forEach(function(f, fi){
+    var btn = document.getElementById('concil-fsel-'+matchIdx+'-'+fi);
+    if(!btn) return;
+    if(fi === factIdx){
+      btn.style.background = '#16a34a'; btn.style.color = '#fff'; btn.style.borderColor = '#16a34a';
+      btn.textContent = '✓ Elegida';
+    } else {
+      btn.style.background = 'var(--bg-hover)'; btn.style.color = 'var(--text-2)'; btn.style.borderColor = 'var(--border)';
+      btn.textContent = 'Elegir';
+    }
+  });
+
+  var nSel = concilMatches._seleccion.filter(Boolean).length;
+  var btn = document.getElementById('btn-confirmar-sat');
+  if(btn){
+    btn.textContent = 'Confirmar '+nSel+' match'+(nSel>1?'es':'');
+    btn.onclick = confirmarConciliacionMasiva;
+  }
 }
 
 function toggleConcilMatch(idx, aceptar){
@@ -883,18 +900,21 @@ async function confirmarConciliacionMasiva(){
   var errores = 0, ok = 0;
   try{
     for(var mi = 0; mi < concilMatches.length; mi++){
-      if(!concilMatches._seleccion || !concilMatches._seleccion[mi]) continue; // solo los aceptados
+      if(!concilMatches._seleccion || !concilMatches._seleccion[mi]) continue;
       var m = concilMatches[mi];
       var montoPago = parseFloat(m.abono.monto)||0;
-      var distribFinal = [];
-      var totalAplicado = 0;
-      m.distribucion.filter(function(d){ return d.monto > 0; }).forEach(function(d){
-        if(d.monto > 0){
-          distribFinal.push({facturaId: d.factura.id, monto: d.monto, factura: d.factura});
-          totalAplicado += d.monto;
-        }
-      });
-      var sobrante = Math.round((montoPago - totalAplicado)*100)/100;
+
+      // Determinar la factura a usar
+      var facturaElegidaIdx = concilMatches._facturaElegida && concilMatches._facturaElegida[mi] != null
+        ? concilMatches._facturaElegida[mi] : 0;
+      var factura = m.facturas[facturaElegidaIdx];
+      if(!factura) continue;
+
+      var pendiente = (parseFloat(factura.total)||0) - (parseFloat(factura.monto_pagado)||0);
+      var montoAplicar = Math.min(montoPago, pendiente);
+      var sobrante = Math.round((montoPago - montoAplicar)*100)/100;
+      var distribFinal = [{ facturaId: factura.id, monto: montoAplicar, factura: factura }];
+
       try{
         await aplicarPago(m.abono.id, distribFinal, sobrante);
         ok++;

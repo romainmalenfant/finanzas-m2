@@ -227,7 +227,7 @@ async function loadProveedoresKPIs(){
   }catch(e){console.error('Proveedores KPIs:',e);}
 }
 
-var allProveedores=[];
+// [T7] allProveedores → M2State alias en config.js
 function filtrarProveedores(q){
   var ql=(q||'').toLowerCase();
   var filtroActivo=document.getElementById('proveedores-activo-filter');

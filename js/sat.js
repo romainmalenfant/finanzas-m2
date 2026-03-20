@@ -718,7 +718,7 @@ async function conciliarMes(){
     if(!matches.length){ showStatus('No se encontraron matches. Usa "Vincular →" en cada abono para vincular manualmente.'); return; }
     mostrarPreviewConciliacionMasiva(matches, año, mes);
   }catch(e){ showError('Error: '+e.message); console.error(e); }
-  finally{ btn.disabled=false; btn.textContent='⚡ Conciliar automáticamente'; }
+  finally{ btn.disabled=false; btn.textContent='⚡ Conciliar'; }
 }
 
 // ── Preview conciliación masiva ───────────────────────────

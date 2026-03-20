@@ -397,8 +397,10 @@ function abrirNuevaFactura(){
   var _ftm=document.getElementById('fact-total-manual'); if(_ftm) _ftm.value='';
   var _fci=document.getElementById('fact-con-iva'); if(_fci) _fci.checked=true;
   _factItems=[]; _factItemId=0;
+  _factEsSinSat = false;
   renderFactItems();
   onFactTipoChange('emitida');
+  setFactConSat(true); // default: con factura SAT
   initFactACs();
   document.getElementById('fact-modal').style.display='flex';
 }
@@ -421,9 +423,13 @@ async function editarFactura(id){
   document.getElementById('fact-total').value=f.total||'';
   document.getElementById('fact-concepto').value=f.concepto||'';
   document.getElementById('fact-notas').value=f.notas||'';
+  _factEsSinSat = !!f.sin_factura;
   onFactTipoChange(f.tipo||'emitida');
+  setFactConSat(!f.sin_factura);
   initFactACs();
   // Pre-fill autocompletes
+  // Show clear button if project is set
+  setTimeout(function(){ actualizarBtnClear('fact-proj-id','fact-proj-clear'); }, 50);
   if(f.tipo==='emitida'&&f.receptor_nombre){
     document.getElementById('fact-cliente-search').value=f.receptor_nombre;
     document.getElementById('fact-cliente-id').value=f.cliente_id||'';
@@ -436,9 +442,51 @@ async function editarFactura(id){
   document.getElementById('fact-modal').style.display='flex';
 }
 
+// ── Con/sin factura SAT toggle ─────────────────────────
+var _factEsSinSat = false; // false = con factura SAT, true = venta directa
+
+function setFactConSat(conSat){
+  _factEsSinSat = !conSat;
+  var btnCon    = document.getElementById('fact-con-sat');
+  var btnSin    = document.getElementById('fact-sin-sat');
+  var subLabel  = document.getElementById('fact-subtotal-label');
+  var ivaInput  = document.getElementById('fact-iva');
+  var totInput  = document.getElementById('fact-total');
+
+  if(btnCon) btnCon.classList.toggle('active', conSat);
+  if(btnSin) btnSin.classList.toggle('active', !conSat);
+
+  // Labels
+  if(subLabel) subLabel.textContent = conSat ? 'Subtotal (sin IVA)' : 'Monto';
+
+  // IVA: always readonly (auto-calculated in both modes)
+  function lockField(el, lock){
+    if(!el) return;
+    el.readOnly = lock;
+    el.style.background = lock ? 'var(--bg-card-2)' : '';
+    el.style.color      = lock ? 'var(--text-3)'   : '';
+    el.style.cursor     = lock ? 'default'         : '';
+  }
+  lockField(ivaInput, true);   // IVA always locked
+  lockField(totInput, true);   // Total always locked (auto-calculated)
+
+  // Recalc from current subtotal
+  var subInput = document.getElementById('fact-subtotal');
+  if(subInput && subInput.value) calcFactIva();
+  else {
+    if(ivaInput) ivaInput.value = '';
+    if(totInput) totInput.value = '';
+  }
+}
+
 function onFactTipoChange(tipo){
   document.getElementById('fact-campo-cliente').style.display=tipo==='emitida'?'block':'none';
   document.getElementById('fact-campo-proveedor').style.display=tipo==='recibida'?'block':'none';
+  // Show con/sin SAT toggle only for emitidas
+  var toggleEl = document.getElementById('fact-toggle-tipo');
+  if(toggleEl) toggleEl.style.display = tipo==='emitida' ? 'block' : 'none';
+  // For recibidas, reset to con-factura mode (always has factura)
+  if(tipo==='recibida') setFactConSat(true);
   // Clear the other field
   if(tipo==='emitida'){document.getElementById('fact-prov-search').value='';document.getElementById('fact-prov-id').value='';}
   else{document.getElementById('fact-cliente-search').value='';document.getElementById('fact-cliente-id').value='';}
@@ -510,13 +558,25 @@ function recalcFactTotales(){
     sub=0; iva=0; total=0;
   }
 
-  document.getElementById('fact-subtotal-display').textContent = fmt(sub);
-  document.getElementById('fact-iva-display').textContent = fmt(iva);
-  document.getElementById('fact-total-display').textContent = fmt(total);
-  // Store in hidden fields
-  document.getElementById('fact-subtotal').value = sub;
-  document.getElementById('fact-iva').value = iva;
-  document.getElementById('fact-total').value = total;
+  // Optional display elements (may not exist in this modal)
+  var sdEl = document.getElementById('fact-subtotal-display');
+  var idEl = document.getElementById('fact-iva-display');
+  var tdEl = document.getElementById('fact-total-display');
+  if(sdEl) sdEl.textContent = fmt(sub);
+  if(idEl) idEl.textContent = fmt(iva);
+  if(tdEl) tdEl.textContent = fmt(total);
+  // Store in input fields — use calcFactIva for the auto-calc path
+  var subInp = document.getElementById('fact-subtotal');
+  var ivaInp = document.getElementById('fact-iva');
+  var totInp = document.getElementById('fact-total');
+  if(manualTotal > 0 || _factItems.length){
+    if(subInp) subInp.value = sub;
+    if(ivaInp) ivaInp.value = iva;
+    if(totInp) totInp.value = total;
+  } else {
+    // No items, no manual total: delegate to calcFactIva (reads fact-subtotal directly)
+    calcFactIva();
+  }
   updateFactConcepto();
 }
 
@@ -525,15 +585,103 @@ function onFactTotalManual(val){
   recalcFactTotales();
 }
 
-function calcFactIva(){recalcFactTotales();}
+function calcFactIva(){
+  var sub = parseFloat(document.getElementById('fact-subtotal').value)||0;
+  var ivaEl  = document.getElementById('fact-iva');
+  var totEl  = document.getElementById('fact-total');
+  if(_factEsSinSat){
+    // Venta directa: sin IVA, total = monto capturado
+    if(ivaEl){ ivaEl.value = sub ? '0.00' : ''; ivaEl.placeholder = 'Sin IVA'; }
+    if(totEl){ totEl.value = sub ? sub.toFixed(2) : ''; totEl.placeholder = 'Auto'; }
+  } else {
+    // Con factura SAT: IVA 16% automático
+    var iva   = Math.round(sub * 0.16 * 100) / 100;
+    var total = Math.round((sub + iva)  * 100) / 100;
+    if(ivaEl){ ivaEl.value = sub ? iva.toFixed(2)   : ''; ivaEl.placeholder = 'Auto 16%'; }
+    if(totEl){ totEl.value = sub ? total.toFixed(2) : ''; totEl.placeholder = 'Auto'; }
+  }
+}
+
+/**
+ * Pre-populates the project dropdown with recent projects
+ * from the selected client. Non-restrictive: user can still
+ * type to search all projects.
+ */
+function precargarProyectosFact(){
+  var clienteId = document.getElementById('fact-cliente-id').value;
+  var projInp   = document.getElementById('fact-proj-search');
+  var projHid   = document.getElementById('fact-proj-id');
+  var projDd    = document.getElementById('fact-proj-dd');
+  if(!projInp || !projDd) return;
+  // Don't overwrite if user already selected a project
+  if(projHid && projHid.value) return;
+  var pool = (allProyectos||[]);
+  var clienteProjs = clienteId
+    ? pool.filter(function(p){ return p.cliente_id===clienteId; })
+    : [];
+  // Recent first (last 5)
+  var recent = clienteProjs
+    .slice().sort(function(a,b){ return (b.created_at||'') > (a.created_at||'') ? 1 : -1; })
+    .slice(0, 5);
+  if(!recent.length) return;
+  // Render a pre-populated dropdown (closes on select)
+  projDd.innerHTML = '';
+  var hint = document.createElement('div');
+  hint.style.cssText = 'padding:6px 12px;font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;';
+  hint.textContent = 'Proyectos recientes';
+  projDd.appendChild(hint);
+  var frag = document.createDocumentFragment();
+  recent.forEach(function(p){
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:13px;';
+    item.addEventListener('mouseenter', function(){ this.style.background='var(--bg-hover)'; });
+    item.addEventListener('mouseleave', function(){ this.style.background=''; });
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-weight:500;color:var(--text-1);';
+    nameEl.textContent = p.nombre||p.titulo||p.id;
+    item.appendChild(nameEl);
+    item.addEventListener('mousedown', function(){
+      if(projInp) projInp.value = p.nombre||p.titulo||'';
+      if(projHid) projHid.value = p.id;
+      projDd.style.display = 'none';
+      actualizarBtnClear('fact-proj-id','fact-proj-clear');
+    });
+    frag.appendChild(item);
+  });
+  projDd.appendChild(frag);
+  projDd.style.display = 'block';
+  // Auto-hide when clicking outside
+  setTimeout(function(){
+    document.addEventListener('mousedown', function _hideProj(e){
+      if(!projDd.contains(e.target) && e.target !== projInp){
+        projDd.style.display = 'none';
+        document.removeEventListener('mousedown', _hideProj);
+      }
+    });
+  }, 100);
+}
 
 function initFactACs(){
   if(!clientes.length)loadClientes();
   if(!proveedores.length)loadProveedores();
   if(!allProyectos.length)loadProyectos();
 
+  // When client is selected, pre-populate project dropdown
+  var cliHid = document.getElementById('fact-cliente-id');
+  if(cliHid && !cliHid._projListener){
+    cliHid._projListener = true;
+    cliHid.addEventListener('change', precargarProyectosFact);
+  }
+  // Also hook into the search input blur
+  var cliInp = document.getElementById('fact-cliente-search');
+  if(cliInp && !cliInp._projListener){
+    cliInp._projListener = true;
+    cliInp.addEventListener('change', precargarProyectosFact);
+  }
+
   makeAutocomplete('fact-cliente-search','fact-cliente-id','fact-cliente-dd',
-    function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},null);
+    function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
+    function(){ setTimeout(precargarProyectosFact, 50); });
   makeAutocomplete('fact-prov-search','fact-prov-id','fact-prov-dd',
     function(){return proveedores.map(function(p){return {id:p.id,label:p.nombre,sub:p.rfc||''};});},null);
   makeAutocomplete('fact-proj-search','fact-proj-id','fact-proj-dd',
@@ -580,6 +728,7 @@ async function guardarFactura(){
     receptor_rfc:cliRfc,
     emisor_nombre:prov?prov.nombre:null,
     emisor_rfc:prov?prov.rfc:null,
+    sin_factura: _factEsSinSat,
     estatus:'vigente',
     conciliado:false,
     complemento_requerido:metodoPago==='PPD',

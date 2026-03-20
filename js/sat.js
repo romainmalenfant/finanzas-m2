@@ -157,35 +157,48 @@ function initSATTab(){
 async function loadSATData(){
   var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
   var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
-  // Sync global month so finanzas KPIs stay in sync
-  curMonth=mes-1; curYear=año;
-  document.getElementById('month-label').textContent=MONTHS[curMonth]+' '+curYear;
   document.getElementById('sat-periodo').textContent=MONTHS[mes-1]+' '+año;
-  loadFinanzasKPIs();
+
   try{
-    var {data,error}=await sb.from('movimientos_v2').select('*')
+    // ── KPIs del período seleccionado (resumen mensual) ──
+    var {data:kpiData}=await sb.from('movimientos_v2').select('origen,monto,conciliado')
       .eq('year',año).eq('month',mes)
-      .in('origen',['sat_emitida','sat_recibida','banco_abono','banco_cargo'])
-      .order('fecha',{ascending:false});
-    if(error)throw error;
-    var all=(data||[]).filter(function(p){
-      if(!año)return true;
-      return !p.year||p.year===parseInt(año);
-    });
-    var emitidas=all.filter(function(m){return m.origen==='sat_emitida';});
-    var recibidas=all.filter(function(m){return m.origen==='sat_recibida';});
-    var banco=all.filter(function(m){return m.origen==='banco_abono'||m.origen==='banco_cargo';});
-    var totalEmitido=emitidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var totalRecibido=recibidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var totalAbonos=banco.filter(function(m){return m.origen==='banco_abono';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var porCobrar=emitidas.filter(function(m){return !m.conciliado;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+      .in('origen',['sat_emitida','sat_recibida','banco_abono','banco_cargo']);
+    var kpi=kpiData||[];
+    var totalEmitido=kpi.filter(function(m){return m.origen==='sat_emitida';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var totalRecibido=kpi.filter(function(m){return m.origen==='sat_recibida';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var totalAbonos=kpi.filter(function(m){return m.origen==='banco_abono';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('sat-emitido').textContent=fmt(totalEmitido);
     document.getElementById('sat-cobrado').textContent=fmt(totalAbonos);
     document.getElementById('sat-recibido').textContent=fmt(totalRecibido);
+
+    // ── Listas atemporales — todo lo pendiente sin filtro de mes ──
+    var [{data:emitidas},{data:banco},{data:recibidas}] = await Promise.all([
+      // Facturas emitidas: todas las pendientes de pago
+      sb.from('facturas')
+        .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,conciliado,estatus')
+        .eq('tipo','emitida').neq('estatus','cancelada')
+        .order('fecha',{ascending:false}).limit(200),
+      // Abonos bancarios: todos (vinculados y sin vincular)
+      sb.from('movimientos_v2')
+        .select('*').eq('origen','banco_abono')
+        .order('fecha',{ascending:false}).limit(200),
+      // Facturas recibidas: todas
+      sb.from('facturas')
+        .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,emisor_nombre,emisor_rfc,proveedor_id,conciliado,estatus')
+        .eq('tipo','recibida').neq('estatus','cancelada')
+        .order('fecha',{ascending:false}).limit(200)
+    ]);
+
+    // Por cobrar = suma de facturas emitidas no pagadas
+    var porCobrar=(emitidas||[])
+      .filter(function(f){return f.estatus_pago!=='pagada';})
+      .reduce(function(a,f){return a+((parseFloat(f.total)||0)-(parseFloat(f.monto_pagado)||0));},0);
     document.getElementById('sat-por-cobrar').textContent=fmt(porCobrar);
-    renderFacturasEmitidas(emitidas);
-    renderMovsBanco(banco);
-    renderFacturasRecibidas(recibidas);
+
+    renderFacturasEmitidas(emitidas||[]);
+    renderMovsBanco(banco||[]);
+    renderFacturasRecibidas(recibidas||[]);
     loadCartera();
   }catch(e){showError('Error cargando SAT: '+e.message);}
 }
@@ -204,14 +217,14 @@ function renderFacturasEmitidas(list){
     sorted.map(function(f){
       var estPago=f.estatus_pago||'pendiente';
       var montoPagado=parseFloat(f.monto_pagado)||0;
-      var total=parseFloat(f.monto)||0;
+      var total=parseFloat(f.total)||0;
       var numFac=f.numero_factura||'—';
       var badgeBg=estPago==='pagada'?'#dbeafe':estPago==='parcial'?'#fef3c7':'#dcfce7';
       var badgeColor=estPago==='pagada'?'#1d4ed8':estPago==='parcial'?'#d97706':'#16a34a';
       var badgeLabel=estPago==='pagada'?'Pagada':estPago==='parcial'?'Parcial':'Pendiente';
-      return '<tr style="cursor:pointer;" onclick="abrirConciliacionIndividual(\\'+esc(f.id)+'\')">'+
-        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,40))+'</div>'+
-          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
+      return '<tr style="cursor:pointer;" onclick="abrirConciliacionIndividual(\''+f.id+'\')" >'+
+        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.receptor_nombre||f.receptor_rfc||'-').slice(0,40))+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.receptor_rfc||'')+'</div></td>'+
         '<td class="muted">'+esc(numFac)+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
         '<td class="monto" style="color:#16a34a;">'+fmt(total)+'</td>'+
@@ -260,18 +273,22 @@ function renderFacturasRecibidas(list){
   var el=document.getElementById('recib-list');
   var ct=document.getElementById('recib-count');
   ct.textContent=sorted.length+' factura'+(sorted.length!==1?'s':'');
-  if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas importadas</div>';return;}
+  if(!sorted.length){el.innerHTML='<div class="empty-state">Sin facturas recibidas</div>';return;}
   el.innerHTML='<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
-    '<th>Proveedor / RFC</th><th>Fecha</th><th style="text-align:right;">Total</th><th>Estado</th>'+
+    '<th>Proveedor / RFC</th><th>No. Factura</th><th>Fecha</th><th style="text-align:right;">Total</th><th>Estado</th>'+
     '</tr></thead><tbody>'+
     sorted.map(function(f){
-      var pagada=f.conciliado;
+      var estPago=f.estatus_pago||'pendiente';
+      var badgeBg=estPago==='pagada'?'#dbeafe':estPago==='parcial'?'#fef3c7':'#fef3c7';
+      var badgeColor=estPago==='pagada'?'#1d4ed8':estPago==='parcial'?'#d97706':'#d97706';
+      var badgeLabel=estPago==='pagada'?'Pagada':estPago==='parcial'?'Parcial':'Vigente';
       return '<tr>'+
-        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||'-').slice(0,40))+'</div>'+
-          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
+        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.emisor_nombre||f.emisor_rfc||'-').slice(0,40))+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+esc(f.emisor_rfc||'')+'</div></td>'+
+        '<td class="muted">'+esc(f.numero_factura||'—')+'</td>'+
         '<td class="muted">'+fmtDate(f.fecha)+'</td>'+
-        '<td class="monto" style="color:#dc2626;">'+fmt(parseFloat(f.monto)||0)+'</td>'+
-        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+(pagada?'#dbeafe':'#fef3c7')+';color:'+(pagada?'#1d4ed8':'#d97706')+';">'+(pagada?'Pagada':'Vigente')+'</span></td>'+
+        '<td class="monto" style="color:#dc2626;">'+fmt(parseFloat(f.total)||0)+'</td>'+
+        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+badgeBg+';color:'+badgeColor+';">'+badgeLabel+'</span></td>'+
       '</tr>';
     }).join('')+
     '</tbody></table></div>';

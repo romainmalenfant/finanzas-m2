@@ -95,10 +95,10 @@
       <span class="s-badge s-badge-amber" id="badge-facturas" style="display:none;"></span>
       <span class="s-label">Facturas</span>
     </button>
-    <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="SAT & Banco">
+    <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="Banco">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
-      <span class="s-label">SAT & Banco</span>
+      <span class="s-label">Banco</span>
     </button>
     
     <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
@@ -206,6 +206,28 @@
         <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="fact-s2-n">0 facturas</div>
       </div>
     </div>
+    <!-- Importar SAT -->
+    <div class="import-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:24px;">📊</div>
+        <div style="flex:1;">
+          <div class="import-title">Importar reporte SAT</div>
+          <div style="font-size:12px;color:var(--text-3);">Excel del portal del SAT con CFDIs emitidos y recibidos</div>
+        </div>
+        <label class="btn-sm" for="sat-file-input-fact" style="cursor:pointer;">Subir Excel SAT</label>
+        <input type="file" id="sat-file-input-fact" accept=".xlsx,.xls" multiple style="display:none" onchange="importarSATMultiple(this)">
+      </div>
+    </div>
+
+    <!-- Antigüedad de cartera -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-card-fact">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · facturas sin cobrar</div>
+        <span class="mvmt-count" id="cartera-count-fact">—</span>
+      </div>
+      <div id="cartera-list-fact"><div class="empty-state">Sin facturas pendientes</div></div>
+    </div>
+
     <!-- Toolbar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;">
       <input type="text" id="fact-search" placeholder="Buscar por folio, cliente, proveedor..."
@@ -220,6 +242,8 @@
         <button onclick="setFacturaTipo('directas',this)" style="padding:7px 18px;font-size:13px;">Ventas directas</button>
         <button onclick="setFacturaTipo('recibidas',this)" style="padding:7px 18px;font-size:13px;">Recibidas</button>
         <button onclick="setFacturaTipo('complementos',this)" style="padding:7px 18px;font-size:13px;">Complementos de Pago por hacer</button>
+        <button onclick="setFacturaTipo('cxc',this)" style="padding:7px 18px;font-size:13px;">CxC</button>
+        <button onclick="setFacturaTipo('cxp',this)" style="padding:7px 18px;font-size:13px;">CxP</button>
       </div>
       <select id="fact-estatus-filter" onchange="filtrarFacturas(document.getElementById('fact-search').value||'')"
         style="display:none;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);">
@@ -1375,77 +1399,31 @@
 
   <div id="tab-sat" style="display:none;">
 
-    <!-- Importar -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;">
-      <div class="import-card">
-        <div class="import-icon">📊</div>
-        <div class="import-title">Reporte SAT</div>
-        <div class="import-desc">Excel del portal del SAT con CFDIs emitidos y recibidos</div>
-        <label class="btn-primary" for="sat-file-input" style="cursor:pointer;display:inline-block;margin-top:10px;">Subir Excel SAT</label>
-        <input type="file" id="sat-file-input" accept=".xlsx,.xls" multiple style="display:none" onchange="importarSATMultiple(this)">
-      </div>
-      <div class="import-card">
-        <div class="import-icon">🏦</div>
-        <div class="import-title">Estado de cuenta BBVA</div>
-        <div class="import-desc">PDF del estado de cuenta mensual de BBVA</div>
-        <label class="btn-primary" for="bbva-file-input" style="cursor:pointer;display:inline-block;margin-top:10px;">Subir PDF BBVA</label>
-        <input type="file" id="bbva-file-input" accept=".pdf" multiple style="display:none" onchange="importarBBVAMultiple(this)">
-      </div>
-    </div>
-
-    <!-- Resumen SAT del período seleccionado -->
-    <div class="input-card" style="margin-bottom:1.5rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-        <div class="sec-title" style="margin-bottom:0;">Resumen SAT · <span id="sat-periodo">Marzo 2026</span></div>
-        <div style="display:flex;gap:8px;">
-          <select id="sat-mes-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);"></select>
-          <select id="sat-año-sel" onchange="loadSATData()" style="padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);"></select>
+    <!-- Importar Excel BBVA -->
+    <div class="import-card" style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:24px;">🏦</div>
+        <div style="flex:1;">
+          <div class="import-title">Estado de cuenta BBVA</div>
+          <div style="font-size:12px;color:var(--text-3);">Excel del estado de cuenta mensual de BBVA</div>
         </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;" id="sat-metrics">
-        <div class="mcard"><div class="mlabel">Facturado (emitido)</div><div class="mvalue c-green" id="sat-emitido">$0</div></div>
-        <div class="mcard"><div class="mlabel">Cobrado (banco)</div><div class="mvalue c-blue" id="sat-cobrado">$0</div></div>
-        <div class="mcard"><div class="mlabel">Compras (recibido)</div><div class="mvalue c-red" id="sat-recibido">$0</div></div>
-        <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="sat-por-cobrar">$0</div></div>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-        <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar automáticamente</button>
+        <label class="btn-sm" for="bbva-file-input" style="cursor:pointer;">Subir Excel BBVA</label>
+        <input type="file" id="bbva-file-input" accept=".xlsx,.xls,.pdf" multiple style="display:none" onchange="importarBBVAMultiple(this)">
       </div>
     </div>
 
-    <!-- Antigüedad de cartera -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-card">
-      <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · facturas sin cobrar</div>
-        <span class="mvmt-count" id="cartera-count">—</span>
-      </div>
-      <div id="cartera-list"><div class="empty-state">Sin facturas pendientes</div></div>
+    <!-- Conciliar -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+      <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar</button>
     </div>
 
-    <!-- Facturas emitidas -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;">
-      <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Facturas emitidas (ventas)</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="emit-sort" onchange="renderFacturasEmitidas(lastEmitidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
-                        <option value="fecha_asc">Fecha ↑ antiguo</option>
-            <option value="fecha_desc">Fecha ↓ reciente</option>
-            <option value="monto_desc">Monto ↓ mayor</option>
-            <option value="monto_asc">Monto ↑ menor</option>
-          </select>
-          <span class="mvmt-count" id="emit-count">0 facturas</span>
-        </div>
-      </div>
-      <div id="emit-list"><div class="empty-state">Sin facturas importadas</div></div>
-    </div>
-
-    <!-- Movimientos banco -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+    <!-- Movimientos bancarios -->
+    <div class="mvmts-card" style="margin-bottom:2rem;">
       <div class="mvmts-hdr">
         <div class="sec-title" style="margin-bottom:0;">Movimientos bancarios BBVA</div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <select id="banco-sort" onchange="renderMovsBanco(lastBanco)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
-                        <option value="fecha_desc">Fecha ↓ reciente</option>
+            <option value="fecha_desc">Fecha ↓ reciente</option>
             <option value="fecha_asc">Fecha ↑ antiguo</option>
             <option value="monto_desc">Monto ↓ mayor</option>
             <option value="monto_asc">Monto ↑ menor</option>
@@ -1456,22 +1434,20 @@
       <div id="banco-list"><div class="empty-state">Sin movimientos importados</div></div>
     </div>
 
-    <!-- Facturas recibidas -->
-    <div class="mvmts-card" style="margin-bottom:2rem;">
-      <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Facturas recibidas (compras)</div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select id="recib-sort" onchange="renderFacturasRecibidas(lastRecibidas)" style="font-size:11px;padding:4px 8px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;">
-                        <option value="fecha_asc">Fecha ↑ antiguo</option>
-            <option value="fecha_desc">Fecha ↓ reciente</option>
-            <option value="monto_desc">Monto ↓ mayor</option>
-            <option value="monto_asc">Monto ↑ menor</option>
-          </select>
-          <span class="mvmt-count" id="recib-count">0 facturas</span>
-        </div>
-      </div>
-      <div id="recib-list"><div class="empty-state">Sin facturas importadas</div></div>
-    </div>
+    <!-- Hidden IDs kept for sat.js compatibility -->
+    <span id="sat-periodo"    style="display:none;"></span>
+    <span id="sat-emitido"   style="display:none;"></span>
+    <span id="sat-cobrado"   style="display:none;"></span>
+    <span id="sat-recibido"  style="display:none;"></span>
+    <span id="sat-por-cobrar" style="display:none;"></span>
+    <span id="sat-mes-sel"   style="display:none;"></span>
+    <span id="sat-año-sel"   style="display:none;"></span>
+    <div  id="emit-list"     style="display:none;"></div>
+    <div  id="recib-list"    style="display:none;"></div>
+    <div  id="cartera-list"  style="display:none;"></div>
+    <span id="cartera-count" style="display:none;"></span>
+    <span id="emit-count"    style="display:none;"></span>
+    <span id="recib-count"   style="display:none;"></span>
 
   </div>
 

@@ -42,7 +42,7 @@ async function deleteRow(id){
 }
 
 // ── Proyectos DB ─────────────────────────────────────────
-var entregasByProyecto={};
+// [T7] entregasByProyecto → M2State alias en config.js
 
 // ── Clientes DB ──────────────────────────────────────────
 async function loadClientes(){

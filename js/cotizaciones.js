@@ -414,6 +414,13 @@ function abrirNuevaCotizacion(){
   document.getElementById('cot-fecha').value = new Date().toISOString().split('T')[0];
   document.getElementById('cot-vigencia').value = '15';
   document.getElementById('cot-notas').value = '';
+  // Limpiar contacto completamente al abrir nueva cotización
+  var _ci = document.getElementById('cot-contacto-id');
+  var _cs = document.getElementById('cot-contacto-search');
+  var _cd = document.getElementById('cot-contacto-dd');
+  if(_ci) _ci.value = '';
+  if(_cs) _cs.value = '';
+  if(_cd) { _cd.innerHTML = ''; _cd.style.display = 'none'; }
   renderCotItemsForm();
   recalcCotTotal();
   document.getElementById('cot-modal').style.display = 'flex';
@@ -590,8 +597,15 @@ function selClienteCot(id, nombre){
 }
 
 document.addEventListener('click',function(e){
-  var dd=document.getElementById('cot-cliente-dropdown');
-  if(dd&&!dd.contains(e.target)&&e.target.id!=='cot-cliente-search') dd.style.display='none';
+  // Cerrar dropdown de cliente
+  var ddCli=document.getElementById('cot-cliente-dropdown');
+  if(ddCli&&!ddCli.contains(e.target)&&e.target.id!=='cot-cliente-search') ddCli.style.display='none';
+  // Cerrar dropdown de contacto al hacer clic fuera
+  var ddCont=document.getElementById('cot-contacto-dd');
+  if(ddCont&&ddCont.style.display!=='none'){
+    var inp=document.getElementById('cot-contacto-search');
+    if(!ddCont.contains(e.target)&&e.target!==inp) ddCont.style.display='none';
+  }
 });
 
 // ── Guardar ───────────────────────────────────────────────
@@ -1027,13 +1041,11 @@ async function verDetalleCotizacion(id){
 
 
 // ── Vincular contacto a cotización desde detalle ─────────
-// Muestra buscador inline filtrado por empresa de la cotización.
-// Bloquea contactos que ya pertenecen a otra empresa (regla de negocio).
 function vincularContactoCot(cotId, clienteId){
   var uid = 'cot_' + cotId;
   var secId = 'vinc-cont-sec-' + uid;
   var existing = document.getElementById(secId);
-  if(existing){ existing.remove(); return; } // toggle
+  if(existing){ existing.remove(); return; }
 
   var sec = document.createElement('div');
   sec.id = secId;
@@ -1054,7 +1066,6 @@ function vincularContactoCot(cotId, clienteId){
     dd.style.display = 'block';
     matches.forEach(function(c){
       var nombre = (c.nombre||'') + (c.apellido ? ' '+c.apellido : '');
-      // Block contacts already assigned to a different entity
       var yaAsignado = (c.cliente_id && c.cliente_id !== clienteId) || c.proveedor_id;
       var item = document.createElement('div');
       item.style.cssText = 'padding:9px 12px;border-bottom:0.5px solid var(--border-light);font-size:12px;' +
@@ -1069,20 +1080,17 @@ function vincularContactoCot(cotId, clienteId){
         item.addEventListener('mousedown', function(){
           seleccionarContactoCot(cotId, c.id, nombre);
         });
-      } else {
-        item.title = 'Este contacto ya pertenece a otra empresa o proveedor';
       }
       dd.appendChild(item);
     });
   }
 
-  // Show contacts from this company on focus
   function getPool(q){
     var ql = (q||'').toLowerCase().trim();
     var pool = clienteId
       ? (contactos||[]).filter(function(c){ return c.cliente_id === clienteId; })
       : (contactos||[]);
-    if(!pool.length) pool = contactos||[]; // fallback: all contacts
+    if(!pool.length) pool = contactos||[];
     return ql
       ? pool.filter(function(c){
           var n = ((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();

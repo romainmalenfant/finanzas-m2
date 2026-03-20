@@ -155,16 +155,84 @@ function initSATTab(){
 }
 
 async function loadSATData(){
-  // Banco tab: solo movimientos bancarios sin filtro de período
   try{
     var {data,error}=await sb.from('movimientos_v2').select('*')
       .in('origen',['banco_abono','banco_cargo'])
-      .order('fecha',{ascending:false}).limit(200);
+      .order('fecha',{ascending:false}).limit(500);
     if(error)throw error;
     var banco=data||[];
     renderMovsBanco(banco);
+    renderBancoInsights(banco);
     loadFinanzasKPIs();
   }catch(e){showError('Error cargando banco: '+e.message);}
+}
+
+function renderBancoInsights(banco){
+  var el = document.getElementById('banco-insights');
+  if(!el) return;
+
+  var abonos = banco.filter(function(m){return m.origen==='banco_abono';});
+  var cargos  = banco.filter(function(m){return m.origen==='banco_cargo';});
+
+  // Saldo acumulado (todos los registros)
+  var totalAbonos = abonos.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+  var totalCargos  = cargos.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+  var saldo = totalAbonos - totalCargos;
+
+  // Mes actual
+  var hoy = new Date();
+  var mesActual = hoy.getMonth()+1;
+  var añoActual = hoy.getFullYear();
+  var abonosMes = abonos.filter(function(m){return m.year===añoActual&&m.month===mesActual;})
+    .reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+  var cargosMes = cargos.filter(function(m){return m.year===añoActual&&m.month===mesActual;})
+    .reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+  var flujoMes = abonosMes - cargosMes;
+
+  // Promedio mensual de ingresos (últimos 6 meses con datos)
+  var porMes = {};
+  abonos.forEach(function(m){
+    var k = (m.year||añoActual)+'-'+(String(m.month||mesActual).padStart(2,'0'));
+    porMes[k] = (porMes[k]||0)+(parseFloat(m.monto)||0);
+  });
+  var mesesConDatos = Object.values(porMes).filter(function(v){return v>0;});
+  var promedio = mesesConDatos.length
+    ? mesesConDatos.reduce(function(a,v){return a+v;},0)/mesesConDatos.length
+    : 0;
+
+  // Mes con mayor ingreso
+  var mejorMesKey = Object.keys(porMes).sort(function(a,b){return porMes[b]-porMes[a];})[0]||'';
+  var mejorMesLabel = '';
+  if(mejorMesKey){
+    var parts = mejorMesKey.split('-');
+    mejorMesLabel = MONTHS[parseInt(parts[1])-1]+' '+parts[0]+' · '+fmt(porMes[mejorMesKey]);
+  }
+
+  var saldoColor = saldo>=0?'#16a34a':'#dc2626';
+  var flujoColor = flujoMes>=0?'#16a34a':'#dc2626';
+
+  el.innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">'+
+      '<div class="mcard">'+
+        '<div class="mlabel">Saldo acumulado</div>'+
+        '<div class="mvalue" style="color:'+saldoColor+';">'+fmt(saldo)+'</div>'+
+        '<div style="font-size:10px;color:var(--text-3);margin-top:3px;">Todos los movimientos</div>'+
+      '</div>'+
+      '<div class="mcard">'+
+        '<div class="mlabel">Flujo neto del mes</div>'+
+        '<div class="mvalue" style="color:'+flujoColor+';">'+fmt(flujoMes)+'</div>'+
+        '<div style="font-size:10px;color:var(--text-3);margin-top:3px;">'+MONTHS[mesActual-1]+' '+añoActual+'</div>'+
+      '</div>'+
+      '<div class="mcard">'+
+        '<div class="mlabel">Promedio mensual ingresos</div>'+
+        '<div class="mvalue c-green">'+fmt(promedio)+'</div>'+
+        '<div style="font-size:10px;color:var(--text-3);margin-top:3px;">'+mesesConDatos.length+' mes'+(mesesConDatos.length!==1?'es':'')+' con datos</div>'+
+      '</div>'+
+      '<div class="mcard">'+
+        '<div class="mlabel">Mejor mes</div>'+
+        '<div style="font-size:13px;font-weight:600;color:var(--text-1);margin-top:4px;">'+mejorMesLabel+'</div>'+
+      '</div>'+
+    '</div>';
 }
 
 function renderFacturasEmitidas(list){

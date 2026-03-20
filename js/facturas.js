@@ -1,7 +1,7 @@
 // ── Facturas module ───────────────────────────────────────
 var allFacturas = [];
-var facturasTipo = 'emitidas'; // emitidas | recibidas | conciliadas | complementos
-var facturasYearFilter = new Date().getFullYear();
+// [T7] facturasTipo → M2State alias en config.js
+// [T7] facturasYearFilter → M2State alias en config.js
 
 // ── Load ─────────────────────────────────────────────────
 async function loadFacturas(){
@@ -443,8 +443,8 @@ async function editarFactura(id){
 }
 
 // ── Con/sin factura SAT toggle ─────────────────────────
-var _factEsSinSat = false; // false = con factura SAT, true = venta directa
-var _ivaDebounce  = null;  // debounce timer for subtotal input
+// [T7] _factEsSinSat → M2State alias en config.js
+// [T7] _ivaDebounce → M2State alias en config.js
 
 function setFactConSat(conSat){
   _factEsSinSat = !conSat;
@@ -498,8 +498,8 @@ function onFactTipoChange(tipo){
 }
 
 // ── Fact items management ─────────────────────────────────
-var _factItems = [];
-var _factItemId = 0;
+// [T7] _factItems → M2State alias en config.js
+// [T7] _factItemId → M2State alias en config.js
 
 function addFactItem(desc, monto){
   var id = ++_factItemId;

@@ -217,11 +217,17 @@
       <!-- Tabs de tipo -->
       <div class="view-toggle" id="fact-tipo-toggle">
         <button class="active" onclick="setFacturaTipo('emitidas',this)">Emitidas</button>
-        <button onclick="setFacturaTipo('recibidas',this)">Recibidas</button>
         <button onclick="setFacturaTipo('directas',this)">Ventas directas</button>
-        <button onclick="setFacturaTipo('conciliadas',this)">Conciliadas</button>
-        <button onclick="setFacturaTipo('complementos',this)">Complementos PPD</button>
+        <button onclick="setFacturaTipo('recibidas',this)">Recibidas</button>
+        <button onclick="setFacturaTipo('complementos',this)">Complementos de Pago</button>
       </div>
+      <select id="fact-estatus-filter" onchange="filtrarFacturas(document.getElementById('fact-search').value||'')"
+        style="display:none;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);">
+        <option value="">Todas</option>
+        <option value="emitida">Emitidas</option>
+        <option value="pagada">Pagadas / Conciliadas</option>
+        <option value="cancelada">Canceladas</option>
+      </select>
       <select id="fact-year-filter" onchange="filtrarFacturas(document.getElementById('fact-search').value)"
         style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
       <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="fact-count">0 facturas</span>

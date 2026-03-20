@@ -4,6 +4,76 @@ var facturasTipo = 'emitidas'; // emitidas | recibidas | conciliadas | complemen
 var facturasYearFilter = new Date().getFullYear();
 
 // ── Load ─────────────────────────────────────────────────
+
+// ── Antigüedad de cartera (pestaña Facturas) ─────────────
+async function loadCarteraFacturas(){
+  try{
+    var hoy = new Date();
+    var {data:pendientes} = await sb.from('facturas')
+      .select('id,receptor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado')
+      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada')
+      .order('fecha',{ascending:true}).limit(200);
+    pendientes = pendientes||[];
+    var el = document.getElementById('cartera-list-fact');
+    var ct = document.getElementById('cartera-count-fact');
+    if(!el) return;
+    if(!pendientes.length){
+      if(ct) ct.textContent = 'Sin pendientes';
+      el.innerHTML = '<div class="empty-state">No hay facturas pendientes de cobro ✓</div>';
+      return;
+    }
+    var totalPend = pendientes.reduce(function(a,f){
+      return a+((parseFloat(f.total)||0)-(parseFloat(f.monto_pagado)||0));
+    },0);
+    if(ct) ct.textContent = pendientes.length+' pendiente'+(pendientes.length!==1?'s':'')+' · '+fmt(totalPend);
+
+    // Clasificar por días para vencer
+    var grupos = {vencida:[],semana:[],mes:[],futuro:[]};
+    pendientes.forEach(function(f){
+      var fechaRef = f.fecha_vencimiento
+        ? new Date(f.fecha_vencimiento+'T12:00')
+        : new Date(new Date(f.fecha+'T12:00').getTime()+30*864e5);
+      var dias = Math.floor((fechaRef - hoy)/864e5);
+      var pend = (parseFloat(f.total)||0)-(parseFloat(f.monto_pagado)||0);
+      var item = {f:f, dias:dias, pend:pend};
+      if(dias < 0)        grupos.vencida.push(item);
+      else if(dias <= 7)  grupos.semana.push(item);
+      else if(dias <= 30) grupos.mes.push(item);
+      else                grupos.futuro.push(item);
+    });
+
+    var bandas = [
+      {key:'vencida', label:'Vencidas',         color:'#991b1b', bg:'#fee2e2'},
+      {key:'semana',  label:'Vencen esta semana',color:'#92400e', bg:'#fef3c7'},
+      {key:'mes',     label:'Vencen este mes',   color:'#854d0e', bg:'#fefce8'},
+      {key:'futuro',  label:'Más de 30 días',    color:'#166534', bg:'#f0fdf4'}
+    ];
+    var html = '<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+      '<th>Cliente</th><th>Folio</th><th>Emisión</th><th>Vencimiento</th>'+
+      '<th>Días</th><th style="text-align:right;">Pendiente</th></tr></thead><tbody>';
+    bandas.forEach(function(b){
+      var items = grupos[b.key]; if(!items.length) return;
+      var sub = items.reduce(function(a,i){return a+i.pend;},0);
+      html += '<tr><td colspan="6" style="background:'+b.bg+';color:'+b.color+';font-weight:600;font-size:11px;padding:6px 12px;">'+
+        b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · '+fmt(sub)+'</td></tr>';
+      items.forEach(function(i){
+        var diasLabel = i.dias<0 ? Math.abs(i.dias)+'d vencida' : i.dias===0 ? 'Hoy' : i.dias+'d';
+        var fechaVenc = i.f.fecha_vencimiento ? fmtDate(i.f.fecha_vencimiento) : '—';
+        html += '<tr onclick="verDetalleFactura(''+i.f.id+'')" style="cursor:pointer;">'+
+          '<td><div style="font-size:12px;font-weight:500;">'+esc((i.f.receptor_nombre||'—').slice(0,35))+'</div></td>'+
+          '<td class="muted">'+esc(i.f.numero_factura||'—')+'</td>'+
+          '<td class="muted">'+fmtDate(i.f.fecha)+'</td>'+
+          '<td class="muted">'+fechaVenc+'</td>'+
+          '<td class="muted" style="color:'+b.color+';">'+diasLabel+'</td>'+
+          '<td class="monto" style="color:'+b.color+';">'+fmt(i.pend)+'</td>'+
+        '</tr>';
+      });
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  }catch(e){console.error('Cartera:',e);}
+}
+
 async function loadFacturas(){
   // U2 — skeleton mientras carga
   var listEl=document.getElementById('fact-list');
@@ -27,6 +97,7 @@ async function loadFacturas(){
     renderFacturasKPIs();
     renderSemaforo();
     filtrarFacturas(document.getElementById('fact-search')&&document.getElementById('fact-search').value||'');
+    loadCarteraFacturas();
   }catch(e){
     console.error('loadFacturas:',e);
     document.getElementById('fact-list').innerHTML='<div class="empty-state">Error cargando facturas</div>';
@@ -86,7 +157,7 @@ function setFacturaTipo(tipo, btn){
   // Mostrar filtro de estatus solo en emitidas y recibidas
   var filtroEl = document.getElementById('fact-estatus-filter');
   if(filtroEl){
-    filtroEl.style.display = (tipo==='emitidas'||tipo==='recibidas') ? 'inline-block' : 'none';
+    filtroEl.style.display = (tipo==='emitidas'||tipo==='recibidas'||tipo==='cxc'||tipo==='cxp') ? 'inline-block' : 'none';
     filtroEl.value = ''; // reset al cambiar tab
   }
   filtrarFacturas(document.getElementById('fact-search').value||'');
@@ -116,6 +187,8 @@ function filtrarFacturas(q){
       return true;
     }
     if(facturasTipo==='complementos') return f.complemento_requerido&&!f.conciliado;
+    if(facturasTipo==='cxc') return f.tipo==='emitida'&&!f.conciliado&&f.estatus!=='cancelada';
+    if(facturasTipo==='cxp') return f.tipo==='recibida'&&!f.conciliado&&f.estatus!=='cancelada';
     return true;
   }).filter(function(f){
     if(!ql)return true;
@@ -331,7 +404,7 @@ function renderFacturasList(list){
     el.appendChild(wrap);
     return;
   }
-  var isRecibida = facturasTipo==='recibidas'||facturasTipo==='complementos';
+  var isRecibida = facturasTipo==='recibidas'||facturasTipo==='complementos'||facturasTipo==='cxp';
   var isDirecta  = facturasTipo==='directas';
   var table = document.createElement('table');
   table.className = 'sat-table';

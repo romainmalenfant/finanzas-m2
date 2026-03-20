@@ -1,5 +1,5 @@
 // ── Manejo del PDF ───────────────────────────────────────
-var pdfMovimientos=[];
+// [T7] pdfMovimientos → M2State alias en config.js
 
 async function handlePDF(input){
   var file=input.files[0];
@@ -132,7 +132,7 @@ async function confirmPDFImport(){
 }
 
 // ── SAT & Banco Module ───────────────────────────────────
-var satPendingEmitidas=[], satPendingRecibidas=[];
+// [T7] satPending* → M2State aliases en config.js
 
 function initSATTab(){
   var mesEl=document.getElementById('sat-mes-sel');
@@ -638,7 +638,7 @@ async function conciliarMes(){
   finally{btn.disabled=false;btn.textContent='⚡ Conciliar automáticamente';}
 }
 
-var concilMatches=[];
+// [T7] concilMatches → M2State alias en config.js
 function mostrarPreviewConciliacion(matches,año,mes){
   concilMatches=matches;
   var total=matches.reduce(function(a,m){return a+Number(m.factura.monto);},0);

@@ -21,38 +21,109 @@ async function deleteProveedor(id){
 var tipoLabels={general:'General',nomina:'Nómina',servicios:'Servicios',material:'Material',financiero:'Financiero'};
 var condLabels2={inmediato:'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','60':'Crédito 60d','90':'Crédito 90d'};
 
+// -- T6: Pure render functions --
+
+function renderProveedorCard(p, detailed){
+  var initials = (p.nombre||'?').split(' ').slice(0,2)
+    .map(function(w){return w[0];}).join('').toUpperCase();
+
+  var card = document.createElement('div');
+  card.className = 'cliente-card';
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', function(){ verDetalleProveedor(p.id); });
+
+  var avatar = document.createElement('div');
+  avatar.className = 'cliente-avatar';
+  if(detailed) avatar.style.background = '#e8e6e0';
+  avatar.textContent = initials;
+
+  var info = document.createElement('div');
+  info.className = 'cliente-info';
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'cliente-nombre';
+  nameEl.textContent = p.nombre;
+
+  var meta = document.createElement('div');
+  meta.className = 'cliente-meta';
+
+  if(detailed){
+    meta.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
+    function addMetaSpan(text){
+      var s = document.createElement('span'); s.textContent = text; meta.appendChild(s);
+    }
+    if(p.rfc)    addMetaSpan('RFC: '+p.rfc);
+    if(p.ciudad) addMetaSpan(p.ciudad);
+    addMetaSpan(condLabels2[p.condiciones_pago]||'Crédito 30d');
+    if(p.tipo && p.tipo!=='general'){
+      var badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.style.cssText = 'background:#F1EFE8;color:#5f5e5a;';
+      badge.textContent = tipoLabels[p.tipo]||p.tipo;
+      meta.appendChild(badge);
+    }
+  } else {
+    meta.textContent = (p.rfc ? 'RFC: '+p.rfc+' · ' : '') + (p.tipo||'General');
+  }
+
+  info.appendChild(nameEl);
+  info.appendChild(meta);
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;';
+  var editBtn = document.createElement('button');
+  editBtn.className = 'btn-sm';
+  editBtn.textContent = 'Editar';
+  editBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    editarProveedor(p.id);
+  });
+  actions.appendChild(editBtn);
+
+  card.appendChild(avatar);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function renderTop5Proveedores(top5, container){
+  container.innerHTML = '';
+  if(!top5.length){ container.textContent = 'Sin compras registradas'; return; }
+  var frag = document.createDocumentFragment();
+  top5.forEach(function(d, i){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;gap:8px;';
+    var label = document.createElement('span');
+    label.style.cssText = 'color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;';
+    label.textContent = (i+1)+'. '+d[0];
+    var amount = document.createElement('span');
+    amount.style.cssText = 'color:var(--text-2);flex-shrink:0;';
+    amount.textContent = fmt(d[1]);
+    row.appendChild(label);
+    row.appendChild(amount);
+    frag.appendChild(row);
+  });
+  container.appendChild(frag);
+}
+
 function renderProveedores(){
-  var el=document.getElementById('proveedores-list');
-  var ct=document.getElementById('prov-count');
-  if(!el)return;
-  ct.textContent=proveedores.length+' proveedor'+(proveedores.length!==1?'es':'');
+  var el = document.getElementById('proveedores-list');
+  var ct = document.getElementById('prov-count');
+  if(!el) return;
+  ct.textContent = proveedores.length + ' proveedor' + (proveedores.length!==1?'es':'');
+  el.innerHTML = '';
   if(!proveedores.length){
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🛒</div>'+
-      '<div class="empty-state-msg">Sin proveedores. Se crean automáticamente al importar facturas SAT recibidas.</div>'+
-      '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>'+
-    '</div>';
+    var empty = document.createElement('div');
+    empty.className = 'empty-state-cta';
+    empty.innerHTML = '<div class="empty-state-icon">🛒</div>'
+      + '<div class="empty-state-msg">Sin proveedores. Se crean automáticamente al importar facturas SAT recibidas.</div>'
+      + '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>';
+    el.appendChild(empty);
     return;
   }
-  el.innerHTML=proveedores.map(function(p){
-    var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    var tipoBadge=p.tipo&&p.tipo!=='general'?'<span class="badge" style="background:#F1EFE8;color:#5f5e5a;">'+esc(tipoLabels[p.tipo]||p.tipo)+'</span>':'';
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleProveedor(\''+esc(p.id)+'\')">'+
-      '<div class="cliente-avatar" style="background:#e8e6e0;">'+esc(initials)+'</div>'+
-      '<div class="cliente-info">'+
-        '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+
-        '<div class="cliente-meta" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
-          (p.rfc?'<span>RFC: '+esc(p.rfc)+'</span>':'')+
-          (p.ciudad?'<span>'+esc(p.ciudad)+'</span>':'')+
-          '<span>'+(condLabels2[p.condiciones_pago]||'Crédito 30d')+'</span>'+
-          tipoBadge+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="event.stopPropagation();editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  proveedores.forEach(function(p){ frag.appendChild(renderProveedorCard(p, true)); });
+  el.appendChild(frag);
 }
 
 function abrirNuevoProveedor(){
@@ -152,14 +223,7 @@ async function loadProveedoresKPIs(){
     (ytdCompras||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+(parseFloat(m.monto)||0);});
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var topEl=document.getElementById('prov-k-top');
-    if(top5.length){
-      topEl.innerHTML=top5.map(function(d,i){
-        return '<div style="display:flex;justify-content:space-between;gap:8px;">'+
-          '<span style="color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px;">'+(i+1)+'. '+esc(d[0])+'</span>'+
-          '<span style="color:var(--text-2);flex-shrink:0;">'+fmt(d[1])+'</span>'+
-        '</div>';
-      }).join('');
-    }else{topEl.textContent='Sin compras registradas';}
+    renderTop5Proveedores(top5, topEl);
   }catch(e){console.error('Proveedores KPIs:',e);}
 }
 
@@ -177,31 +241,22 @@ function filtrarProveedores(q){
 }
 
 function renderProveedoresList(list){
-  var el=document.getElementById('proveedores-list');
-  var ct=document.getElementById('prov-count');
-  ct.textContent=list.length+' proveedor'+(list.length!==1?'es':'');
+  var el = document.getElementById('proveedores-list');
+  var ct = document.getElementById('prov-count');
+  ct.textContent = list.length + ' proveedor' + (list.length!==1?'es':'');
+  el.innerHTML = '';
   if(!list.length){
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🛒</div>'+
-      '<div class="empty-state-msg">Sin proveedores</div>'+
-      '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>'+
-    '</div>';
+    var empty = document.createElement('div');
+    empty.className = 'empty-state-cta';
+    empty.innerHTML = '<div class="empty-state-icon">🛒</div>'
+      + '<div class="empty-state-msg">Sin proveedores</div>'
+      + '<button class="btn-primary" onclick="abrirNuevoProveedor()">+ Nuevo proveedor</button>';
+    el.appendChild(empty);
     return;
   }
-  el.innerHTML=list.map(function(p){
-    var initials=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleProveedor(\''+esc(p.id)+'\')">'+
-      '<div class="cliente-avatar">'+esc(initials)+'</div>'+
-      '<div class="cliente-info">'+
-        '<div class="cliente-nombre">'+esc(p.nombre)+'</div>'+
-        '<div class="cliente-meta">'+(p.rfc?'RFC: '+esc(p.rfc)+' · ':'')+
-        (p.tipo||'General')+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="event.stopPropagation();editarProveedor(\''+esc(p.id)+'\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  list.forEach(function(p){ frag.appendChild(renderProveedorCard(p, false)); });
+  el.appendChild(frag);
 }
 
 async function loadProveedores(forceRefresh){

@@ -19,18 +19,13 @@ if(typeof APP_MODULES === 'undefined'){
 // ── switchTab ─────────────────────────────────────────────
 // Depende de APP_MODULES y APP_MODULES_MAP definidos en config.js
 function switchTab(tab, btn){
-  // FAB: show on dashboard, finanzas, facturas with contextual options
+  // FAB: los 3 botones en dashboard, finanzas y facturas
   var fabCobranza = document.getElementById('fab-cobranza');
   var fabGasto    = document.getElementById('fab-gasto');
   var fabFactura  = document.getElementById('fab-factura-emitida');
-  if(tab==='dashboard'||tab==='finanzas'){
+  if(tab==='dashboard'||tab==='finanzas'||tab==='facturas'){
     if(fabCobranza) fabCobranza.style.display='flex';
     if(fabGasto)    fabGasto.style.display='flex';
-    if(fabFactura)  fabFactura.style.display='none';
-    if(typeof showFAB==='function') showFAB();
-  } else if(tab==='facturas'){
-    if(fabCobranza) fabCobranza.style.display='none';
-    if(fabGasto)    fabGasto.style.display='none';
     if(fabFactura)  fabFactura.style.display='flex';
     if(typeof showFAB==='function') showFAB();
   } else {

@@ -698,16 +698,20 @@ async function conciliarMes(){
         return false;
       });
 
-      // Si no hay match por cliente, intentar por monto exacto
+      // Sin match por RFC/cliente — intentar por monto ±5%
       if(!factsCli.length){
         factsCli = facturas.filter(function(f){
           var pendiente = (parseFloat(f.total)||0) - (parseFloat(f.monto_pagado)||0);
           var diff = Math.abs((parseFloat(abono.monto)||0) - pendiente) / Math.max(pendiente,1);
-          return diff <= 0.02;
+          return diff <= 0.05;
         });
       }
 
-      if(!factsCli.length) return; // sin match
+      // Sin ningún match — mostrar todas las facturas pendientes (baja confianza)
+      // El usuario decide qué factura corresponde a este pago
+      if(!factsCli.length) factsCli = facturas.slice();
+
+      if(!factsCli.length) return; // no hay facturas pendientes en absoluto
 
       var fifo = calcularFIFO(parseFloat(abono.monto)||0, factsCli);
       var confianza = nivelConfianza(abono, factsCli[0]);

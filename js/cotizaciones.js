@@ -1,10 +1,10 @@
 // ── Cotizaciones ──────────────────────────────────────────
-var cotizaciones = [], allCotizaciones = [];
-var cotView = 'lista'; // 'lista' | 'kanban'
-var cotYearFilter = new Date().getFullYear();
-var cotHistorialOpen = false;
-var cotItemsTemp = []; // items in current form
-var cotEditId = null;
+// [T7] cotizaciones/allCotizaciones → M2State aliases en config.js
+// [T7] cotView → M2State alias en config.js
+// [T7] cotYearFilter → M2State alias en config.js
+// [T7] cotHistorialOpen → M2State alias en config.js
+// [T7] cotItemsTemp → M2State alias en config.js
+// [T7] cotEditId → M2State alias en config.js
 
 // ── Load & Render ─────────────────────────────────────────
 async function loadCotizaciones(){
@@ -1362,7 +1362,7 @@ function renderKanban(){
 }
 
 // ── Drag & drop ───────────────────────────────────────────
-var _dragId = null;
+// [T7] _dragId → M2State alias en config.js
 function kanbanDragStart(e, id){ _dragId = id; e.dataTransfer.effectAllowed='move'; }
 
 async function kanbanDrop(e, newEstatus){

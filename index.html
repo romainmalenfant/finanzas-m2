@@ -1276,13 +1276,19 @@
             <div class="ac-dropdown" id="cot-cliente-dd"></div>
           </div>
         </div>
+        <!-- Título / objeto general de la cotización -->
+        <div class="form-group">
+          <label>Título <span style="font-size:10px;color:var(--text-3);">(objeto general)</span></label>
+          <input type="text" id="cot-titulo" placeholder="Ej: Maquinado de componentes para proyecto XYZ">
+        </div>
         <!-- Contacto vinculado -->
         <div class="form-group">
           <label>Contacto <span style="font-size:10px;color:var(--text-3);">(opcional)</span></label>
           <div style="display:flex;gap:6px;align-items:flex-start;">
             <div class="ac-wrap" style="flex:1;position:relative;">
-              <input type="text" id="cot-contacto-search" placeholder="Buscar contacto existente..."
-                autocomplete="off" oninput="buscarContactoCot(this.value)">
+              <input type="text" id="cot-contacto-search" placeholder="Clic para ver contactos del cliente..."
+                autocomplete="off" oninput="buscarContactoCot(this.value)"
+                onfocus="precargarContactosCot()">
               <input type="hidden" id="cot-contacto-id">
               <div id="cot-contacto-dd" style="display:none;position:absolute;top:100%;left:0;right:0;
                 background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;
@@ -1296,15 +1302,9 @@
                      flex-shrink:0;margin-top:1px;" aria-label="Quitar contacto">×</button>
           </div>
         </div>
-        <!-- Proyecto vinculado -->
-        <div class="form-group">
-          <label>Proyecto <span style="font-size:10px;color:var(--text-3);">(opcional)</span></label>
-          <div class="ac-wrap">
-            <input type="text" id="cot-proj-search" placeholder="Buscar proyecto..." autocomplete="off">
-            <input type="hidden" id="cot-proj-id">
-            <div class="ac-dropdown" id="cot-proj-dd"></div>
-          </div>
-        </div>
+        <!-- Proyecto vinculado — hidden, kept for guardarCotizacion compatibility -->
+        <input type="hidden" id="cot-proj-search">
+        <input type="hidden" id="cot-proj-id">
         <div class="form-row">
           <div class="form-group">
             <label>Fecha</label>
@@ -1320,9 +1320,9 @@
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <label style="font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;">Items</label>
             <div style="display:flex;gap:6px;">
-              <button class="btn-sm" onclick="agregarCotItem('maquinado')">+ 🔩 Maquinado</button>
-              <button class="btn-sm" onclick="agregarCotItem('servicio')">+ ⚙️ Servicio</button>
-              <button class="btn-sm" onclick="agregarCotItem('producto')">+ 📦 Producto</button>
+              <button class="btn-sm" onclick="agregarCotItem('maquinado')" style="padding:8px 16px;font-size:13px;">+ 🔩 Maquinado</button>
+              <button class="btn-sm" onclick="agregarCotItem('servicio')" style="padding:8px 16px;font-size:13px;">+ ⚙️ Servicio</button>
+              <button class="btn-sm" onclick="agregarCotItem('producto')" style="padding:8px 16px;font-size:13px;">+ 📦 Producto</button>
             </div>
           </div>
           <div id="cot-items-list"></div>
@@ -1416,6 +1416,9 @@
     <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
       <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar</button>
     </div>
+
+    <!-- Insights bancarios -->
+    <div id="banco-insights" style="margin-bottom:1.5rem;"></div>
 
     <!-- Movimientos bancarios -->
     <div class="mvmts-card" style="margin-bottom:2rem;">

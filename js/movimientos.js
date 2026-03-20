@@ -309,7 +309,7 @@ function toggleFAB(){
   var btn  = document.getElementById('fab-btn');
   if(menu){ menu.style.display = _fabOpen ? 'flex' : 'none'; }
   if(icon){ icon.textContent  = _fabOpen ? '✕' : '＋'; }
-  if(btn) { btn.style.transform = _fabOpen ? 'rotate(45deg)' : ''; btn.style.background = _fabOpen ? '#ef4444' : '#3B82F6'; }
+  if(btn) { btn.style.transform = _fabOpen ? 'rotate(45deg)' : ''; btn.style.background = _fabOpen ? '#8B0000' : '#E8192C'; }
 }
 function cerrarFAB(){
   _fabOpen = false;
@@ -318,7 +318,7 @@ function cerrarFAB(){
   var btn  = document.getElementById('fab-btn');
   if(menu) menu.style.display = 'none';
   if(icon) icon.textContent = '＋';
-  if(btn)  { btn.style.transform = ''; btn.style.background = '#3B82F6'; }
+  if(btn)  { btn.style.transform = ''; btn.style.background = '#E8192C'; }
 }
 // Close FAB when clicking outside
 document.addEventListener('click', function(e){

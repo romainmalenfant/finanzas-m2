@@ -425,6 +425,21 @@ function editarCotizacion(id){
   else poblarClientesCot(c.cliente_id||null);
   document.getElementById('cot-cliente-id').value = c.cliente_id||'';
   document.getElementById('cot-cliente-search').value = c.cliente_nombre||'';
+  // Pre-fill contact if set
+  var contId = c.contacto_id||'';
+  if(contId && document.getElementById('cot-contacto-id')){
+    document.getElementById('cot-contacto-id').value = contId;
+    var cont = (contactos||[]).find(function(x){return x.id===contId;});
+    if(cont && document.getElementById('cot-contacto-search')){
+      var cNombre = (cont.nombre||'')+(cont.apellido?' '+cont.apellido:'');
+      document.getElementById('cot-contacto-search').value = cNombre;
+    }
+  } else {
+    if(document.getElementById('cot-contacto-id')) document.getElementById('cot-contacto-id').value='';
+    if(document.getElementById('cot-contacto-search')) document.getElementById('cot-contacto-search').value='';
+    // Pre-populate with client's contacts
+    if(c.cliente_id) setTimeout(precargarContactosCot, 50);
+  }
   document.getElementById('cot-fecha').value = c.fecha||'';
   document.getElementById('cot-vigencia').value = c.vigencia_dias||15;
   document.getElementById('cot-notas').value = c.notas||'';
@@ -438,6 +453,13 @@ function editarCotizacion(id){
 }
 
 function cerrarCotModal(){
+  var inp = document.getElementById('cot-contacto-search');
+  var hid = document.getElementById('cot-contacto-id');
+  var dd  = document.getElementById('cot-contacto-dd');
+  if(inp) inp.value = '';
+  if(hid) hid.value = '';
+  if(dd)  { dd.innerHTML=''; dd.style.display='none'; }
+
   document.getElementById('cot-modal').style.display = 'none';
 }
 
@@ -546,8 +568,89 @@ document.addEventListener('click',function(e){
 });
 
 // ── Guardar ───────────────────────────────────────────────
+// ── Contactos vinculados al cliente en cotización ────────
+
+/**
+ * Pre-populates the contact dropdown with contacts
+ * belonging to the currently selected client.
+ * Called when client changes.
+ */
+function precargarContactosCot(){
+  var clienteId = document.getElementById('cot-cliente-id').value;
+  var inp  = document.getElementById('cot-contacto-search');
+  var hid  = document.getElementById('cot-contacto-id');
+  var dd   = document.getElementById('cot-contacto-dd');
+  if(!inp || !dd) return;
+  // Reset contact selection when client changes
+  inp.value = '';
+  if(hid) hid.value = '';
+  dd.innerHTML = '';
+  dd.style.display = 'none';
+  if(!clienteId) return;
+  // Filter contacts that belong to this client
+  var clienteContactos = (contactos||[]).filter(function(c){
+    return c.cliente_id === clienteId;
+  });
+  if(!clienteContactos.length) return;
+  // Show pre-populated list
+  _renderContactoCotDD(clienteContactos, dd);
+  dd.style.display = 'block';
+}
+
+/**
+ * Filters contacts for the cotizacion contact search input.
+ * Falls back to all contacts if no client is selected.
+ */
+function buscarContactoCot(q){
+  var clienteId = document.getElementById('cot-cliente-id').value;
+  var dd = document.getElementById('cot-contacto-dd');
+  if(!dd) return;
+  var ql = (q||'').toLowerCase().trim();
+  // Pool: prefer contacts from selected client, else all
+  var pool = clienteId
+    ? (contactos||[]).filter(function(c){ return c.cliente_id === clienteId; })
+    : (contactos||[]);
+  var matches = ql
+    ? pool.filter(function(c){
+        var nombre = ((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
+        return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
+      }).slice(0,8)
+    : pool.slice(0,8);
+  if(!matches.length){ dd.style.display = 'none'; return; }
+  _renderContactoCotDD(matches, dd);
+  dd.style.display = 'block';
+}
+
+function _renderContactoCotDD(list, dd){
+  dd.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  list.forEach(function(c){
+    var nombre = (c.nombre||'') + (c.apellido ? ' '+c.apellido : '');
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:13px;';
+    item.addEventListener('mouseenter', function(){ this.style.background='var(--bg-hover)'; });
+    item.addEventListener('mouseleave', function(){ this.style.background=''; });
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-weight:500;color:var(--text-1);';
+    nameEl.textContent = nombre;
+    var subEl = document.createElement('div');
+    subEl.style.cssText = 'font-size:10px;color:var(--text-3);';
+    subEl.textContent = (c.cargo||'') + (c.email ? ' · '+c.email : '');
+    item.appendChild(nameEl);
+    item.appendChild(subEl);
+    item.addEventListener('mousedown', function(){
+      document.getElementById('cot-contacto-search').value = nombre;
+      document.getElementById('cot-contacto-id').value = c.id;
+      dd.style.display = 'none';
+    });
+    frag.appendChild(item);
+  });
+  dd.appendChild(frag);
+}
+
 async function guardarCotizacion(){
-  var clienteId = document.getElementById('cot-cliente-id').value||null;
+  var clienteId  = document.getElementById('cot-cliente-id').value||null;
+  var contactoId = (document.getElementById('cot-contacto-id')||{}).value||null;
   var sel = document.getElementById('cot-cliente-sel');
   var clienteNombre = clienteId && clientes.find(function(c){return c.id===clienteId;}) ?
     clientes.find(function(c){return c.id===clienteId;}).nombre :
@@ -568,6 +671,7 @@ async function guardarCotizacion(){
 
     var cotData = {
       cliente_id: clienteId,
+    contacto_id: contactoId,
       cliente_nombre: clienteNombre,
       fecha: fecha,
       vigencia_dias: parseInt(document.getElementById('cot-vigencia').value)||15,

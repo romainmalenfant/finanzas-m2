@@ -113,52 +113,205 @@ function filtrarFacturas(q){
   renderFacturasList(filtered);
 }
 
+// -- T6: Pure render functions --
+
+/**
+ * Builds a single <tr> row for the facturas table.
+ * Pure: no side effects, returns HTMLElement.
+ */
+function renderFacturaRow(f, hoy){
+  var dias = f.fecha ? Math.floor((hoy-new Date(f.fecha))/(864e5)) : 0;
+  var semColor = dias>60?'#dc2626':dias>30?'#d97706':'#16a34a';
+  var nombre = f.tipo==='emitida'
+    ? (f.receptor_nombre||f.receptor_rfc||'—')
+    : (f.emisor_nombre||f.emisor_rfc||'—');
+
+  // Estatus badge
+  var estBg,estColor,estLabel;
+  if(f.conciliado){    estBg='#fee2e2'; estColor='var(--brand-red)'; estLabel='Pagada'; }
+  else if(f.estatus==='cancelada'){ estBg='#fee2e2'; estColor='#dc2626'; estLabel='Cancelada'; }
+  else {               estBg='#dcfce7'; estColor='#16a34a'; estLabel='Vigente'; }
+
+  var metodoBg    = f.metodo_pago==='PPD' ? '#fef3c7' : '#f1f5f9';
+  var metodoColor = f.metodo_pago==='PPD' ? '#d97706' : '#64748b';
+
+  var tr = document.createElement('tr');
+  tr.style.cursor = 'pointer';
+  tr.addEventListener('click', function(){ verDetalleFactura(f.id); });
+
+  function td(content){
+    var cell = document.createElement('td');
+    if(typeof content === 'string') cell.innerHTML = content;
+    else cell.appendChild(content);
+    return cell;
+  }
+
+  // Col 1: nombre + concepto
+  var nameDiv = document.createElement('div');
+  nameDiv.style.cssText = 'font-size:12px;font-weight:500;color:var(--text-1);';
+  nameDiv.textContent = nombre.slice(0,35);
+  var nameCell = document.createElement('td');
+  nameCell.appendChild(nameDiv);
+  if(f.concepto){
+    var concDiv = document.createElement('div');
+    concDiv.style.cssText = 'font-size:10px;color:var(--text-3);';
+    concDiv.textContent = f.concepto.slice(0,35);
+    nameCell.appendChild(concDiv);
+  }
+  tr.appendChild(nameCell);
+
+  // Col 2: folio
+  var folioCell = document.createElement('td');
+  folioCell.className = 'muted';
+  if(f.sin_factura){
+    var vtaBadge = document.createElement('span');
+    vtaBadge.style.cssText = 'padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;';
+    vtaBadge.textContent = 'VTA';
+    folioCell.appendChild(vtaBadge);
+    folioCell.appendChild(document.createTextNode(' '+(f.numero_vta||'—')));
+  } else {
+    folioCell.textContent = f.numero_factura||'—';
+  }
+  tr.appendChild(folioCell);
+
+  // Col 3: fecha + semáforo
+  var fechaCell = document.createElement('td');
+  fechaCell.className = 'muted';
+  fechaCell.textContent = fmtDate(f.fecha||'');
+  if(f.fecha && dias>0){
+    var diasSpan = document.createElement('span');
+    diasSpan.style.cssText = 'color:'+semColor+';font-size:10px;';
+    diasSpan.textContent = ' '+dias+'d';
+    fechaCell.appendChild(diasSpan);
+  }
+  tr.appendChild(fechaCell);
+
+  // Col 4: método pago
+  var metCell = document.createElement('td');
+  var metBadge = document.createElement('span');
+  metBadge.style.cssText = 'padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:'+metodoBg+';color:'+metodoColor+';';
+  metBadge.textContent = f.metodo_pago||'PUE';
+  metCell.appendChild(metBadge);
+  tr.appendChild(metCell);
+
+  // Col 5: proyecto
+  var projCell = document.createElement('td');
+  projCell.className = 'muted';
+  projCell.style.fontSize = '11px';
+  if(f.proyecto_id){
+    var projSpan = document.createElement('span');
+    projSpan.style.color = 'var(--brand-red)';
+    projSpan.textContent = 'Vinculado';
+    projCell.appendChild(projSpan);
+  } else {
+    projCell.textContent = '—';
+  }
+  tr.appendChild(projCell);
+
+  // Col 6: total
+  var montoCell = document.createElement('td');
+  montoCell.className = 'monto';
+  montoCell.style.color = f.tipo==='emitida'?'#16a34a':'#dc2626';
+  montoCell.textContent = fmt(parseFloat(f.total)||0);
+  tr.appendChild(montoCell);
+
+  // Col 7: estatus
+  var estCell = document.createElement('td');
+  var estBadge = document.createElement('span');
+  estBadge.style.cssText = 'padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+estBg+';color:'+estColor+';';
+  estBadge.textContent = estLabel;
+  estCell.appendChild(estBadge);
+  tr.appendChild(estCell);
+
+  return tr;
+}
+
+/**
+ * Builds a single fact-item row for the invoice form.
+ * Pure: returns HTMLElement.
+ */
+function renderFactItemRow(item){
+  var row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+
+  var descInput = document.createElement('input');
+  descInput.type = 'text';
+  descInput.placeholder = 'Descripción del concepto';
+  descInput.value = item.desc;
+  descInput.style.cssText = 'flex:1;padding:7px 10px;font-size:13px;';
+  descInput.addEventListener('change', function(){
+    var found = _factItems.find(function(x){return x.id===item.id;});
+    if(found){ found.desc = this.value; updateFactConcepto(); }
+  });
+
+  var montoInput = document.createElement('input');
+  montoInput.type = 'number';
+  montoInput.placeholder = '$0';
+  montoInput.value = item.monto||'';
+  montoInput.min = '0';
+  montoInput.style.cssText = 'width:110px;padding:7px 10px;font-size:13px;';
+  montoInput.setAttribute('inputmode','decimal');
+  montoInput.addEventListener('change', function(){
+    var found = _factItems.find(function(x){return x.id===item.id;});
+    if(found){ found.monto = parseFloat(this.value)||0; recalcFactTotales(); }
+  });
+
+  var removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 4px;';
+  removeBtn.textContent = '×';
+  removeBtn.addEventListener('click', function(){ removeFactItem(item.id); });
+
+  row.appendChild(descInput);
+  row.appendChild(montoInput);
+  row.appendChild(removeBtn);
+  return row;
+}
+
 function renderFacturasList(list){
   var el = document.getElementById('fact-list');
+  el.innerHTML = '';
   if(!list.length){
-    var ctaLabels={
+    var ctaLabels = {
       emitidas:'+ Nueva factura emitida',
       recibidas:'+ Nueva factura recibida',
       directas:'+ Registrar venta directa',
-      conciliadas:'Sin facturas conciliadas',
-      complementos:'Sin complementos PPD pendientes'
     };
-    el.innerHTML='<div class="empty-state-cta">'+
-      '<div class="empty-state-icon">🧾</div>'+
-      '<div class="empty-state-msg">Sin facturas en esta categoría</div>'+
-      (facturasTipo==='emitidas'||facturasTipo==='recibidas'||facturasTipo==='directas'?
-        '<button class="btn-primary" onclick="abrirNuevaFactura()">'+
-        (ctaLabels[facturasTipo]||'+ Nueva factura')+'</button>':'')+
-    '</div>';
+    var wrap = document.createElement('div');
+    wrap.className = 'empty-state-cta';
+    var icon = document.createElement('div');
+    icon.className = 'empty-state-icon';
+    icon.textContent = '🧾';
+    var msg = document.createElement('div');
+    msg.className = 'empty-state-msg';
+    msg.textContent = 'Sin facturas en esta categoría';
+    wrap.appendChild(icon);
+    wrap.appendChild(msg);
+    if(facturasTipo==='emitidas'||facturasTipo==='recibidas'||facturasTipo==='directas'){
+      var btn = document.createElement('button');
+      btn.className = 'btn-primary';
+      btn.textContent = ctaLabels[facturasTipo]||'+ Nueva factura';
+      btn.addEventListener('click', abrirNuevaFactura);
+      wrap.appendChild(btn);
+    }
+    el.appendChild(wrap);
     return;
   }
+  var isRecibida = facturasTipo==='recibidas'||facturasTipo==='complementos';
+  var table = document.createElement('table');
+  table.className = 'sat-table';
+  var thead = document.createElement('thead');
+  thead.innerHTML = '<tr><th>'+(isRecibida?'Proveedor':'Cliente')+'</th>'
+    + '<th>Folio</th><th>Fecha</th><th>Método</th><th>Proyecto</th>'
+    + '<th style="text-align:right;">Total</th><th>Estatus</th></tr>';
+  var tbody = document.createElement('tbody');
   var hoy = new Date();
-  el.innerHTML = '<table class="sat-table"><thead><tr>'+
-    '<th>'+(facturasTipo==='recibidas'||facturasTipo==='complementos'?'Proveedor':'Cliente')+'</th>'+
-    '<th>Folio</th><th>Fecha</th><th>Método</th><th>Proyecto</th><th style="text-align:right;">Total</th><th>Estatus</th>'+
-    '</tr></thead><tbody>'+
-    list.map(function(f){
-      var dias = f.fecha?Math.floor((hoy-new Date(f.fecha))/(864e5)):0;
-      var semColor = dias>60?'#dc2626':dias>30?'#d97706':'#16a34a';
-      var nombre = f.tipo==='emitida'?(f.receptor_nombre||f.receptor_rfc||'—'):(f.emisor_nombre||f.emisor_rfc||'—');
-      var estBg = f.conciliado?'#dbeafe':f.estatus==='cancelada'?'#fee2e2':'#dcfce7';
-      var estColor = f.conciliado?'#1d4ed8':f.estatus==='cancelada'?'#dc2626':'#16a34a';
-      var estLabel = f.conciliado?'Pagada':f.estatus==='cancelada'?'Cancelada':'Vigente';
-      var metodoBg = f.metodo_pago==='PPD'?'#fef3c7':'#f1f5f9';
-      var metodoColor = f.metodo_pago==='PPD'?'#d97706':'#64748b';
-      return '<tr style="cursor:pointer;" onclick="verDetalleFactura(\''+f.id+'\')">'+
-        '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(nombre.slice(0,35))+'</div>'+
-          (f.concepto?'<div style="font-size:10px;color:var(--text-3);">'+esc(f.concepto.slice(0,35))+'</div>':'')+
-        '</td>'+
-        '<td class="muted">'+(f.sin_factura?'<span style="padding:1px 6px;border-radius:4px;font-size:10px;background:#fef3c7;color:#d97706;">VTA</span> '+(f.numero_vta||'—'):(f.numero_factura||'—'))+'</td>'+
-        '<td class="muted">'+fmtDate(f.fecha||'')+(f.fecha&&dias>0?' <span style="color:'+semColor+';font-size:10px;">'+dias+'d</span>':'')+'</td>'+
-        '<td><span style="padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:'+metodoBg+';color:'+metodoColor+';">'+(f.metodo_pago||'PUE')+'</span></td>'+
-        '<td class="muted" style="font-size:11px;">'+(f.proyecto_id?'<span style="color:#3B82F6;">Vinculado</span>':'—')+'</td>'+
-        '<td class="monto" style="color:'+(f.tipo==='emitida'?'#16a34a':'#dc2626')+';">'+fmt(parseFloat(f.total)||0)+'</td>'+
-        '<td><span style="padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+estBg+';color:'+estColor+';">'+estLabel+'</span></td>'+
-      '</tr>';
-    }).join('')+
-    '</tbody></table>';
+  var frag = document.createDocumentFragment();
+  list.forEach(function(f){ frag.appendChild(renderFacturaRow(f, hoy)); });
+  tbody.appendChild(frag);
+  table.appendChild(thead);
+  table.appendChild(tbody);
+  el.appendChild(table);
 }
 
 // ── Detalle factura ───────────────────────────────────────
@@ -308,22 +461,18 @@ function removeFactItem(id){
 
 function renderFactItems(){
   var el = document.getElementById('fact-items-list');
+  el.innerHTML = '';
   if(!_factItems.length){
-    el.innerHTML='<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Sin conceptos — agrega una línea o usa el total directo abajo.</div>';
+    var msg = document.createElement('div');
+    msg.style.cssText = 'font-size:12px;color:var(--text-3);padding:8px 0;';
+    msg.textContent = 'Sin conceptos — agrega una línea o usa el total directo abajo.';
+    el.appendChild(msg);
     recalcFactTotales();
     return;
   }
-  el.innerHTML = _factItems.map(function(item){
-    return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
-      '<input type="text" placeholder="Descripción del concepto" value="'+esc(item.desc)+'"'+
-        ' onchange="_factItems.find(function(x){return x.id==='+item.id+';}).desc=this.value;updateFactConcepto();"'+
-        ' style="flex:1;padding:7px 10px;font-size:13px;">'+
-      '<input type="number" placeholder="$0" value="'+(item.monto||'')+'" min="0"'+
-        ' onchange="_factItems.find(function(x){return x.id==='+item.id+';}).monto=parseFloat(this.value)||0;recalcFactTotales();"'+
-        ' style="width:110px;padding:7px 10px;font-size:13px;">'+
-      '<button type="button" onclick="removeFactItem('+item.id+')" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1;padding:0 4px;">×</button>'+
-    '</div>';
-  }).join('');
+  var frag = document.createDocumentFragment();
+  _factItems.forEach(function(item){ frag.appendChild(renderFactItemRow(item)); });
+  el.appendChild(frag);
   recalcFactTotales();
 }
 

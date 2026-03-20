@@ -1,7 +1,7 @@
 // ── Facturas module ───────────────────────────────────────
 var allFacturas = [];
-// [T7] facturasTipo → M2State alias en config.js
-// [T7] facturasYearFilter → M2State alias en config.js
+var facturasTipo = 'emitidas'; // emitidas | recibidas | conciliadas | complementos
+var facturasYearFilter = new Date().getFullYear();
 
 // ── Load ─────────────────────────────────────────────────
 async function loadFacturas(){
@@ -291,7 +291,9 @@ function renderFacturasList(list){
       var btn = document.createElement('button');
       btn.className = 'btn-primary';
       btn.textContent = ctaLabels[facturasTipo]||'+ Nueva factura';
-      btn.addEventListener('click', abrirNuevaFactura);
+      (function(t){
+        btn.addEventListener('click', function(){ abrirNuevaFactura(t==='recibidas'?'recibida':'emitida'); });
+      })(facturasTipo);
       wrap.appendChild(btn);
     }
     el.appendChild(wrap);
@@ -376,10 +378,11 @@ async function cancelarFactura(id){
 }
 
 // ── Nueva / Editar factura ────────────────────────────────
-function abrirNuevaFactura(){
+function abrirNuevaFactura(tipoDefault){
   document.getElementById('fact-id-edit').value='';
   document.getElementById('fact-modal-title').textContent='Nueva factura';
-  document.getElementById('fact-tipo').value='emitida';
+  var _tipo = tipoDefault||'emitida';
+  document.getElementById('fact-tipo').value=_tipo;
   document.getElementById('fact-metodo-pago').value='PUE';
   document.getElementById('fact-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('fact-numero').value='';
@@ -399,7 +402,7 @@ function abrirNuevaFactura(){
   _factItems=[]; _factItemId=0;
   _factEsSinSat = false;
   renderFactItems();
-  onFactTipoChange('emitida');
+  onFactTipoChange(_tipo);
   setFactConSat(true); // default: con factura SAT
   initFactACs();
   document.getElementById('fact-modal').style.display='flex';
@@ -443,8 +446,8 @@ async function editarFactura(id){
 }
 
 // ── Con/sin factura SAT toggle ─────────────────────────
-// [T7] _factEsSinSat → M2State alias en config.js
-// [T7] _ivaDebounce → M2State alias en config.js
+var _factEsSinSat = false; // false = con factura SAT, true = venta directa
+var _ivaDebounce  = null;  // debounce timer for subtotal input
 
 function setFactConSat(conSat){
   _factEsSinSat = !conSat;
@@ -498,8 +501,8 @@ function onFactTipoChange(tipo){
 }
 
 // ── Fact items management ─────────────────────────────────
-// [T7] _factItems → M2State alias en config.js
-// [T7] _factItemId → M2State alias en config.js
+var _factItems = [];
+var _factItemId = 0;
 
 function addFactItem(desc, monto){
   var id = ++_factItemId;

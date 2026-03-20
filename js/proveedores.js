@@ -1,3 +1,11 @@
+
+// ── Validador RFC SAT ────────────────────────────────────
+// Personas morales: 12 chars (3 letras + 6 fecha + 3 homoclave)
+// Personas físicas: 13 chars (4 letras + 6 fecha + 3 homoclave)
+function validarRFC(rfc){
+  if(!rfc) return false;
+  return /^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc.toUpperCase());
+}
 // ── Proveedores DB & UI ──────────────────────────────────
 async function loadProveedores(){
   try{
@@ -169,9 +177,12 @@ async function guardarProveedor(){
   var btn=document.getElementById('btn-save-prov');
   btn.disabled=true; btn.textContent='Guardando...';
   var id=document.getElementById('prov-id-edit').value||Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  var rfcVal = document.getElementById('prov-rfc').value.trim().toUpperCase();
+  if(!rfcVal){ showError('El RFC es obligatorio.'); btn.disabled=false; btn.textContent='Guardar'; return; }
+  if(!validarRFC(rfcVal)){ showError('RFC inválido. Debe tener 12 caracteres (persona moral) o 13 (persona física).'); btn.disabled=false; btn.textContent='Guardar'; return; }
   var p={
     id:id, nombre:nombre,
-    rfc:document.getElementById('prov-rfc').value.trim().toUpperCase()||null,
+    rfc:rfcVal,
     ciudad:document.getElementById('prov-ciudad').value.trim()||null,
     tipo:document.getElementById('prov-tipo').value,
     condiciones_pago:document.getElementById('prov-pago').value,

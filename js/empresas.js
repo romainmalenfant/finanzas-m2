@@ -1,3 +1,11 @@
+
+// ── Validador RFC SAT ────────────────────────────────────
+// Personas morales: 12 chars (3 letras + 6 fecha + 3 homoclave)
+// Personas físicas: 13 chars (4 letras + 6 fecha + 3 homoclave)
+function validarRFC(rfc){
+  if(!rfc) return false;
+  return /^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc.toUpperCase());
+}
 // ── Clientes DB ──────────────────────────────────────────
 async function loadClientes(){
   try{
@@ -180,9 +188,12 @@ async function guardarCliente(){
   var btn=document.getElementById('btn-save-cliente');
   btn.disabled=true; btn.textContent='Guardando...';
   var id=document.getElementById('cliente-id-edit').value||Date.now().toString()+Math.random().toString(36).slice(2,5);
+  var rfcVal = document.getElementById('cliente-rfc').value.trim().toUpperCase();
+  if(!rfcVal){ showError('El RFC es obligatorio.'); btn.disabled=false; btn.textContent='Guardar cliente'; return; }
+  if(!validarRFC(rfcVal)){ showError('RFC inválido. Debe tener 12 caracteres (persona moral) o 13 (persona física).'); btn.disabled=false; btn.textContent='Guardar cliente'; return; }
   var c={
     id:id, nombre:nombre,
-    rfc:document.getElementById('cliente-rfc').value.trim().toUpperCase()||null,
+    rfc:rfcVal,
     ciudad:document.getElementById('cliente-ciudad').value.trim()||null,
     condiciones_pago:document.getElementById('cliente-pago').value,
     activo:(document.getElementById('cliente-activo')||{checked:true}).checked

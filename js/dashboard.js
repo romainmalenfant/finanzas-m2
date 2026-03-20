@@ -18,21 +18,20 @@ function cacheInvalidateAll(){_cache={};}
 // ── Finanzas KPIs ─────────────────────────────────────────
 // Derives from in-memory movements — no extra query needed
 async function loadFinanzasKPIs(){
-  // P1-d: Flujo tab shows bank flows + manual cobranza/gastos
   try{
-    var rows=movements||[];
-    var abonos=rows.filter(function(m){return m.origen==='banco_abono'||m.tipo==='ingreso'&&m.origen!=='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var cargos=rows.filter(function(m){return m.origen==='banco_cargo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var cobr=rows.filter(function(m){return m.categoria==='cobranza'&&m.origen==='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastos=rows.filter(function(m){return m.tipo==='egreso'&&m.origen==='manual';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var entradas=abonos+cobr;
-    var saldo=entradas-cargos-gastos;
+    var rows = movements||[];
+    // Ingresos = banco_abono + cobranza manual
+    var ingresos = rows.filter(function(m){
+      return m.origen==='banco_abono' || (m.tipo==='ingreso' && m.origen==='manual');
+    }).reduce(function(a,m){ return a+(parseFloat(m.monto)||0); }, 0);
+    // Egresos = banco_cargo + gastos manuales
+    var egresos = rows.filter(function(m){
+      return m.origen==='banco_cargo' || (m.tipo==='egreso' && m.origen==='manual');
+    }).reduce(function(a,m){ return a+(parseFloat(m.monto)||0); }, 0);
+    var saldo = ingresos - egresos;
     var set=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
-    set('fin-abonos',abonos,'c-green');
-    set('fin-cargos',cargos,'c-red');
-    set('fin-cobr',cobr,'c-blue');
-    set('fin-gasto',gastos,'c-red');
-    set('fin-entradas',entradas,'c-green');
+    set('fin-ingresos', ingresos, 'c-green');
+    set('fin-egresos',  egresos,  'c-red');
     var saldoEl=document.getElementById('fin-saldo');
     if(saldoEl){saldoEl.textContent=fmt(saldo);saldoEl.className='mvalue '+(saldo>=0?'c-util-pos':'c-util-neg');}
   }catch(e){console.error('Flujo KPIs:',e);}
@@ -312,7 +311,7 @@ async function loadDashboard(){
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
-      sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
+      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
     ]);
     var ytd=dashResults[0].data||[];
     var factYTD=dashResults[1].data||[];

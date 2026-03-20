@@ -185,7 +185,7 @@ async function guardarCliente(){
     rfc:document.getElementById('cliente-rfc').value.trim().toUpperCase()||null,
     ciudad:document.getElementById('cliente-ciudad').value.trim()||null,
     condiciones_pago:document.getElementById('cliente-pago').value,
-    activo:document.getElementById('cliente-activo').checked
+    activo:(document.getElementById('cliente-activo')||{checked:true}).checked
   };
   try{
     await upsertCliente(c);

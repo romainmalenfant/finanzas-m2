@@ -386,6 +386,7 @@ function abrirNuevaFactura(){
   document.getElementById('fact-prov-search').value='';
   document.getElementById('fact-proj-id').value='';
   document.getElementById('fact-proj-search').value='';
+  var _fuuid=document.getElementById('fact-uuid'); if(_fuuid) _fuuid.value='';
   var _ftm=document.getElementById('fact-total-manual'); if(_ftm) _ftm.value='';
   var _fci=document.getElementById('fact-con-iva'); if(_fci) _fci.checked=true;
   _factItems=[]; _factItemId=0;
@@ -405,6 +406,7 @@ async function editarFactura(id){
     f=data;
   }
   document.getElementById('fact-id-edit').value=f.id;
+  var _fuuid2=document.getElementById('fact-uuid'); if(_fuuid2) _fuuid2.value=f.uuid_sat||'';
   document.getElementById('fact-modal-title').textContent='Editar factura';
   document.getElementById('fact-tipo').value=f.tipo||'emitida';
   document.getElementById('fact-metodo-pago').value=f.metodo_pago||'PUE';
@@ -713,8 +715,13 @@ async function guardarFactura(){
   var projId=document.getElementById('fact-proj-id').value||null;
   var metodoPago=document.getElementById('fact-metodo-pago').value;
 
+  var uuid = document.getElementById('fact-uuid')&&document.getElementById('fact-uuid').value.trim()||'';
   if(!fecha){showError('La fecha es obligatoria');return;}
   if(!total){showError('El total es obligatorio');return;}
+  if(!uuid){showError('El UUID SAT es obligatorio');return;}
+  if(!/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(uuid)){
+    showError('UUID inválido. Formato esperado: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx');return;
+  }
   if(tipo==='emitida'&&!clienteId){showError('Selecciona un cliente de la lista');return;}
   if(tipo==='recibida'&&!provId){showError('Selecciona un proveedor de la lista');return;}
 
@@ -728,6 +735,7 @@ async function guardarFactura(){
   var row={
     tipo:tipo,
     fecha:fecha,
+    uuid_sat:uuid,
     numero_factura:document.getElementById('fact-numero').value.trim()||null,
     subtotal:parseFloat(document.getElementById('fact-subtotal').value)||0,
     iva:parseFloat(document.getElementById('fact-iva').value)||0,

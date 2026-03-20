@@ -346,7 +346,7 @@ async function verDetalleFactura(id){
     (f.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(f.notas)+'</div></div>':'')+
     '</div>'+
     '<div class="detail-section" style="display:flex;gap:8px;flex-wrap:wrap;">'+
-      (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-primary" style="background:#16a34a;" onclick="marcarFacturaPagada(\''+f.id+'\')">✓ Marcar pagada</button>':'')+
+      /* [T7] Marcar pagada eliminado — conciliación solo vía SAT & Banco */
       (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-sm" onclick="editarFactura(\''+f.id+'\')">Editar</button>':'')+
       '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar</button>'+
     '</div>';
@@ -354,15 +354,7 @@ async function verDetalleFactura(id){
   abrirDetail(nombre,'Factura '+(f.tipo==='emitida'?'emitida':'recibida'),ini,body, function(){cerrarDetail();editarFactura(f.id);});
 }
 
-// ── Marcar pagada ─────────────────────────────────────────
-async function marcarFacturaPagada(id){
-  try{
-    await sb.from('facturas').update({conciliado:true,estatus:'pagada',fecha_pago:new Date().toISOString().split('T')[0]}).eq('id',id);
-    showStatus('✓ Factura marcada como pagada');
-    cerrarDetail();
-    loadFacturas();
-  }catch(e){showError('Error: '+e.message);}
-}
+// marcarFacturaPagada eliminado — conciliación solo vía SAT & Banco (ver sat.js)
 
 // ── Cancelar factura ──────────────────────────────────────
 async function cancelarFactura(id){

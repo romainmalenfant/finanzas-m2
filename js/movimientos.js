@@ -1,6 +1,6 @@
 // ── Etiqueta de gasto ────────────────────────────────────
-// [T7] etiquetaSeleccionada → M2State alias en config.js
-// [T7] ventasMes → M2State alias en config.js
+var etiquetaSeleccionada='';
+var ventasMes = []; // P1-a: ventas del mes cargadas desde facturas
 function detectarGasto(texto){
   var t=texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   var esGasto=t.match(/pag[ao]|nomin|compr[ao]|gast|egres|proveedor|renta|servicio|material|herramienta|combustible|luz\b|agua\b|telefon|internet|manten|reparac|flete|envio|seguro|impuest|iva|isr|sueldo|mutuo|utilidad/);
@@ -225,7 +225,7 @@ function renderChart(m){
 }
 
 // ── Sort helpers ─────────────────────────────────────────
-// [T7] lastEmitidas/Recibidas/Banco → M2State aliases en config.js
+var lastEmitidas=[], lastRecibidas=[], lastBanco=[];
 
 function sortList(list, sortKey){
   var sorted=list.slice();
@@ -244,7 +244,7 @@ function sortAndRender(){
       id:f.id, fecha:f.fecha, monto:f.total,
       tipo:'ingreso', categoria:'venta', origen:'factura',
       contraparte:f.receptor_nombre||'',
-      descripcion:'Venta'+(f.concepto?' · '+f.concepto:'')+(f.receptor_nombre?' → '+f.receptor_nombre:''),
+      descripcion:f.concepto||f.receptor_nombre||'Venta',
       numero_factura:f.sin_factura?f.numero_vta:f.numero_factura,
       usuario:null, _esFact:true
     };
@@ -254,23 +254,29 @@ function sortAndRender(){
   var me=getUserName();
   var el=document.getElementById('mvmts-list');
   el.innerHTML=sorted.map(function(m){
-    var isOwn=!m.usuario||(m.usuario===me);
+    // Ingreso o egreso
+    var esTipoIngreso = m.tipo==='ingreso' || m.categoria==='venta' || m.categoria==='cobranza';
+    var badgeLabel = esTipoIngreso ? 'Ingreso' : 'Gasto';
+    var badgeCls   = esTipoIngreso ? 'bv' : 'bg';
+    // Descripción: mostrar contraparte sin duplicar
+    var desc = m.contraparte
+      ? esc(m.contraparte)
+      : esc((m.descripcion||'').replace(/^(Venta|Cobranza|Gasto|Ingreso)[^a-z]*/i,'').trim().slice(0,50)||m.descripcion||'');
+    // Método pago: default Transferencia para banco
+    var metodo = m.metodo_pago || (m.origen==='banco_abono'||m.origen==='banco_cargo' ? 'Transferencia' : null);
     return '<div class="mvmt-item">'+
-      '<div class="mvmt-dot" style="background:'+(CAT_COLORS[m.categoria]||'#888')+'"></div>'+
+      '<div class="mvmt-dot" style="background:'+(esTipoIngreso?'#34d399':'#f87171')+'"></div>'+
       '<div class="mvmt-info">'+
-        '<div class="mvmt-desc">'+esc(m.descripcion)+(m.contraparte?' · <span style="font-weight:400">'+esc(m.contraparte)+'</span>':'')+'</div>'+
+        '<div class="mvmt-desc">'+desc+'</div>'+
         '<div class="mvmt-meta">'+
-          '<span class="badge '+(CAT_BADGE[m.categoria]||'bg')+'">'+(CAT_LABELS[m.categoria]||m.categoria)+'</span>'+
+          '<span class="badge '+badgeCls+'">'+badgeLabel+'</span>'+
           (m.etiqueta?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.etiqueta)+'</span>':'')+
-          (m.metodo_pago?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.metodo_pago)+'</span>':'')+
+          (metodo?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(metodo)+'</span>':'')+
           (m.moneda&&m.moneda!=='MXN'?'<span class="badge" style="background:#dbeafe;color:#1d4ed8;">'+esc(m.moneda)+'</span>':'')+
-          (m.origen==='banco_abono'||m.origen==='banco_cargo'?'<span class="badge" style="background:#dbeafe;color:#1d4ed8;font-size:9px;">'+(m.origen==='banco_abono'?'Banco +':'Banco −')+'</span>':'')+
-          (m.usuario&&m.usuario!=='SAT'&&m.usuario!=='BBVA'?'<span class="badge badge-user">'+esc(m.usuario)+'</span>':'')+
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span>'+
         '</div>'+
       '</div>'+
-      '<div class="mvmt-amount" style="color:'+(CAT_COLORS[m.categoria]||'#888')+'">'+(m.tipo==='egreso'||m.categoria==='gasto'||m.categoria==='compra'?'−':'+')+fmt(parseFloat(m.monto)||0)+'</div>'+
-      '<button class="btn-del '+(isOwn?'btn-del-own':'')+'" onclick="deleteMovement(\''+esc(m.id)+'\',\''+esc(m.usuario||'')+'\');" title="'+(isOwn?'Eliminar':'Eliminar (de otro usuario)')+'">×</button>'+
+      '<div class="mvmt-amount" style="color:'+(esTipoIngreso?'#34d399':'#f87171')+'">'+(esTipoIngreso?'+':'-')+fmt(parseFloat(m.monto)||0)+'</div>'+
     '</div>';
   }).join('');
 }
@@ -301,7 +307,7 @@ function renderMovements(){
 
 
 // ── FAB — Registrar movimiento ────────────────────────────
-// [T7] _fabOpen → M2State alias en config.js
+var _fabOpen = false;
 function toggleFAB(){
   _fabOpen = !_fabOpen;
   var menu = document.getElementById('fab-menu');

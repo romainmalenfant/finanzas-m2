@@ -59,7 +59,7 @@ async function loadCarteraFacturas(){
       items.forEach(function(i){
         var diasLabel = i.dias<0 ? Math.abs(i.dias)+'d vencida' : i.dias===0 ? 'Hoy' : i.dias+'d';
         var fechaVenc = i.f.fecha_vencimiento ? fmtDate(i.f.fecha_vencimiento) : '—';
-        html += '<tr onclick="verDetalleFactura(''+i.f.id+'')" style="cursor:pointer;">'+
+        html += '<tr onclick="verDetalleFactura(\''+i.f.id+'\')" style="cursor:pointer;">'+
           '<td><div style="font-size:12px;font-weight:500;">'+esc((i.f.receptor_nombre||'—').slice(0,35))+'</div></td>'+
           '<td class="muted">'+esc(i.f.numero_factura||'—')+'</td>'+
           '<td class="muted">'+fmtDate(i.f.fecha)+'</td>'+

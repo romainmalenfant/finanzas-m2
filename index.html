@@ -283,6 +283,12 @@
             <input type="text" id="fact-numero" placeholder="F-2026-001">
           </div>
         </div>
+        <div class="form-group">
+          <label>UUID SAT *</label>
+          <input type="text" id="fact-uuid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            style="font-family:monospace;font-size:12px;" maxlength="36"
+            oninput="this.value=this.value.toLowerCase()">
+        </div>
         <!-- Toggle con/sin factura — solo visible cuando tipo=emitida -->
         <div id="fact-toggle-tipo" style="display:none;margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-2);border-radius:8px;border:0.5px solid var(--border);">

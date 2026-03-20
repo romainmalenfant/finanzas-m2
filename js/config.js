@@ -144,6 +144,10 @@ Object.defineProperties(window, {
   // Nota: allFacturas es local a facturas.js — no se mapea aquí
   // para evitar conflicto con cotizaciones. Cada módulo mantiene
   // su propio array local de registros filtrados de la tabla.
+  facturasTipo:       { get: function(){ return M2State.facturasTipo; },
+                        set: function(v){ M2State.facturasTipo = v; }, configurable: true },
+  facturasYearFilter: { get: function(){ return M2State.facturasYearFilter; },
+                        set: function(v){ M2State.facturasYearFilter = v; }, configurable: true },
   _factItems:     { get: function(){ return M2State.factItems; },
                     set: function(v){ M2State.factItems = v; }, configurable: true },
   _factItemId:    { get: function(){ return M2State.factItemId; },

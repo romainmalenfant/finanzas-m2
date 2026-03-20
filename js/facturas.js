@@ -291,9 +291,7 @@ function renderFacturasList(list){
       var btn = document.createElement('button');
       btn.className = 'btn-primary';
       btn.textContent = ctaLabels[facturasTipo]||'+ Nueva factura';
-      (function(t){
-        btn.addEventListener('click', function(){ abrirNuevaFactura(t==='recibidas'?'recibida':'emitida'); });
-      })(facturasTipo);
+      btn.addEventListener('click', abrirNuevaFactura);
       wrap.appendChild(btn);
     }
     el.appendChild(wrap);
@@ -378,11 +376,10 @@ async function cancelarFactura(id){
 }
 
 // ── Nueva / Editar factura ────────────────────────────────
-function abrirNuevaFactura(tipoDefault){
+function abrirNuevaFactura(){
   document.getElementById('fact-id-edit').value='';
   document.getElementById('fact-modal-title').textContent='Nueva factura';
-  var _tipo = tipoDefault||'emitida';
-  document.getElementById('fact-tipo').value=_tipo;
+  document.getElementById('fact-tipo').value='emitida';
   document.getElementById('fact-metodo-pago').value='PUE';
   document.getElementById('fact-fecha').value=new Date().toISOString().split('T')[0];
   document.getElementById('fact-numero').value='';
@@ -402,7 +399,7 @@ function abrirNuevaFactura(tipoDefault){
   _factItems=[]; _factItemId=0;
   _factEsSinSat = false;
   renderFactItems();
-  onFactTipoChange(_tipo);
+  onFactTipoChange('emitida');
   setFactConSat(true); // default: con factura SAT
   initFactACs();
   document.getElementById('fact-modal').style.display='flex';
@@ -646,10 +643,16 @@ function precargarProyectosFact(){
     item.addEventListener('mouseleave', function(){ this.style.background=''; });
     var nameEl = document.createElement('div');
     nameEl.style.cssText = 'font-weight:500;color:var(--text-1);';
-    nameEl.textContent = p.nombre||p.titulo||p.id;
+    nameEl.textContent = p.nombre_pedido||p.nombre||p.titulo||p.id;
+    if(p.nombre_cliente){
+      var subEl = document.createElement('div');
+      subEl.style.cssText = 'font-size:10px;color:var(--text-3);margin-top:1px;';
+      subEl.textContent = p.nombre_cliente;
+      item.appendChild(subEl);
+    }
     item.appendChild(nameEl);
     item.addEventListener('mousedown', function(){
-      if(projInp) projInp.value = p.nombre||p.titulo||'';
+      if(projInp) projInp.value = p.nombre_pedido||p.nombre||p.titulo||'';
       if(projHid) projHid.value = p.id;
       projDd.style.display = 'none';
       actualizarBtnClear('fact-proj-id','fact-proj-clear');

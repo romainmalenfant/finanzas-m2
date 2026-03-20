@@ -90,33 +90,104 @@ function filtrarContactos(q){
   renderContactosList(filtered);
 }
 
+// -- T6: Pure render functions --
+
+function renderContactoCard(c){
+  var nombre = (c.nombre||'') + (c.apellido ? ' '+c.apellido : '');
+  var initials = nombre.trim().split(' ').slice(0,2)
+    .map(function(w){return w[0];}).join('').toUpperCase() || '?';
+  var empresa = c.clientes && c.clientes.nombre
+    ? c.clientes.nombre
+    : (c.proveedores && c.proveedores.nombre
+        ? '🛒 ' + c.proveedores.nombre : 'Sin empresa');
+
+  var card = document.createElement('div');
+  card.className = 'cliente-card';
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', function(){ verDetalleContacto(c.id); });
+
+  var avatar = document.createElement('div');
+  avatar.className = 'cliente-avatar';
+  avatar.style.cssText = 'background:var(--bg-hover);color:var(--brand-red);';
+  avatar.textContent = initials;
+
+  var info = document.createElement('div');
+  info.className = 'cliente-info';
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'cliente-nombre';
+  nameEl.textContent = nombre;
+
+  var meta = document.createElement('div');
+  meta.className = 'cliente-meta';
+  meta.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;';
+
+  function addSpan(text, color){
+    var s = document.createElement('span');
+    s.textContent = text;
+    if(color) s.style.color = color;
+    meta.appendChild(s);
+  }
+  addSpan(empresa, 'var(--brand-red)');
+  if(c.cargo)    addSpan(c.cargo);
+  if(c.email)    addSpan(c.email);
+  if(c.telefono) addSpan(c.telefono);
+
+  info.appendChild(nameEl);
+  info.appendChild(meta);
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:6px;';
+  var editBtn = document.createElement('button');
+  editBtn.className = 'btn-sm';
+  editBtn.textContent = 'Editar';
+  editBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    editarContacto(c.id);
+  });
+  actions.appendChild(editBtn);
+
+  card.appendChild(avatar);
+  card.appendChild(info);
+  card.appendChild(actions);
+  return card;
+}
+
+function renderBuscarContactoItem(c, tipo, entityId, uid){
+  var nombre = (c.nombre||'') + (c.apellido ? ' '+c.apellido : '');
+  var item = document.createElement('div');
+  item.style.cssText = 'padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:12px;';
+  var nameEl = document.createElement('div');
+  nameEl.style.cssText = 'font-weight:500;color:var(--text-1);';
+  nameEl.textContent = nombre;
+  var subEl = document.createElement('div');
+  subEl.style.cssText = 'font-size:10px;color:var(--text-3);';
+  subEl.textContent = (c.cargo||'') + (c.email ? ' · '+c.email : '');
+  item.appendChild(nameEl);
+  item.appendChild(subEl);
+  item.addEventListener('mousedown', function(){
+    var dd = document.getElementById('cont-buscar-dd-'+uid);
+    if(dd) dd.style.display = 'none';
+    asociarContactoExistente(c.id, tipo, entityId);
+  });
+  return item;
+}
+
 function renderContactosList(list){
-  var el=document.getElementById('contactos-list');
-  var ct=document.getElementById('contactos-count');
-  ct.textContent=list.length+' contacto'+(list.length!==1?'s':'');
-  if(!list.length){el.innerHTML='<div class="empty-state">Sin contactos registrados</div>';return;}
-  el.innerHTML=list.map(function(c){
-    var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
-    var initials=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
-    var empresa=c.clientes&&c.clientes.nombre
-      ? c.clientes.nombre
-      : (c.proveedores&&c.proveedores.nombre ? '🛒 '+c.proveedores.nombre : 'Sin empresa');
-    return '<div class="cliente-card" style="cursor:pointer;" onclick="verDetalleContacto(\''+esc(c.id)+'\')">'+
-      '<div class="cliente-avatar" style="background:var(--bg-hover);color:#60a5fa;">'+esc(initials)+'</div>'+
-      '<div class="cliente-info">'+
-        '<div class="cliente-nombre">'+esc(nombre)+'</div>'+
-        '<div class="cliente-meta" style="display:flex;gap:10px;flex-wrap:wrap;">'+
-          '<span style="color:#60a5fa;">'+esc(empresa)+'</span>'+
-          (c.cargo?'<span>'+esc(c.cargo)+'</span>':'')+
-          (c.email?'<span>'+esc(c.email)+'</span>':'')+
-          (c.telefono?'<span>'+esc(c.telefono)+'</span>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:6px;">'+
-        '<button class="btn-sm" onclick="editarContacto(\''+esc(c.id)+'\')">Editar</button>'+
-      '</div>'+
-    '</div>';
-  }).join('');
+  var el = document.getElementById('contactos-list');
+  var ct = document.getElementById('contactos-count');
+  ct.textContent = list.length + ' contacto' + (list.length!==1?'s':'');
+  el.innerHTML = '';
+  if(!list.length){
+    var empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.textContent = 'Sin contactos registrados';
+    el.appendChild(empty);
+    return;
+  }
+  var frag = document.createDocumentFragment();
+  list.forEach(function(c){ frag.appendChild(renderContactoCard(c)); });
+  el.appendChild(frag);
 }
 
 function abrirNuevoContacto(){
@@ -202,18 +273,22 @@ function buscarContactoInline(q, tipo, entityId, entityNombre, uid){
     return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
   }).slice(0,6);
 
-  dd.style.display='block';
-  dd.innerHTML=matches.map(function(c){
-    var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
-    return '<div style="padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:12px;"'+
-      ' onmousedown="asociarContactoExistente(\''+c.id+'\',\''+tipo+'\',\''+entityId+'\');document.getElementById(\'cont-buscar-dd-'+uid+'\').style.display=\'none\'">'+
-      '<div style="font-weight:500;color:var(--text-1);">'+esc(nombre)+'</div>'+
-      '<div style="font-size:10px;color:var(--text-3);">'+(c.cargo||'')+(c.email?' · '+c.email:'')+'</div>'+
-    '</div>';
-  }).join('')+
-  '<div style="padding:9px 12px;cursor:pointer;font-size:12px;color:#60a5fa;font-weight:500;border-top:0.5px solid var(--border);"'+
-    ' onmousedown="document.getElementById(\'cont-buscar-dd-'+uid+'\').style.display=\'none\';abrirNuevoContactoConVinculo(\''+tipo+'\',\''+entityId+'\',\''+esc(entityNombre)+'\')"'+
-  '>+ Crear nuevo contacto</div>';
+  dd.style.display = 'block';
+  dd.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  matches.forEach(function(c){
+    frag.appendChild(renderBuscarContactoItem(c, tipo, entityId, uid));
+  });
+  var crearItem = document.createElement('div');
+  crearItem.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:12px;color:var(--brand-red);font-weight:500;border-top:0.5px solid var(--border);';
+  crearItem.textContent = '+ Crear nuevo contacto';
+  crearItem.addEventListener('mousedown', function(){
+    var ddEl = document.getElementById('cont-buscar-dd-'+uid);
+    if(ddEl) ddEl.style.display = 'none';
+    abrirNuevoContactoConVinculo(tipo, entityId, entityNombre);
+  });
+  frag.appendChild(crearItem);
+  dd.appendChild(frag);
 }
 
 async function asociarContactoExistente(contactoId, tipo, entityId){

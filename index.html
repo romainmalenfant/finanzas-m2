@@ -298,17 +298,17 @@
         <div class="form-row">
           <div class="form-group">
             <label id="fact-subtotal-label">Subtotal (sin IVA)</label>
-            <input type="number" id="fact-subtotal" inputmode="decimal" placeholder="0" min="0" oninput="calcFactIva()">
+            <input type="number" id="fact-subtotal" inputmode="decimal" placeholder="0" min="0" oninput="calcFactIvaDebounced()">
           </div>
           <div class="form-group">
             <label>IVA (16%)</label>
-            <input type="number" id="fact-iva" inputmode="decimal" placeholder="0" min="0" readonly
-              style="background:var(--bg-card-2);color:var(--text-3);cursor:not-allowed;">
+            <input type="number" id="fact-iva" inputmode="decimal" placeholder="Auto 16%" min="0"
+              style="background:var(--bg-card-2);color:var(--text-3);cursor:not-allowed;" tabindex="-1">
           </div>
           <div class="form-group">
             <label>Total *</label>
-            <input type="number" id="fact-total" inputmode="decimal" placeholder="0" min="0" readonly
-              style="background:var(--bg-card-2);color:var(--text-1);font-weight:600;cursor:not-allowed;">
+            <input type="number" id="fact-total" inputmode="decimal" placeholder="Auto" min="0"
+              style="background:var(--bg-card-2);color:var(--text-1);font-weight:600;cursor:not-allowed;" tabindex="-1">
           </div>
         </div>
         <div class="form-group">
@@ -1235,10 +1235,8 @@
         <div class="form-group">
           <label>Cliente *</label>
           <div class="ac-wrap">
-            <input type="text" id="cot-cliente-search" placeholder="Buscar cliente..." autocomplete="off"
-              oninput="buscarClienteCot(this.value)" onchange="precargarContactosCot()">
-            <input type="hidden" id="cot-cliente-id" onchange="precargarContactosCot()">
-            <div class="ac-dropdown" id="cot-cliente-dropdown"></div>
+            <input type="text" id="cot-cliente-search" placeholder="Buscar cliente..." autocomplete="off">
+            <input type="hidden" id="cot-cliente-id">
             <div class="ac-dropdown" id="cot-cliente-dd"></div>
           </div>
         </div>
@@ -1260,6 +1258,15 @@
               style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
                      padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
                      flex-shrink:0;margin-top:1px;" aria-label="Quitar contacto">×</button>
+          </div>
+        </div>
+        <!-- Proyecto vinculado -->
+        <div class="form-group">
+          <label>Proyecto <span style="font-size:10px;color:var(--text-3);">(opcional)</span></label>
+          <div class="ac-wrap">
+            <input type="text" id="cot-proj-search" placeholder="Buscar proyecto..." autocomplete="off">
+            <input type="hidden" id="cot-proj-id">
+            <div class="ac-dropdown" id="cot-proj-dd"></div>
           </div>
         </div>
         <div class="form-row">

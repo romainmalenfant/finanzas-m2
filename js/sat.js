@@ -209,7 +209,7 @@ function renderFacturasEmitidas(list){
       var badgeBg=estPago==='pagada'?'#dbeafe':estPago==='parcial'?'#fef3c7':'#dcfce7';
       var badgeColor=estPago==='pagada'?'#1d4ed8':estPago==='parcial'?'#d97706':'#16a34a';
       var badgeLabel=estPago==='pagada'?'Pagada':estPago==='parcial'?'Parcial':'Pendiente';
-      return '<tr style="cursor:pointer;" onclick="abrirConciliacionIndividual(''+esc(f.id)+'')">'+
+      return '<tr style="cursor:pointer;" onclick="abrirConciliacionIndividual(\\'+esc(f.id)+'\')">'+
         '<td><div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.contraparte||f.rfc_contraparte||'-').slice(0,40))+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+esc(f.rfc_contraparte||'')+'</div></td>'+
         '<td class="muted">'+esc(numFac)+'</td>'+
@@ -241,7 +241,7 @@ function renderMovsBanco(list){
       var vinculoBadge=!esAbono?'':
         vinculado
           ?'<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:#dbeafe;color:#1d4ed8;">Vinculado</span>'
-          :'<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:#fef3c7;color:#d97706;cursor:pointer;" onclick="abrirConciliacionPago(''+esc(m.id)+'')">Vincular →</span>';
+          :'<span style="padding:2px 8px;border-radius:5px;font-size:11px;background:#fef3c7;color:#d97706;cursor:pointer;" onclick="abrirConciliacionPago(\\'+esc(m.id)+'\')" >Vincular →</span>';
       return '<tr>'+
         '<td class="muted">'+fmtDate(m.fecha)+'</td>'+
         '<td style="font-size:12px;color:var(--text-1);">'+esc((m.descripcion||'-').slice(0,55))+'</td>'+
@@ -927,7 +927,7 @@ async function abrirConciliacionIndividual(facturaId){
           '<label style="font-size:11px;color:var(--text-3);">Monto a aplicar</label>'+
           '<input type="number" id="concil-monto-manual" value="'+pendiente+'" min="0.01" step="0.01" style="width:120px;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;text-align:right;background:var(--bg-input);color:var(--text-1);">'+
         '</div>'+
-        '<button class="btn-primary" style="margin-top:10px;width:100%;" onclick="confirmarVinculoManual(''+facturaId+'')">Confirmar vínculo</button>'+
+        '<button class="btn-primary" style="margin-top:10px;width:100%;" onclick="confirmarVinculoManual(\'+facturaId+\')">Confirmar vínculo</button>'+
       '</div>';
     }
 

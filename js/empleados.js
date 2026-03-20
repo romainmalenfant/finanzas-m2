@@ -1,5 +1,5 @@
 // ── Empleados ─────────────────────────────────────────────
-var empleados=[], allEmpleados=[];
+// [T7] empleados/allEmpleados → M2State aliases en config.js
 
 async function loadEmpleados(){
   try{

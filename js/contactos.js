@@ -53,7 +53,7 @@ function setContactoEmpresa(id, nombre){
   if(hid) hid.value=id||'';
 }
 // ── Contactos ─────────────────────────────────────────────
-var contactos=[], allContactos=[];
+// [T7] contactos/allContactos → M2State aliases en config.js
 
 async function loadContactos(){
   try{

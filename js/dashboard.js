@@ -13,7 +13,7 @@ function cacheInvalidate(key){delete _cache[key];}
 function cacheInvalidateAll(){_cache={};}
 
 // Shared CxC/CxP data — populated by loadCxC/loadCxP, reused by Claude
-var _cxcRows=null, _cxpRows=null, _ytdMvmts=null;
+// [T7] _cxcRows/_cxpRows/_ytdMvmts → M2State aliases en config.js
 
 // ── Finanzas KPIs ─────────────────────────────────────────
 // Derives from in-memory movements — no extra query needed
@@ -298,7 +298,7 @@ async function loadCxP(){
 
 
 // ── Dashboard ─────────────────────────────────────────────
-var dbChart=null;
+// [T7] dbChart → M2State alias en config.js
 
 async function loadDashboard(){
   var año=new Date().getFullYear();

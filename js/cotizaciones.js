@@ -350,6 +350,11 @@ function poblarClientesCot(clienteIdActual){
   if(hid) hid.value = clienteIdActual||'';
   makeAutocomplete('cot-cliente-search','cot-cliente-id','cot-cliente-dd',
     function(){return clientes.map(function(c){return {id:c.id,label:c.nombre,sub:c.rfc||''};});},
+    function(){ precargarContactosCot(); setTimeout(precargarProyectosCot, 30); }
+  );
+  if(!allProyectos.length) loadProyectos();
+  makeAutocomplete('cot-proj-search','cot-proj-id','cot-proj-dd',
+    function(){return (allProyectos||[]).map(function(p){return {id:p.id,label:p.nombre||p.titulo||'',sub:p.cliente_nombre||''};});},
     null
   );
 }
@@ -425,6 +430,19 @@ function editarCotizacion(id){
   else poblarClientesCot(c.cliente_id||null);
   document.getElementById('cot-cliente-id').value = c.cliente_id||'';
   document.getElementById('cot-cliente-search').value = c.cliente_nombre||'';
+  // Pre-fill proyecto if set
+  var projId = c.proyecto_id||'';
+  var projInp2 = document.getElementById('cot-proj-search');
+  var projHid2 = document.getElementById('cot-proj-id');
+  if(projId && projHid2){
+    projHid2.value = projId;
+    var proy = (allProyectos||[]).find(function(x){return x.id===projId;});
+    if(proy && projInp2) projInp2.value = proy.nombre||proy.titulo||'';
+  } else {
+    if(projHid2) projHid2.value = '';
+    if(projInp2) projInp2.value = '';
+    if(c.cliente_id) setTimeout(precargarProyectosCot, 80);
+  }
   // Pre-fill contact if set
   var contId = c.contacto_id||'';
   if(contId && document.getElementById('cot-contacto-id')){
@@ -454,12 +472,20 @@ function editarCotizacion(id){
 }
 
 function cerrarCotModal(){
+  // Reset contacto
   var inp = document.getElementById('cot-contacto-search');
   var hid = document.getElementById('cot-contacto-id');
   var dd  = document.getElementById('cot-contacto-dd');
   if(inp) inp.value = '';
   if(hid) hid.value = '';
   if(dd)  { dd.innerHTML=''; dd.style.display='none'; }
+  // Reset proyecto
+  var pi = document.getElementById('cot-proj-search');
+  var ph = document.getElementById('cot-proj-id');
+  var pd = document.getElementById('cot-proj-dd');
+  if(pi) pi.value = '';
+  if(ph) ph.value = '';
+  if(pd) { pd.innerHTML=''; pd.style.display='none'; }
 
   document.getElementById('cot-modal').style.display = 'none';
 }
@@ -653,6 +679,7 @@ function _renderContactoCotDD(list, dd){
 async function guardarCotizacion(){
   var clienteId  = document.getElementById('cot-cliente-id').value||null;
   var contactoId = (document.getElementById('cot-contacto-id')||{}).value||null;
+  var proyectoId = (document.getElementById('cot-proj-id')||{}).value||null;
   var sel = document.getElementById('cot-cliente-sel');
   var clienteNombre = clienteId && clientes.find(function(c){return c.id===clienteId;}) ?
     clientes.find(function(c){return c.id===clienteId;}).nombre :
@@ -674,6 +701,7 @@ async function guardarCotizacion(){
     var cotData = {
       cliente_id: clienteId,
     contacto_id: contactoId,
+    proyecto_id: proyectoId,
       cliente_nombre: clienteNombre,
       fecha: fecha,
       vigencia_dias: parseInt(document.getElementById('cot-vigencia').value)||15,

@@ -155,39 +155,16 @@ function initSATTab(){
 }
 
 async function loadSATData(){
-  var mes=parseInt(document.getElementById('sat-mes-sel').value)||curMonth+1;
-  var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
-  // Sync global month so finanzas KPIs stay in sync
-  curMonth=mes-1; curYear=año;
-  document.getElementById('month-label').textContent=MONTHS[curMonth]+' '+curYear;
-  document.getElementById('sat-periodo').textContent=MONTHS[mes-1]+' '+año;
-  loadFinanzasKPIs();
+  // Banco tab: solo movimientos bancarios sin filtro de período
   try{
     var {data,error}=await sb.from('movimientos_v2').select('*')
-      .eq('year',año).eq('month',mes)
-      .in('origen',['sat_emitida','sat_recibida','banco_abono','banco_cargo'])
-      .order('fecha',{ascending:false});
+      .in('origen',['banco_abono','banco_cargo'])
+      .order('fecha',{ascending:false}).limit(200);
     if(error)throw error;
-    var all=(data||[]).filter(function(p){
-      if(!año)return true;
-      return !p.year||p.year===parseInt(año);
-    });
-    var emitidas=all.filter(function(m){return m.origen==='sat_emitida';});
-    var recibidas=all.filter(function(m){return m.origen==='sat_recibida';});
-    var banco=all.filter(function(m){return m.origen==='banco_abono'||m.origen==='banco_cargo';});
-    var totalEmitido=emitidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var totalRecibido=recibidas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var totalAbonos=banco.filter(function(m){return m.origen==='banco_abono';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var porCobrar=emitidas.filter(function(m){return !m.conciliado;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    document.getElementById('sat-emitido').textContent=fmt(totalEmitido);
-    document.getElementById('sat-cobrado').textContent=fmt(totalAbonos);
-    document.getElementById('sat-recibido').textContent=fmt(totalRecibido);
-    document.getElementById('sat-por-cobrar').textContent=fmt(porCobrar);
-    renderFacturasEmitidas(emitidas);
+    var banco=data||[];
     renderMovsBanco(banco);
-    renderFacturasRecibidas(recibidas);
-    loadCartera();
-  }catch(e){showError('Error cargando SAT: '+e.message);}
+    loadFinanzasKPIs();
+  }catch(e){showError('Error cargando banco: '+e.message);}
 }
 
 function renderFacturasEmitidas(list){

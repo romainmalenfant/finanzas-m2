@@ -394,8 +394,8 @@ function abrirNuevaFactura(){
   document.getElementById('fact-prov-search').value='';
   document.getElementById('fact-proj-id').value='';
   document.getElementById('fact-proj-search').value='';
-  document.getElementById('fact-total-manual').value='';
-  document.getElementById('fact-con-iva').checked=true;
+  var _ftm=document.getElementById('fact-total-manual'); if(_ftm) _ftm.value='';
+  var _fci=document.getElementById('fact-con-iva'); if(_fci) _fci.checked=true;
   _factItems=[]; _factItemId=0;
   renderFactItems();
   onFactTipoChange('emitida');
@@ -484,8 +484,10 @@ function updateFactConcepto(){
 
 function recalcFactTotales(){
   // If manual total is set, use that
-  var manualTotal = parseFloat(document.getElementById('fact-total-manual').value)||0;
-  var conIva = document.getElementById('fact-con-iva').checked;
+  var _ftm2=document.getElementById('fact-total-manual');
+  var _fci2=document.getElementById('fact-con-iva');
+  var manualTotal = _ftm2 ? (parseFloat(_ftm2.value)||0) : 0;
+  var conIva = _fci2 ? _fci2.checked : true;
 
   var sub, iva, total;
 
@@ -555,6 +557,9 @@ async function guardarFactura(){
   if(tipo==='recibida'&&!provId){showError('Selecciona un proveedor de la lista');return;}
 
   var cli=tipo==='emitida'?clientes.find(function(c){return c.id===clienteId;}):null;
+  // Fallback: if cli not in local array, use the search field text
+  var cliNombre = cli ? cli.nombre : (tipo==='emitida'&&document.getElementById('fact-cliente-search').value.trim()||null);
+  var cliRfc    = cli ? cli.rfc    : null;
   var prov=tipo==='recibida'?proveedores.find(function(p){return p.id===provId;}):null;
   var fechaD=new Date(fecha+'T12:00');
 
@@ -566,13 +571,13 @@ async function guardarFactura(){
     iva:parseFloat(document.getElementById('fact-iva').value)||0,
     total:total,
     metodo_pago:metodoPago,
-    concepto:(_factItems.map(function(i){return i.desc;}).filter(Boolean).join(', '))||document.getElementById('fact-concepto').value.trim()||null,
+    concepto:((_factItems||[]).map(function(i){return i.desc;}).filter(Boolean).join(', '))||document.getElementById('fact-concepto').value.trim()||null,
     notas:document.getElementById('fact-notas').value.trim()||null,
     cliente_id:clienteId,
     proveedor_id:provId,
     proyecto_id:projId||null,
-    receptor_nombre:cli?cli.nombre:null,
-    receptor_rfc:cli?cli.rfc:null,
+    receptor_nombre:cliNombre,
+    receptor_rfc:cliRfc,
     emisor_nombre:prov?prov.nombre:null,
     emisor_rfc:prov?prov.rfc:null,
     estatus:'vigente',

@@ -984,27 +984,40 @@ async function verDetalleCotizacion(id){
         '</table></div>'+
       '</div>';
 
-    // Nice-to-have 1: contactos del cliente vinculado a esta cotización
-    if(c.cliente_id){
-      var {data:cotConts}=await sb.from('contactos').select('*').eq('cliente_id',c.cliente_id).order('nombre');
-      body+=
+    // Contacto vinculado a esta cotización específicamente
+    var contactoHTML = '';
+    if(c.contacto_id){
+      var {data:cotCont}=await sb.from('contactos').select('*').eq('id',c.contacto_id).maybeSingle();
+      if(cotCont){
+        var ctNombre=(cotCont.nombre||'')+(cotCont.apellido?' '+cotCont.apellido:'');
+        contactoHTML=
+          '<div class="detail-section">'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
+            '<div class="detail-section-title" style="margin-bottom:0;">Contacto vinculado</div>'+
+            '<button class="btn-sm" style="font-size:11px;color:var(--text-3);" '+
+              'onclick="quitarContactoCot(\''+id+'\')" title="Quitar contacto de esta cotización">× Quitar</button>'+
+          '</div>'+
+          '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+cotCont.id+'\')">'+ 
+            '<div>'+
+              '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(ctNombre)+'</div>'+
+              '<div style="font-size:11px;color:var(--text-3);">'+(cotCont.cargo||'')+(cotCont.email?' · '+cotCont.email:'')+'</div>'+
+              (cotCont.telefono?'<div style="font-size:11px;color:var(--text-3);">'+esc(cotCont.telefono)+'</div>':'')+
+            '</div>'+
+            '<span style="font-size:11px;color:var(--text-3);">→</span>'+
+          '</div>'+
+          '</div>';
+      }
+    } else if(c.cliente_id){
+      // No contact linked yet — offer to set one from this company's contacts
+      contactoHTML=
         '<div class="detail-section">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
-          '<div class="detail-section-title" style="margin-bottom:0;">Contactos de '+esc(c.cliente_nombre||'cliente')+'</div>'+
-          '<button class="btn-sm" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+c.cliente_id+'\',\''+esc(c.cliente_nombre||'')+'\')" style="font-size:11px;">+ Nuevo</button>'+
-        '</div>'+
-        renderBuscarContactoHTML('empresa',c.cliente_id,c.cliente_nombre||'')+
-        ((cotConts||[]).length
-          ?(cotConts).map(function(ct){
-              var nombre=(ct.nombre||'')+(ct.apellido?' '+ct.apellido:'');
-              return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+ct.id+'\')">'+ 
-                '<div><div style="font-size:12px;font-weight:500;color:#3B82F6;">'+esc(nombre)+'</div>'+
-                '<div style="font-size:10px;color:var(--text-3);">'+(ct.cargo||'')+(ct.email?' · '+ct.email:'')+'</div></div>'+
-                '<span style="font-size:11px;color:var(--text-3);">→</span></div>';
-            }).join('')
-          :'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contactos</div>')+
+        '<div class="detail-section-title">Contacto vinculado</div>'+
+        '<div style="color:var(--text-4);font-size:12px;padding:4px 0 10px;">Sin contacto vinculado a esta cotización</div>'+
+        '<button class="btn-sm" style="font-size:11px;" '+
+          'onclick="vincularContactoCot(\''+id+'\',\''+c.cliente_id+'\')">+ Vincular contacto</button>'+
         '</div>';
     }
+    body += contactoHTML;
     document.getElementById('detail-body').innerHTML = body;
   }catch(e){
     console.error('Detalle cotizacion:',e);
@@ -1039,14 +1052,13 @@ async function generarPDFCotizacion(id){
   var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden');
   items = items||[];
 
-  // Get contacto of empresa
+  // Get contacto vinculado a esta cotización
   var contactoNombre = '';
-  if(c.cliente_id){
+  if(c.contacto_id){
     try{
-      var {data:conts} = await sb.from('contactos').select('nombre,apellido,cargo').eq('cliente_id',c.cliente_id).limit(1);
-      if(conts&&conts[0]){
-        var ct = conts[0];
-        contactoNombre = (ct.nombre||'')+(ct.apellido?' '+ct.apellido:'')+(ct.cargo?' · '+ct.cargo:'');
+      var {data:ctPdf} = await sb.from('contactos').select('nombre,apellido,cargo').eq('id',c.contacto_id).maybeSingle();
+      if(ctPdf){
+        contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' · '+ctPdf.cargo:'');
       }
     }catch(e){}
   }

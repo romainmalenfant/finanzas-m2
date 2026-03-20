@@ -62,11 +62,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .s-item.active svg{stroke:var(--tab-color,var(--brand-red));}
 .s-item:hover svg{stroke:var(--text-2);}
 
-.s-item:hover .s-tooltip{display:block;}
+
 .s-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;border-radius:8px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;pointer-events:none;border:1.5px solid var(--badge-border);}
 .s-badge-red{background:#f87171;color:#fff;}
 .s-badge-amber{background:#fbbf24;color:#1a1a1a;}
-.s-divider{width:22px;height:0.5px;background:var(--border);margin:6px 0;}
+
 .main-area{flex:1;display:flex;flex-direction:column;min-width:0;}
 .topbar{background:var(--bg-sidebar);border-bottom:0.5px solid var(--border);padding:0 1.5rem;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:40;}
 .topbar-left{display:flex;align-items:center;gap:14px;}

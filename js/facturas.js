@@ -612,24 +612,38 @@ function calcFactIva(){
  * from the selected client. Non-restrictive: user can still
  * type to search all projects.
  */
+// Prepara los proyectos recientes del cliente en memoria (sin mostrar el dropdown).
+// Se llama al seleccionar cliente. El dropdown solo aparece en onFocusProyectoFact().
 function precargarProyectosFact(){
   var clienteId = document.getElementById('fact-cliente-id').value;
-  var projInp   = document.getElementById('fact-proj-search');
   var projHid   = document.getElementById('fact-proj-id');
-  var projDd    = document.getElementById('fact-proj-dd');
-  if(!projInp || !projDd) return;
-  // Don't overwrite if user already selected a project
+  // No pisar si el usuario ya eligió un proyecto
   if(projHid && projHid.value) return;
   var pool = (allProyectos||[]);
   var clienteProjs = clienteId
     ? pool.filter(function(p){ return p.cliente_id===clienteId; })
     : [];
-  // Recent first (last 5)
-  var recent = clienteProjs
+  // Guardar los recientes en el elemento para usarlos en onFocusProyectoFact
+  var projDd = document.getElementById('fact-proj-dd');
+  if(projDd) projDd._recentProjs = clienteProjs
     .slice().sort(function(a,b){ return (b.created_at||'') > (a.created_at||'') ? 1 : -1; })
     .slice(0, 5);
+  // NO mostrar el dropdown aquí — esperar a que el usuario haga foco en el campo
+}
+
+// Muestra proyectos recientes al hacer focus en el campo de proyecto.
+// Solo se dispara si el campo está vacío y hay proyectos pre-cargados.
+function onFocusProyectoFact(){
+  var projInp = document.getElementById('fact-proj-search');
+  var projHid = document.getElementById('fact-proj-id');
+  var projDd  = document.getElementById('fact-proj-dd');
+  if(!projInp || !projDd) return;
+  // No mostrar si ya hay un proyecto seleccionado o si el usuario está escribiendo
+  if(projHid && projHid.value) return;
+  if(projInp.value.trim()) return;
+  var recent = projDd._recentProjs || [];
   if(!recent.length) return;
-  // Render a pre-populated dropdown (closes on select)
+  // Renderizar dropdown de recientes
   projDd.innerHTML = '';
   var hint = document.createElement('div');
   hint.style.cssText = 'padding:6px 12px;font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;';
@@ -661,15 +675,6 @@ function precargarProyectosFact(){
   });
   projDd.appendChild(frag);
   projDd.style.display = 'block';
-  // Auto-hide when clicking outside
-  setTimeout(function(){
-    document.addEventListener('mousedown', function _hideProj(e){
-      if(!projDd.contains(e.target) && e.target !== projInp){
-        projDd.style.display = 'none';
-        document.removeEventListener('mousedown', _hideProj);
-      }
-    });
-  }, 100);
 }
 
 // Debounced version — fires 700ms after user stops typing in subtotal

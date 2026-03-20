@@ -186,7 +186,7 @@
       <div class="mcard"><div class="mlabel">Emitidas vigentes</div><div class="mvalue c-green" id="fact-k-emitidas">0</div></div>
       <div class="mcard"><div class="mlabel">Recibidas vigentes</div><div class="mvalue c-red" id="fact-k-recibidas">0</div></div>
       <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="fact-k-cobrar">$0</div></div>
-      <div class="mcard"><div class="mlabel">Complementos PPD</div><div class="mvalue" id="fact-k-ppd" style="color:#a78bfa;">0</div></div>
+      <div class="mcard"><div class="mlabel">Complementos de Pago</div><div class="mvalue" id="fact-k-ppd" style="color:#a78bfa;">0</div></div>
     </div>
     <!-- Semáforo -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;" id="fact-semaforo">
@@ -215,11 +215,11 @@
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <!-- Tabs de tipo -->
-      <div class="view-toggle" id="fact-tipo-toggle">
-        <button class="active" onclick="setFacturaTipo('emitidas',this)">Emitidas</button>
-        <button onclick="setFacturaTipo('directas',this)">Ventas directas</button>
-        <button onclick="setFacturaTipo('recibidas',this)">Recibidas</button>
-        <button onclick="setFacturaTipo('complementos',this)">Complementos de Pago</button>
+      <div class="view-toggle" id="fact-tipo-toggle" style="gap:6px;">
+        <button class="active" onclick="setFacturaTipo('emitidas',this)" style="padding:7px 18px;font-size:13px;">Emitidas</button>
+        <button onclick="setFacturaTipo('directas',this)" style="padding:7px 18px;font-size:13px;">Ventas directas</button>
+        <button onclick="setFacturaTipo('recibidas',this)" style="padding:7px 18px;font-size:13px;">Recibidas</button>
+        <button onclick="setFacturaTipo('complementos',this)" style="padding:7px 18px;font-size:13px;">Complementos de Pago por hacer</button>
       </div>
       <select id="fact-estatus-filter" onchange="filtrarFacturas(document.getElementById('fact-search').value||'')"
         style="display:none;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);">

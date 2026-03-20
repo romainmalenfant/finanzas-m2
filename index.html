@@ -78,57 +78,57 @@
 
 
   <!-- Sidebar -->
-  <nav class="sidebar">
+  <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAIAAAC2BqGFAAAODklEQVR42u2ce1hU553Hv+cyZ27AhJuggNxFvGs0Ca63an2UR02KTdvVtPFJu332aXfTuPtstnG3mphoY9s8NjW12rTxqbaYNmnjDfGyRJCooEjxBolAFKqgXGYA53buZ/+YEZgRmGMcLfR5v8/7D2fO+857PufM7/a+B0rTNBA9fNEEAQFNQBMR0AQ0AU1EQBPQRAQ0AU1AExHQBDQRAU1AE9BEBDQBTURAE9AENBEBTUATEdAENAFNREAT0EQENAFNQBMR0AQ0EQFNQBPQRA9ZbHiG6Xai+Ubfn5qG0QlIiNPbXZRQfw2KDFD+7o/ZkJasp2u7w8HzPCgKAAXERkdbTCYAkGQ0NkEU/GOGkAaKgS0S8bGwmB4GaCoMb2UJElb9G46fgMHgP6IoSE/Fh+9iXLqOa9SwdiN2FYJl+45EROCj9/DE1KG7VtTUvF9UJMuyD7SiKLlZWd9btcrIcfh1If5rIxja95EuGU3ISsPCOXj+WWSlDj/T4XTjs0aoKhTF3wB8Wo+1r8LtDd191wf4ze/9t8fXVBUdnai/PnS/q9ev/6m4mBcEVdNUVVU1TVEUl8fjf3TqG+HxBMwqZHO7UH0RW7Zh0dfwzu8gK8PPRrMMKCqgmU0oKcembSE6nruEDT8FTYGm+/oC4Dhkjh2iX5vdvmffPrfXyzAMRVEURWmqarVYvp6fbzIaAYBhAsbU02ganAFmE+wOvLwR634SRtYP0xmaOGzfhQ+LBz2hswsvrYfdAYYJOM4LWLkcM6cM1s/t9e7et6/NbmfvdvSZv68uWTIuLS0MM2cYcAa88xu8WzgSQFMUFBk/3ITahgE+VRSs24LqCzBygRZfwBMz8NP/hWFgRy0ryp8OH66/ft3A9p0gSdL8J5+cO3NmOCfP0HhrJ5pbR0J4x7JoacXaDXC6gz96930UfgiTMeCgJCNpDHb8BAmxgw1ZfPJkRU1NAGVZnpidVbB4MdXf7ykqZAmSrLfJMoLiApbFzVbsOzKcwruhDIgR5Wew8ed460d9B09XY+NbfhvaH43JhLffwORxgw12pqamuKyM6WdqZEUZFRPzzaefMRsD79nieTh1Hqqi9/n1eHHjJjQtYEoUUF6JH7wAmh72oH2e7de7MWMyVj8DAG2deGk9enrAcQFBnqJg/X9ixaIhwowPios1TaPvXraqqkaOe+7pp0fF3vMLWLoAC/KgqPpAA7KKHXuwaaufu99Y07jRCqcbtsiRkBnSNFQV//NjXL4KAC9vxqXaAMo+B/jCKvzghZBhRi9lTdM0TfvKokUTs7MH/TFZzbqaxYwoK76+ApERAQaEouH2QJBGgunotXdt7XjxR5g2CfuKgk0zL+BLc/HmOjAD33iXx7P7o4/a7PYg0zxv1qyFeXlhm+T1G+DFwARHA8OCoYYxaE2DpgWYNo5DVQ3OVsPABlyMKCErHds3wxYx4EhKb5jRm3kCkiyPS0t7dskSWqf1VDXU1uPcBdRfg9s1gI0WJZyugigExJqqirhoWC3DFbSmwWiE2QxHYIzMMgATHORFReKXbw6R8h4uK6u4eLE/ZUVVY2y2bz3zjNWiD8HRcmzfhYpquJzQBi93sAawQdNTMTEn+Pc3vECbTdi0Dm++jeYb6Mco+DRQ2PQKvvTUEGHGkfJytt9jq2magWVXLV8+JiEh9Ey8PF7dip27IQrgOBiN9/24FOQP7zhakvHUNPzyx7BY/dWPe8WL+P4L+O6qwcawd3V9dOyYoij9A2RFVZfOnTt9woTQc5AVvLwZP98JTYXReB/Vpd6blP9lzHti2CcsXh6L/gmbXwEo3Fsj5HksX4xX/2NID8pazOZ764s9Lpeq6ojb3j+AXYUwm75IFOzlMSkXW9YNlqAOv/DuX5/Di/8CQQxgLYiYPBHvvAGreeAn/d83oLTSFhm5esUKi8XSHyvLMOVVVScqK0PXFLe9F5yAhPaZKkQJvIB5s7H3V8hIGQm1jl69uhZfXQFeuPuLljEqHju2IClx4PO3bMf236LlFoDxGRnfyM+nqIC6OQUcKCmpbWwc6kvP1uBqQ7B70DR4ebg9AzdehNGIqZOw9XXsew+5meGMbx8FaJMRv3gdLbdQeR6cAZwRb7+OWYMU5wr3Y+sOGI294crsGTM6urqKTpxg7wbRNE0Lorj34MGX1qwZICf0qfoSeAFmU0CEZzFjzT8jZxCCtgiMy8KU8TAbw87gUSUs8dHYuQVf+TYar+NnP8TKpQOfVlGD/34DihJkVZctWNDhcFTU1HB3n1CGYdo6OwsPHvze6tWmAWOJW+3BjkEU8d1vYet6/D30CBdnc7Pw3lZs24yXvj3wCX9rxfdfgcMBNvj2swyzatmynPR0SZZ7DxoMhtrGxv0l/4cBV+NEOdg60zRysvB3EvtIv23OTMwZpGTs9uLF9ai7Olh2YLVY1hQU/GLPng6Ho7fezzJMaeXZpIREvZXo8jNY+BQMLHQulFLAmERwhpEGeghfv+EtHCkJMKn3KCEubk1Bwa/27vXyPEPTAHxO8i/HjiXGx2enhlpO5Qw4eBSfVMLAQueStCRj5TJs3RC8BjRSQe/+C3bu1pPp5qSnfyM/f8+BA5qm+bIYmqbdXu8fDhxYu2ZNtM0Wuo7Y1Q39C/+ShLN/hVdAxIOWO4bHBpqi45AlnQHv7Bkz8ufNkxWlN+BjGabl9u3CQ4dESUc9k6bBMPfR2JGSsOiaBQXqPmayfMGCp6ZNC3KMF+rqikpLMVw1IreEMQMFISzLHj91qvLixX9c0BQFSfKvb/Y26X5WJRQFkhTQXZSGtqRWi+X5goKE2FhRkhRVVVRV1TRRkopOnPDw/N0xZchKwLBfrA2X8M4WgaULUVwClvXvc5NlTJmINN2FgiULUfc5GNrfXdUQ/Rgenzx0p8S4uOdXrvzjoUO8KFJ3t4TlZGRwvjJQ3gyUnARD69t7N7gznD0rLIkiFZ7/iK4B3f1r6hqirMFF9KHV44ai3IWiwWKCidPTT5REQZR666hWs7mvptrueNDnkaIwKubBY7vwgSb6h3SGI1FhS1i8PP/ptWuCKGYkJyfEhd4Z7fZ6G5qaFEWJiozMHjs2ZBCtqGpbZ2difDxNUQDa7Xar2RxyzdDe09Pc0qKp6qjY2JTRo3VeS2t7e3Nrq4njcjMzTcbwVPKY11577cFH6XA4fr9/v8vj8QrC6erqqMiI+JiYobvUNTYWlZYaOa62oeHG7dvj0tKoIVm7PZ4/Hz06MTvbt+PgSHk5TVEh7+iJioqaujoKqLpyWZSVsTpYl1ed+7iykqHpW+3tpy9cSE9OtprNw+WJLiotnTohd+7jM31EJB0uSJbl8ZmZBYsXK6q6bffuzq6uQSvLPv+oaUq/bFCDpse7SLL85NSpedOnd3R17T106PEJE8ymocopN9tun79S+51nn7VFRgI4VV1dVFq6pqCAfuAtYWGw0S6Px+nxTM+d4PvR3eroYHWkrRRFiaIoiGKnw6GoqsFg0NOF6iur6QraepdmJEmigJAGqqGpKTs11UcZwMzJk5xut9PtHhZPtIFlVVXhBSHCYmlubT1/5XJ6csryBQtCfDHDXGlocHu9127eXD5/fnRUVKgSBe3b1u/7kxdERkfUxTBMxYULre3tLe1ts6dNN4cyuBaT+VZ7R++fHi+vAYZwlDvC8EQbOW5CZtaBkhJHd/e03NyMlBRFxx5OSZZz0tNXr1jxxKRJre3tIVe1rWZztM32yfnzLo+nvqmp3WFPGTNGj4FKSkiYNG7ccyuenjVlSsjzJ2Zntzsc5y5d8ni9jp6egx9/nJOebgmHjQ5PHK0oasmZU/VNzSzDWC2WZfPnx0ZHD93ls2vXWtraFuXlCaL4QXHx0nnzQvpPp9u97/jxO243RVFL5szJSg39Ps/JqqqYqKjJOTn6r6Wts/NwWZkgSaqiZKWlfTkvjxluCQsvCpIkR1qtOnNJqp+j89lTPR2dbrfFZNJ/8doXysGdbhdn4IwcFy44JDMkmSHJDO/fpggwGcELMHIQJRg5dDlBaYiw+jf60zQUBRwHVQVNAYCkwN6NpFHw8HB7EB8Dew8MLKKskGR/F5qGywNJRqwNsuK3Ed1O2CJw244oKygKgoSYKFCUfw+xqoKhQdPo6IKsID4ajm7YomA0PGwG4ckMg1RSccbl8fSlbYfLcbQM52uRloStu5CahJPn0NyClttQVFTVotuJsjOoroOJw8mz+FsrRAXHPgE0XPwMn34OVcWHxXB5MD4Dl+txuQH7j8PpxKfXcekz3HGhx4mrTWhpwx+LMD4TB0sQ/RhKK1BWCYqGKOFsDS5fhaKAZmA1450/QFJAU9hRiOTRGOX3w1fq6y9dvZqRkjIyTEdmytjE/slxfCySxyArDY3N4Dg0tcBggL0bsTE4/VdYODA0UpOgqXB0444bt+3gBSgaTEawLFQVkVYkJsDR44uNYTYiIxUdXaBpaBoSYlH3OZwuJCX4j8ycjIxk2CKQGAeTCYKENgd6nLjjxpFTuHYTRiNkBY/ZEBkBZ9++9FFxcVmpYx8Gk0fiDFUVNA0NkGUYWKgaBBHddzA6HndcfQvMNA1JBssCGmQFXh5REZAk8CIirXB5YGBh5KBq0FQwDFTV/+ZahAVuLzgDKIAXYLX07W2kKMgKKPjfAJNkuD0wm6BqkGVYTPDwsJgHe6VjpIEmIlEHAU1AExHQBDQRAU1AE9BEBDQBTURAE9AENBEBTUAT0AQBAU1AExHQBDQBTURAE9BEBDQBTUATEdAENBEBTUAT0EQENAFNREAT0AQ00cPX/wPxcTg5lQC3vwAAAABJRU5ErkJggg==" alt="M2">
     </div>
     <button class="s-item active" id="sb-dashboard" onclick="switchTab('dashboard',this)" title="Dashboard">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span class="s-tooltip">Dashboard</span>
+      <span class="s-label">Dashboard</span>
     </button>
     <button class="s-item" id="sb-finanzas" onclick="switchTab('finanzas',this)" title="Flujo de Caja">
       <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
-      <span class="s-tooltip">Flujo</span>
-    </button>
-    <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span class="s-tooltip">Cotizaciones</span>
-    </button>
-    <button class="s-item" id="sb-proyectos" onclick="switchTab('proyectos',this)" title="Proyectos">
-      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
-      <span class="s-badge s-badge-amber" id="badge-proyectos" style="display:none;"></span>
-      <span class="s-tooltip">Proyectos</span>
-    </button>
-    <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Clientes">
-      <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
-      <span class="s-tooltip">Empresas</span>
-    </button>
-    <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
-      <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
-      <span class="s-badge s-badge-red" id="badge-proveedores" style="display:none;"></span>
-      <span class="s-tooltip">Proveedores</span>
-    </button>
-    <button class="s-item" id="sb-contactos" onclick="switchTab('contactos',this)" title="Contactos">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      <span class="s-tooltip">Contactos</span>
-    </button>
-    <div class="s-divider"></div>
-    <button class="s-item" id="sb-empleados" onclick="switchTab('empleados',this)" title="Empleados">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-      <span class="s-tooltip">Empleados</span>
-    </button>
-    <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="SAT & Banco">
-      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
-      <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
-      <span class="s-tooltip">SAT & Banco</span>
+      <span class="s-label">Flujo</span>
     </button>
     <button class="s-item" id="sb-facturas" onclick="switchTab('facturas',this)" title="Facturas">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
       <span class="s-badge s-badge-amber" id="badge-facturas" style="display:none;"></span>
-      <span class="s-tooltip">Facturas</span>
+      <span class="s-label">Facturas</span>
     </button>
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span class="s-tooltip">Reportes</span>
+    <button class="s-item" id="sb-sat" onclick="switchTab('sat',this)" title="SAT & Banco">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
+      <span class="s-label">SAT & Banco</span>
+    </button>
+        <div class="s-divider"><span class="s-divider-label">COMERCIAL</span></div>
+
+    <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+      <span class="s-label">Cotizaciones</span>
+    </button>
+    <button class="s-item" id="sb-proyectos" onclick="switchTab('proyectos',this)" title="Proyectos">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span class="s-badge s-badge-amber" id="badge-proyectos" style="display:none;"></span>
+      <span class="s-label">Proyectos</span>
+    </button>
+        <div class="s-divider"><span class="s-divider-label">DIRECTORIO</span></div>
+
+    <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Empresas">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><path d="M16 3.13a4 4 0 010 7.75M21 21v-2a4 4 0 00-3-3.87"/></svg>
+      <span class="s-label">Empresas</span>
+    </button>
+    <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
+      <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
+      <span class="s-badge s-badge-red" id="badge-proveedores" style="display:none;"></span>
+      <span class="s-label">Proveedores</span>
+    </button>
+    <button class="s-item" id="sb-contactos" onclick="switchTab('contactos',this)" title="Contactos">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="s-label">Contactos</span>
+    </button>
+    <button class="s-item" id="sb-empleados" onclick="switchTab('empleados',this)" title="Empleados">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="s-label">Empleados</span>
     </button>
   </nav>
 
@@ -737,7 +737,7 @@
       </button>
     </div>
     <button id="fab-btn" onclick="toggleFAB()"
-      style="width:52px;height:52px;border-radius:50%;background:#3B82F6;border:none;cursor:pointer;box-shadow:0 4px 16px #3B82F640;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .2s,background .15s;"
+      style="width:52px;height:52px;border-radius:50%;background:#E8192C;border:none;cursor:pointer;box-shadow:0 4px 16px #E8192C40;display:flex;align-items:center;justify-content:center;font-size:22px;transition:transform .2s,background .15s;"
       title="Registrar movimiento">
       <span id="fab-icon">＋</span>
     </button>

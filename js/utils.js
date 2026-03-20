@@ -199,3 +199,53 @@ async function fetchWithCache(key, queryFn, forceRefresh){
   cacheSet(key,data);
   return data;
 }
+
+// ── Desasociación de campos vinculados ─────────────────────
+
+/**
+ * Generic: clear a linked field (text + hidden + clear button).
+ * The × button shows when the field has a value, hides when empty.
+ */
+function limpiarCampoVinculo(searchId, hiddenId, clearBtnId){
+  var inp = document.getElementById(searchId);
+  var hid = document.getElementById(hiddenId);
+  var btn = document.getElementById(clearBtnId);
+  if(inp){ inp.value = ''; inp.dispatchEvent(new Event('input')); }
+  if(hid) hid.value = '';
+  if(btn) btn.style.display = 'none';
+}
+
+/**
+ * Hook: show/hide the × button based on whether hidden field has value.
+ * Call after any autocomplete selection.
+ */
+function actualizarBtnClear(hiddenId, clearBtnId){
+  var hid = document.getElementById(hiddenId);
+  var btn = document.getElementById(clearBtnId);
+  if(!btn) return;
+  btn.style.display = (hid && hid.value) ? 'block' : 'none';
+}
+
+/**
+ * Desasociar contacto de su empresa o proveedor.
+ * Leaves the contact without a company.
+ */
+function limpiarEmpresaContacto(){
+  var esEmpresa = document.getElementById('cont-campo-empresa') &&
+    document.getElementById('cont-campo-empresa').style.display !== 'none';
+  if(esEmpresa){
+    var inp = document.getElementById('contacto-empresa-search');
+    var hid = document.getElementById('contacto-cliente-sel');
+    var btn = document.getElementById('contacto-empresa-clear');
+    if(inp) inp.value = '';
+    if(hid) hid.value = '';
+    if(btn) btn.style.display = 'none';
+  } else {
+    var inp2 = document.getElementById('contacto-prov-search');
+    var hid2 = document.getElementById('contacto-proveedor-sel');
+    var btn2 = document.getElementById('contacto-prov-clear');
+    if(inp2) inp2.value = '';
+    if(hid2) hid2.value = '';
+    if(btn2) btn2.style.display = 'none';
+  }
+}

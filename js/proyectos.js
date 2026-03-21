@@ -366,20 +366,44 @@ async function loadProyectos(){
 
     // KPIs (use all without status filter for counts)
     var abiertos=0,completos=0,atrasados=0,montoEnCurso=0;
+    // FEAT-01: acumuladores monetarios por estado
+    var montoCompletos=0, montoAtrasados=0;
+    // FEAT-02: SLA — proyectos completados a tiempo vs atrasados
+    var completadosOnTime=0, completadosAtrasados=0;
     all.forEach(function(p){
       var ents=entregasByProyecto[p.id]||[];
       var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
       var est=estadoProyecto(p,entregadas);
       var lbl=est.lbl||est;
-      if(lbl==='Completado')completos++;
-      else if(lbl==='Atrasado')atrasados++;
-      else abiertos++;
-      if(lbl==='En proceso')montoEnCurso+=Number(p.monto_total||0);
+      var monto=Number(p.monto_total||0);
+      if(lbl==='Completado'){
+        completos++;
+        montoCompletos+=monto;
+        // FEAT-02: fue completado a tiempo si fecha_entrega >= fecha de última entrega (o no tiene fecha límite)
+        var ultimaEntrega=ents.length?ents.reduce(function(a,e){return e.fecha>a?e.fecha:a;},ents[0].fecha):null;
+        if(p.fecha_entrega&&ultimaEntrega&&ultimaEntrega<=p.fecha_entrega) completadosOnTime++;
+        else completadosAtrasados++;
+      } else if(lbl==='Atrasado'){
+        atrasados++;
+        montoAtrasados+=monto;
+      } else {
+        abiertos++;
+        if(lbl==='En proceso') montoEnCurso+=monto;
+      }
     });
+    // FEAT-02: % On-Time
+    var totalTerminados=completadosOnTime+completadosAtrasados;
+    var pctOnTime=totalTerminados>0?Math.round((completadosOnTime/totalTerminados)*100):null;
+
     document.getElementById('proj-k-abiertos').textContent=abiertos;
     document.getElementById('proj-k-completos').textContent=completos;
     document.getElementById('proj-k-atrasados').textContent=atrasados;
     document.getElementById('proj-k-monto').textContent=fmt(montoEnCurso);
+    // FEAT-01: montos por estado — inyección defensiva
+    var elMC=document.getElementById('proj-k-completos-monto'); if(elMC) elMC.textContent=fmt(montoCompletos);
+    var elMA=document.getElementById('proj-k-atrasados-monto'); if(elMA) elMA.textContent=fmt(montoAtrasados);
+    // FEAT-02: SLA
+    var elSLA=document.getElementById('proj-k-ontime'); if(elSLA) elSLA.textContent=pctOnTime!==null?pctOnTime+'%':'—';
 
     // Apply status filter for list
     var filtered=status?all.filter(function(p){

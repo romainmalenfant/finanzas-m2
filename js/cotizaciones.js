@@ -41,12 +41,27 @@ function renderCotizacionesKPIs(){
   var perdidas = cotizaciones.filter(function(c){return c.estatus==='perdida';}).length;
   var pipeline = cotizaciones.filter(function(c){return c.estatus==='borrador'||c.estatus==='enviada';})
     .reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
+  // FEAT-01: totales monetarios de cerradas y perdidas
+  var totalCerradas = cotizaciones.filter(function(c){return c.estatus==='cerrada';})
+    .reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
+  var totalPerdidas = cotizaciones.filter(function(c){return c.estatus==='perdida';})
+    .reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
+  // FEAT-02: Win Rate — cerradas / (cerradas + perdidas)
+  var disputadas = cerradas + perdidas;
+  var winRate = disputadas > 0 ? Math.round((cerradas / disputadas) * 100) : null;
+
   var el = function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
   el('cot-k-total', total);
   el('cot-k-abiertas', abiertas);
   el('cot-k-cerradas', cerradas);
   el('cot-k-perdidas', perdidas);
   el('cot-k-pipeline', fmt(pipeline));
+  // FEAT-01: montos — inyección defensiva
+  el('cot-k-cerradas-monto', fmt(totalCerradas));
+  el('cot-k-perdidas-monto', fmt(totalPerdidas));
+  // FEAT-02: win rate
+  var elWR = document.getElementById('cot-k-winrate');
+  if(elWR) elWR.textContent = winRate !== null ? winRate+'%' : '—';
 }
 
 function filtrarCotizaciones(q){

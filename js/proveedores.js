@@ -6,6 +6,39 @@ function validarRFC(rfc){
   if(!rfc) return false;
   return /^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc.toUpperCase());
 }
+
+// [F7] Sort state — Proveedores
+var provSort = { col: 'nombre', dir: 'asc' };
+
+function sortProveedores(col){
+  if(provSort.col === col){ provSort.dir = provSort.dir==='asc'?'desc':'asc'; }
+  else { provSort.col = col; provSort.dir = 'asc'; }
+  updateProvSortUI();
+  filtrarProveedores(document.getElementById('proveedores-search')?document.getElementById('proveedores-search').value:'');
+}
+
+function updateProvSortUI(){
+  ['nombre','ciudad','condiciones_pago'].forEach(function(c){
+    var btn = document.getElementById('prov-sort-'+c);
+    if(!btn) return;
+    if(c === provSort.col){
+      btn.style.background = 'var(--bg-card-2)'; btn.style.color = 'var(--text-1)'; btn.style.borderColor = 'var(--text-3)';
+      btn.querySelector('span.sort-arrow').textContent = provSort.dir==='asc' ? ' ↑' : ' ↓';
+    } else {
+      btn.style.background = ''; btn.style.color = 'var(--text-3)'; btn.style.borderColor = 'var(--border)';
+      btn.querySelector('span.sort-arrow').textContent = '';
+    }
+  });
+}
+
+function applyProvSort(arr){
+  var col = provSort.col, dir = provSort.dir;
+  return arr.slice().sort(function(a,b){
+    var va=(a[col]||'').toLowerCase(), vb=(b[col]||'').toLowerCase();
+    var r=va.localeCompare(vb,'es');
+    return dir==='asc'?r:-r;
+  });
+}
 // ── Proveedores DB & UI ──────────────────────────────────
 async function loadProveedores(){
   try{
@@ -266,7 +299,7 @@ function renderProveedoresList(list){
     return;
   }
   var frag = document.createDocumentFragment();
-  list.forEach(function(p){ frag.appendChild(renderProveedorCard(p, false)); });
+  applyProvSort(list).forEach(function(p){ frag.appendChild(renderProveedorCard(p, false)); });
   el.appendChild(frag);
 }
 

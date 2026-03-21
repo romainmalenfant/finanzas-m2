@@ -1,4 +1,44 @@
 // ── Proyectos UI ─────────────────────────────────────────
+// [F7] Sort state
+var projSort = { col: 'fecha_entrega', dir: 'asc' };
+
+function sortProyectos(col){
+  if(projSort.col === col){ projSort.dir = projSort.dir==='asc'?'desc':'asc'; }
+  else { projSort.col = col; projSort.dir = col==='monto_total'?'desc':'asc'; }
+  updateProjSortUI();
+  renderProyectos();
+}
+
+function updateProjSortUI(){
+  ['nombre_pedido','nombre_cliente','fecha_entrega','monto_total'].forEach(function(c){
+    var btn = document.getElementById('proj-sort-'+c);
+    if(!btn) return;
+    if(c === projSort.col){
+      btn.style.background = 'var(--bg-card-2)';
+      btn.style.color = 'var(--text-1)';
+      btn.style.borderColor = 'var(--text-3)';
+      btn.querySelector('span.sort-arrow').textContent = projSort.dir==='asc' ? ' ↑' : ' ↓';
+    } else {
+      btn.style.background = '';
+      btn.style.color = 'var(--text-3)';
+      btn.style.borderColor = 'var(--border)';
+      btn.querySelector('span.sort-arrow').textContent = '';
+    }
+  });
+}
+
+function applyProjSort(arr){
+  var col = projSort.col, dir = projSort.dir;
+  return arr.slice().sort(function(a, b){
+    var va, vb;
+    if(col==='monto_total'){ va=parseFloat(a.monto_total)||0; vb=parseFloat(b.monto_total)||0; return dir==='asc'?va-vb:vb-va; }
+    if(col==='fecha_entrega'){ va=new Date(a.fecha_entrega||'9999').getTime(); vb=new Date(b.fecha_entrega||'9999').getTime(); return dir==='asc'?va-vb:vb-va; }
+    va=(a[col]||'').toLowerCase(); vb=(b[col]||'').toLowerCase();
+    var r=va.localeCompare(vb,'es');
+    return dir==='asc'?r:-r;
+  });
+}
+
 function estadoProyecto(p, entregadas){
   if(p.total_piezas>0&&entregadas>=p.total_piezas)return{cls:'st-completo',lbl:'Completado'};
   if(p.fecha_entrega&&new Date(p.fecha_entrega+'T12:00')<new Date()&&entregadas<p.total_piezas)return{cls:'st-atrasado',lbl:'Atrasado'};
@@ -10,7 +50,8 @@ function renderProyectos(){
   var ct=document.getElementById('proj-count');
   ct.textContent=proyectos.length+' proyecto'+(proyectos.length!==1?'s':'');
   if(!proyectos.length){el.innerHTML='<div class="empty-state">Sin proyectos. Crea el primero con el botón de arriba.</div>';return;}
-  el.innerHTML=proyectos.map(function(p){
+  // [F7] sort en memoria
+  el.innerHTML=applyProjSort(proyectos).map(function(p){
     var entregas=entregasByProyecto[p.id]||[];
     var total=Number(p.total_piezas)||0;
     var entregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);

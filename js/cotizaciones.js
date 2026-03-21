@@ -1,5 +1,44 @@
 // ── Cotizaciones ──────────────────────────────────────────
 var cotizaciones = [], allCotizaciones = [];
+// [F7] Sort state
+var cotSort = { col: 'fecha', dir: 'desc' };
+
+function sortCotizaciones(col){
+  if(cotSort.col === col){ cotSort.dir = cotSort.dir==='asc'?'desc':'asc'; }
+  else { cotSort.col = col; cotSort.dir = col==='total'?'desc':'asc'; }
+  updateCotSortUI();
+  filtrarCotizaciones();
+}
+
+function updateCotSortUI(){
+  ['numero','cliente_nombre','total','estatus','fecha'].forEach(function(c){
+    var btn = document.getElementById('cot-sort-'+c);
+    if(!btn) return;
+    if(c === cotSort.col){
+      btn.style.background = 'var(--bg-card-2)';
+      btn.style.color = 'var(--text-1)';
+      btn.style.borderColor = 'var(--text-3)';
+      btn.querySelector('span.sort-arrow').textContent = cotSort.dir==='asc' ? ' ↑' : ' ↓';
+    } else {
+      btn.style.background = '';
+      btn.style.color = 'var(--text-3)';
+      btn.style.borderColor = 'var(--border)';
+      btn.querySelector('span.sort-arrow').textContent = '';
+    }
+  });
+}
+
+function applyCotSort(arr){
+  var col = cotSort.col, dir = cotSort.dir;
+  return arr.slice().sort(function(a, b){
+    var va, vb;
+    if(col==='total'){ va=parseFloat(a.total)||0; vb=parseFloat(b.total)||0; return dir==='asc'?va-vb:vb-va; }
+    if(col==='fecha'){ va=new Date(a.fecha||a.created_at||0).getTime(); vb=new Date(b.fecha||b.created_at||0).getTime(); return dir==='asc'?va-vb:vb-va; }
+    va=(a[col]||'').toLowerCase(); vb=(b[col]||'').toLowerCase();
+    var r=va.localeCompare(vb,'es');
+    return dir==='asc'?r:-r;
+  });
+}
 var cotView = 'lista'; // 'lista' | 'kanban'
 var cotYearFilter = new Date().getFullYear();
 var cotHistorialOpen = false;
@@ -93,7 +132,8 @@ function filtrarCotizaciones(q){
     return d < hace90;
   });
 
-  renderCotizacionesList(activas, historial);
+  // [F7] aplicar sort en memoria
+  renderCotizacionesList(applyCotSort(activas), applyCotSort(historial));
 }
 
 var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociación', cerrada:'Cerrada ✓', perdida:'Perdida'};

@@ -311,7 +311,7 @@ async function loadDashboard(){
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
-      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
+      sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada') // BUG-06: year necesario para el filter del chart 12 meses
     ]);
     var ytd=dashResults[0].data||[];
     var factYTD=dashResults[1].data||[];

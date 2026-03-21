@@ -111,11 +111,19 @@ function renderFacturasKPIs(){
   var recibidas = allFacturas.filter(function(f){return f.tipo==='recibida'&&f.estatus==='vigente';});
   var cobrar = emitidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
   var ppd = allFacturas.filter(function(f){return f.complemento_requerido&&!f.conciliado;});
+  // FEAT-01: totales monetarios de recibidas y ventas directas
+  var totalRecibidas = recibidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+  var totalVentasDirectas = ventasDirectas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
 
   document.getElementById('fact-k-emitidas').textContent = emitidas.length;
   document.getElementById('fact-k-recibidas').textContent = recibidas.length;
   document.getElementById('fact-k-cobrar').textContent = fmt(cobrar);
   document.getElementById('fact-k-ppd').textContent = ppd.length;
+  // FEAT-01: inyectar montos si los IDs existen en el HTML
+  var elRecMonto = document.getElementById('fact-k-recibidas-monto');
+  if(elRecMonto) elRecMonto.textContent = fmt(totalRecibidas);
+  var elVdMonto = document.getElementById('fact-k-vd-monto');
+  if(elVdMonto) elVdMonto.textContent = fmt(totalVentasDirectas);
 
   // Badge sidebar
   var badge = document.getElementById('badge-facturas');

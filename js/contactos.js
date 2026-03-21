@@ -206,13 +206,16 @@ function abrirNuevoContacto(){
   setContactoTipo('empresa');
   document.getElementById('contacto-proveedor-sel') && (document.getElementById('contacto-proveedor-sel').value='');
   document.getElementById('contacto-prov-search') && (document.getElementById('contacto-prov-search').value='');
-  // Garantizar que ambos arrays estén cargados antes de registrar los ACs
+  // BUG-01: Garantizar que initContactoACs se llama UNA SOLA VEZ,
+  // después de confirmar que ambos arrays están cargados.
   var loads = [];
   if(!clientes.length)    loads.push(loadClientes());
   if(!proveedores.length) loads.push(loadProveedores());
-  Promise.all(loads).then(function(){ initContactoACs(); });
-  // Si ya estaban cargados, inicializar de inmediato también
-  if(!loads.length) initContactoACs();
+  if(loads.length){
+    Promise.all(loads).then(function(){ initContactoACs(); });
+  } else {
+    initContactoACs();
+  }
   document.getElementById('contacto-activo').checked=true;
   document.getElementById('contacto-modal').style.display='flex';
 }
@@ -386,15 +389,20 @@ function editarContacto(id){
 }
 
 function cerrarModalContacto(){
-  window._contactoOrigin=null; // clear origin on cancel
+  window._contactoOrigin=null;
   document.getElementById('contacto-modal').style.display='none';
-  // Restaurar campos bloqueados al cerrar
+  // BUG-03: Teardown completo — limpiar campos de texto y hidden inputs
+  // para evitar que el caché del último registro contamine el siguiente open
   var empInp=document.getElementById('contacto-empresa-search');
   var provInp=document.getElementById('contacto-prov-search');
+  var hidCli=document.getElementById('contacto-cliente-sel');
+  var hidProv=document.getElementById('contacto-proveedor-sel');
   var btnEmp=document.getElementById('cont-tipo-empresa');
   var btnProv=document.getElementById('cont-tipo-proveedor');
-  if(empInp){ empInp.readOnly=false; empInp.style.opacity=''; empInp.style.cursor=''; }
-  if(provInp){ provInp.readOnly=false; provInp.style.opacity=''; provInp.style.cursor=''; }
+  if(empInp){ empInp.value=''; empInp.readOnly=false; empInp.style.opacity=''; empInp.style.cursor=''; }
+  if(provInp){ provInp.value=''; provInp.readOnly=false; provInp.style.opacity=''; provInp.style.cursor=''; }
+  if(hidCli) hidCli.value='';
+  if(hidProv) hidProv.value='';
   if(btnEmp){ btnEmp.disabled=false; btnEmp.style.opacity=''; btnEmp.style.cursor=''; }
   if(btnProv){ btnProv.disabled=false; btnProv.style.opacity=''; btnProv.style.cursor=''; }
 }
@@ -423,8 +431,8 @@ async function guardarContacto(){
     var _orig=window._contactoOrigin||null;
     cerrarModalContacto();
     showStatus('✓ Contacto guardado');
-    loadContactos();
-    // Refresh parent detail panel without full reload
+    // BUG-02: await para que el nuevo contacto esté en state antes de re-renderizar el panel padre
+    await loadContactos();
     if(_orig){
       var _dm=document.getElementById('detail-modal');
       if(_dm) _dm.style.display='none';

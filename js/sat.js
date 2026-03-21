@@ -707,11 +707,12 @@ async function conciliarMes(){
   var año=parseInt(document.getElementById('sat-año-sel').value)||curYear;
   btn.disabled=true; btn.textContent='Analizando...';
   try{
-    // Facturas emitidas pendientes del período (desde tabla facturas)
+    // BUG-05: Facturas pendientes SIN filtro de año — una factura vencida del año anterior
+    // debe ser conciliable con un abono de hoy. Solo los abonos se filtran por período.
     var [{data:facturas},{data:abonos}] = await Promise.all([
       sb.from('facturas')
         .select('id,uuid_sat,numero_factura,fecha,total,monto_pagado,estatus_pago,receptor_nombre,receptor_rfc,cliente_id,concepto')
-        .eq('tipo','emitida').eq('year',año).neq('estatus_pago','pagada').neq('estatus','cancelada')
+        .eq('tipo','emitida').neq('estatus_pago','pagada').neq('estatus','cancelada')
         .order('fecha',{ascending:true}),
       sb.from('movimientos_v2')
         .select('*').eq('year',año).eq('month',mes).eq('origen','banco_abono').eq('conciliado',false)

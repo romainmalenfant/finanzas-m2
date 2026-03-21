@@ -82,6 +82,26 @@ async function responderConsulta(){
       return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');
     }).join(' | ');
 
+    // Cobranza por mes
+    var cobrMes={};
+    mvmts.filter(function(m){return m.categoria==='cobranza';}).forEach(function(m){
+      var k=MONTHS_ES[(m.month||1)-1];
+      cobrMes[k]=(cobrMes[k]||0)+(parseFloat(m.monto)||0);
+    });
+    var resumenCobrMes=Object.entries(cobrMes).map(function(e){
+      return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');
+    }).join(' | ');
+
+    // Gastos por mes
+    var gastosMes={};
+    mvmts.filter(function(m){return m.tipo==='egreso';}).forEach(function(m){
+      var k=MONTHS_ES[(m.month||1)-1];
+      gastosMes[k]=(gastosMes[k]||0)+(parseFloat(m.monto)||0);
+    });
+    var resumenGastosMes=Object.entries(gastosMes).map(function(e){
+      return e[0]+': $'+Math.round(e[1]).toLocaleString('es-MX');
+    }).join(' | ');
+
     // Ventas por cliente (YTD)
     var ventasByCliente={};
     mvmts.filter(function(m){return m.categoria==='venta';}).forEach(function(m){
@@ -166,6 +186,10 @@ async function responderConsulta(){
       ' | Flujo: $'+Math.round(flujoYTD).toLocaleString('es-MX')+'\n\n'+
 
       '## VENTAS POR MES\n'+resumenMeses+'\n\n'+
+
+      '## COBRANZA POR MES\n'+resumenCobrMes+'\n\n'+
+
+      '## GASTOS POR MES\n'+resumenGastosMes+'\n\n'+
 
       '## VENTAS POR CLIENTE (YTD)\n'+topVentasCliente+'\n\n'+
 
@@ -311,7 +335,7 @@ async function loadDashboard(){
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
-      sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada') // BUG-06: year necesario para el filter del chart 12 meses
+      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
     ]);
     var ytd=dashResults[0].data||[];
     var factYTD=dashResults[1].data||[];

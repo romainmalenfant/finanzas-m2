@@ -424,7 +424,10 @@ function abrirNuevaCotizacion(){
   if(_cd) { _cd.innerHTML = ''; _cd.style.display = 'none'; }
   renderCotItemsForm();
   recalcCotTotal();
-  document.getElementById('cot-modal').style.display = 'flex';
+  // BUG-04: z-index explícito para superar el detail panel (z-index:500)
+  var _cotM = document.getElementById('cot-modal');
+  _cotM.style.zIndex = '700';
+  _cotM.style.display = 'flex';
   if(!clientes.length) loadClientes();
 }
 
@@ -477,7 +480,10 @@ function editarCotizacion(id){
     renderCotItemsForm();
     recalcCotTotal();
   });
-  document.getElementById('cot-modal').style.display = 'flex';
+  // BUG-04: z-index explícito para superar el detail panel (z-index:500)
+  var _cotM2 = document.getElementById('cot-modal');
+  _cotM2.style.zIndex = '700';
+  _cotM2.style.display = 'flex';
 }
 
 function cerrarCotModal(){

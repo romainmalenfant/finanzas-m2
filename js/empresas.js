@@ -6,6 +6,39 @@ function validarRFC(rfc){
   if(!rfc) return false;
   return /^[A-Z&Ñ]{3,4}[0-9]{6}[A-Z0-9]{3}$/.test(rfc.toUpperCase());
 }
+
+// [F7] Sort state — Empresas/Clientes
+var clientesSort = { col: 'nombre', dir: 'asc' };
+
+function sortClientes(col){
+  if(clientesSort.col === col){ clientesSort.dir = clientesSort.dir==='asc'?'desc':'asc'; }
+  else { clientesSort.col = col; clientesSort.dir = 'asc'; }
+  updateClientesSortUI();
+  filtrarClientes(document.getElementById('clientes-search')?document.getElementById('clientes-search').value:'');
+}
+
+function updateClientesSortUI(){
+  ['nombre','ciudad','condiciones_pago'].forEach(function(c){
+    var btn = document.getElementById('cli-sort-'+c);
+    if(!btn) return;
+    if(c === clientesSort.col){
+      btn.style.background = 'var(--bg-card-2)'; btn.style.color = 'var(--text-1)'; btn.style.borderColor = 'var(--text-3)';
+      btn.querySelector('span.sort-arrow').textContent = clientesSort.dir==='asc' ? ' ↑' : ' ↓';
+    } else {
+      btn.style.background = ''; btn.style.color = 'var(--text-3)'; btn.style.borderColor = 'var(--border)';
+      btn.querySelector('span.sort-arrow').textContent = '';
+    }
+  });
+}
+
+function applyClientesSort(arr){
+  var col = clientesSort.col, dir = clientesSort.dir;
+  return arr.slice().sort(function(a,b){
+    var va=(a[col]||'').toLowerCase(), vb=(b[col]||'').toLowerCase();
+    var r=va.localeCompare(vb,'es');
+    return dir==='asc'?r:-r;
+  });
+}
 // ── Clientes DB ──────────────────────────────────────────
 async function loadClientes(){
   try{
@@ -293,7 +326,7 @@ function renderClientesList(list){
     return;
   }
   var frag = document.createDocumentFragment();
-  list.forEach(function(c){ frag.appendChild(renderClienteCard(c, 'list')); });
+  applyClientesSort(list).forEach(function(c){ frag.appendChild(renderClienteCard(c, 'list')); });
   el.appendChild(frag);
 }
 

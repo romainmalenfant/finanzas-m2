@@ -568,6 +568,7 @@ async function confirmarImportSAT(){
         uso_cfdi:f.uso_cfdi||null,
         concepto:f.concepto||null,
         estatus:(String(f.estado||'').toLowerCase().includes('cancelad')?'cancelada':'vigente'),
+        efecto_sat:f.efecto||'Ingreso',
         conciliado:false,
         complemento_requerido:(f.efecto==='Pago'||(f.metodo_pago||'PPD')==='PPD'),
         proveedor_id:rfcToProvId[f.rfc_emisor]||null,
@@ -624,8 +625,9 @@ async function confirmarImportSAT(){
         if(ne.length){await sb.from('empleados').insert(ne);empleadosNuevos=ne.length;}
       }
     }
+    var cntE=satPendingEmitidas.length,cntR=satPendingRecibidas.length;
     cerrarSATPreview();
-    var msg='✓ '+satPendingEmitidas.length+' emitidas, '+satPendingRecibidas.length+' recibidas importadas';
+    var msg='✓ '+cntE+' emitidas, '+cntR+' recibidas importadas';
     if(clientesNuevos)msg+=' · '+clientesNuevos+' clientes creados';
     if(proveedoresNuevos)msg+=' · '+proveedoresNuevos+' proveedores creados';
     if(empleadosNuevos)msg+=' · '+empleadosNuevos+' empleados creados';

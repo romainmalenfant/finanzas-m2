@@ -144,7 +144,7 @@ async function responderConsulta(){
     // CxP — facturas sin pagar con antigüedad
     var {data:cxpRows}=await sb.from('facturas')
       .select('emisor_nombre,emisor_rfc,total,fecha,numero_factura,concepto')
-      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente')
+      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('efecto_sat','Ingreso')
       .order('fecha',{ascending:true});
     _cxpRows=(cxpRows||[]).map(function(m){return {contraparte:m.emisor_nombre,rfc_contraparte:m.emisor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
     updateBadges();
@@ -285,7 +285,7 @@ async function loadCxP(){
   try{
     var {data}=await sb.from('facturas')
       .select('emisor_nombre,total,fecha')
-      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente');
+      .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('efecto_sat','Ingreso');
     if(data)data=data.map(function(f){return {contraparte:f.emisor_nombre,monto:f.total,fecha:f.fecha};});
     var rows=data||[];
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
@@ -367,8 +367,8 @@ async function loadDashboard(){
     setMes('db-gasto-mes',gastoMesDB,'c-red');
     setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
 
-    // Por cobrar
-    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    // Por cobrar — solo Ingreso (excluye complementos de pago y notas de crédito)
+    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('efecto_sat','Ingreso');
     if(pending)pending=pending.map(function(f){return {monto:f.total};});
     var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);

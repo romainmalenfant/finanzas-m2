@@ -327,24 +327,28 @@ function parsearExcelSAT(buf,fileName){
   var emitidas=[],recibidas=[];
   try{
     var wb=XLSX.read(buf,{type:'array'});
-    if(wb.SheetNames.includes('Hoja2')){
-      var ws=wb.Sheets['Hoja2'];
+    var sheetNameE=wb.SheetNames.includes('Hoja2')?'Hoja2':(wb.SheetNames.find(function(s){return s.toUpperCase().includes('EMIT');})||wb.SheetNames[0]);
+    if(sheetNameE){
+      var ws=wb.Sheets[sheetNameE];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      var colUUID=-1,colRFC=-1,colNombre=-1,colFecha=-1,colTotal=-1,colEfecto=-1,colEstado=-1,dataStart=2;
+      var colUUID=-1,colRFC=-1,colNombre=-1,colFecha=-1,colTotal=-1,colEfecto=-1,colEstado=-1,colRFCEmisor=-1,colNomEmisor=-1,dataStart=2;
       for(var hi=0;hi<Math.min(rows.length,5);hi++){
         var idx=rows[hi].indexOf('Folio Fiscal');
-        if(idx>=0){colUUID=idx;colRFC=rows[hi].indexOf('RFC Receptor');colNombre=rows[hi].indexOf('Nombre o Razón Social del Receptor');colFecha=rows[hi].indexOf('Fecha de Emisión');colTotal=rows[hi].indexOf('Total');colEfecto=rows[hi].indexOf('Efecto del Comprobante');colEstado=rows[hi].indexOf('Estado del Comprobante');dataStart=hi+1;break;}
+        if(idx>=0){colUUID=idx;colRFCEmisor=rows[hi].indexOf('RFC Emisor');colNomEmisor=rows[hi].indexOf('Nombre o Razón Social del Emisor');colRFC=rows[hi].indexOf('RFC Receptor');colNombre=rows[hi].indexOf('Nombre o Razón Social del Receptor');colFecha=rows[hi].indexOf('Fecha de Emisión');colTotal=rows[hi].indexOf('Total');colEfecto=rows[hi].indexOf('Efecto del Comprobante');colEstado=rows[hi].indexOf('Estado del Comprobante');dataStart=hi+1;break;}
       }
-      if(colUUID<0){colUUID=0;colRFC=1;colNombre=2;colFecha=6;colTotal=5;colEfecto=4;colEstado=9;dataStart=2;}
+      // Fallback posicional para CSV estándar SAT emitidas: A=UUID,B=RFC Emisor,C=Nom Emisor,D=RFC Receptor,E=Nom Receptor,F=Fecha,I=Total,J=Efecto,L=Estado
+      if(colUUID<0){colUUID=0;colRFCEmisor=1;colNomEmisor=2;colRFC=3;colNombre=4;colFecha=5;colTotal=8;colEfecto=9;colEstado=11;dataStart=1;}
       for(var i=dataStart;i<rows.length;i++){
         var r=rows[i];var uuid=r[colUUID];
         if(!uuid||String(uuid).length<10)continue;
-        var total=parseFloat(String(r[colTotal]||'').replace(/,/g,''))||0;
+        var total=parseFloat(String(r[colTotal]||'').replace(/[$,]/g,''))||0;
         if(total<=0)continue;
         var fecha=r[colFecha]?String(r[colFecha]).split('T')[0]:'';
         if(!fecha)continue;
         var d=new Date(fecha+'T12:00');
-        emitidas.push({uuid:String(uuid),rfc_receptor:String(r[colRFC]||''),nombre_receptor:String(r[colNombre]||''),fecha_emision:fecha,total:total,efecto:String(r[colEfecto]||'Ingreso'),estado:String(r[colEstado]||'Vigente'),year:d.getFullYear(),month:d.getMonth()+1,conciliada:false});
+        var efecto=String(r[colEfecto]||'Ingreso').trim();
+        var estado=String(r[colEstado]||'Vigente').trim();
+        emitidas.push({uuid:String(uuid),rfc_emisor:String(r[colRFCEmisor]||''),nom_emisor:String(r[colNomEmisor]||''),rfc_receptor:String(r[colRFC]||''),nombre_receptor:String(r[colNombre]||''),fecha_emision:fecha,total:total,efecto:efecto,estado:estado,year:d.getFullYear(),month:d.getMonth()+1,conciliada:false});
       }
     }
     var hRecib=wb.SheetNames.find(function(s){return s.toUpperCase().includes('RECIB');});
@@ -489,9 +493,10 @@ async function confirmarImportSAT(){
         forma_pago:f.forma_pago||null,
         uso_cfdi:f.uso_cfdi||null,
         concepto:f.concepto||f.nombre_receptor||null,
-        estatus:'vigente',
+        estatus:(String(f.estado||'').toLowerCase().includes('cancelad')?'cancelada':'vigente'),
+        efecto_sat:f.efecto||'Ingreso',
         conciliado:false,
-        complemento_requerido:(f.metodo_pago==='PPD'),
+        complemento_requerido:(f.efecto==='Pago'||f.metodo_pago==='PPD'),
         cliente_id:rfcToClienteId[f.rfc_receptor]||null,
         year:isNaN(fechaD.getFullYear())?null:fechaD.getFullYear(),
         month:isNaN(fechaD.getMonth())?null:fechaD.getMonth()+1,
@@ -535,12 +540,13 @@ async function confirmarImportSAT(){
     // Auto-crear clientes
     var clientesNuevos=0,proveedoresNuevos=0;
     if(satPendingEmitidas.length){
-      var rfcsE=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
+      var emitidasParaClientes=satPendingEmitidas.filter(function(f){var ef=(f.efecto||'').toLowerCase();return ef!=='nómina'&&ef!=='nomina'&&ef!=='pago';});
+      var rfcsE=[...new Set(emitidasParaClientes.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
       if(rfcsE.length){
         var {data:cEx}=await sb.from('clientes').select('rfc').in('rfc',rfcsE);
         var rfcsExist=new Set((cEx||[]).map(function(c){return c.rfc;}));
         var nc={};
-        satPendingEmitidas.forEach(function(f){if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor)||nc[f.rfc_receptor])return;nc[f.rfc_receptor]={id:'cli_'+f.rfc_receptor.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16),nombre:f.nombre_receptor||f.rfc_receptor,rfc:f.rfc_receptor,condiciones_pago:'30'};});
+        emitidasParaClientes.forEach(function(f){if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor)||nc[f.rfc_receptor])return;nc[f.rfc_receptor]={id:'cli_'+f.rfc_receptor.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16),nombre:f.nombre_receptor||f.rfc_receptor,rfc:f.rfc_receptor,condiciones_pago:'30'};});
         var ncArr=Object.values(nc);
         if(ncArr.length){await sb.from('clientes').upsert(ncArr,{onConflict:'rfc',ignoreDuplicates:true});clientesNuevos=ncArr.length;}
       }
@@ -556,12 +562,30 @@ async function confirmarImportSAT(){
         if(npArr.length){await sb.from('proveedores').upsert(npArr,{onConflict:'rfc',ignoreDuplicates:true});proveedoresNuevos=npArr.length;}
       }
     }
+    // Auto-crear/asociar empleados de registros Nómina
+    var empleadosNuevos=0;
+    var nominaRows=satPendingEmitidas.filter(function(f){var ef=(f.efecto||'').toLowerCase();return ef==='nómina'||ef==='nomina';});
+    if(nominaRows.length){
+      var rfcsNom=[...new Set(nominaRows.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
+      if(rfcsNom.length){
+        var {data:empEx}=await sb.from('empleados').select('rfc').in('rfc',rfcsNom);
+        var rfcsEmpExist=new Set((empEx||[]).map(function(e){return e.rfc;}));
+        var ne=[];
+        nominaRows.forEach(function(f){
+          if(!f.rfc_receptor||rfcsEmpExist.has(f.rfc_receptor)||ne.find(function(x){return x.rfc===f.rfc_receptor;}))return;
+          var partes=(f.nombre_receptor||'').trim().split(/\s+/);
+          ne.push({nombre:partes[0]||f.rfc_receptor,apellido:partes.length>1?partes.slice(1).join(' '):null,rfc:f.rfc_receptor,estatus:'Activo',activo:true});
+        });
+        if(ne.length){await sb.from('empleados').insert(ne);empleadosNuevos=ne.length;}
+      }
+    }
     cerrarSATPreview();
     var msg='✓ '+satPendingEmitidas.length+' emitidas, '+satPendingRecibidas.length+' recibidas importadas';
     if(clientesNuevos)msg+=' · '+clientesNuevos+' clientes creados';
     if(proveedoresNuevos)msg+=' · '+proveedoresNuevos+' proveedores creados';
+    if(empleadosNuevos)msg+=' · '+empleadosNuevos+' empleados creados';
     showStatus(msg);
-    loadClientes();loadMovements();loadSATData();
+    loadClientes();loadMovements();loadSATData();if(empleadosNuevos&&typeof loadEmpleados==='function')loadEmpleados();
   }catch(e){showError('Error al importar: '+e.message);console.error(e);}
   finally{btn.disabled=false;btn.textContent='Importar';}
 }

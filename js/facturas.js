@@ -109,7 +109,7 @@ async function loadFacturas(){
 function renderFacturasKPIs(){
   var emitidas = allFacturas.filter(function(f){var ef=(f.efecto_sat||'Ingreso').toLowerCase();return f.tipo==='emitida'&&f.estatus==='vigente'&&!f.sin_factura&&ef!=='nómina'&&ef!=='nomina'&&ef!=='pago'&&ef!=='egreso';});
   var ventasDirectas = allFacturas.filter(function(f){return f.tipo==='emitida'&&f.sin_factura;});
-  var recibidas = allFacturas.filter(function(f){return f.tipo==='recibida'&&f.estatus==='vigente';});
+  var recibidas = allFacturas.filter(function(f){var ef=(f.efecto_sat||'Ingreso').toLowerCase();return f.tipo==='recibida'&&f.estatus==='vigente'&&ef!=='pago'&&ef!=='egreso'&&ef!=='nómina'&&ef!=='nomina';});
   var cobrar = emitidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
   var ppd = allFacturas.filter(function(f){return f.complemento_requerido&&!f.conciliado;});
   // FEAT-01: totales monetarios de recibidas y ventas directas

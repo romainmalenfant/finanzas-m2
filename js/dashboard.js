@@ -332,17 +332,20 @@ async function loadDashboard(){
   var añoAñoAnterior=año-1;
 
   try{
-    // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
+    // P1-a: ventas YTD from facturas emitidas Ingreso, gastos from facturas recibidas Ingreso
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
-      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
+      sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
+      sb.from('facturas').select('total,month').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
     ]);
     var ytd=dashResults[0].data||[];
     var factYTD=dashResults[1].data||[];
+    var gastosFactYTD=dashResults[2].data||[];
 
     var ventasYTD=factYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrYTD=ytd.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
+                +gastosFactYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var utilYTD=ventasYTD-gastoYTD;
     var flujoYTD=cobrYTD-gastoYTD;
 
@@ -355,7 +358,8 @@ async function loadDashboard(){
     // P1-d: KPIs del mes en Dashboard
     var ventasMesDB=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrMesDB=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoMesDB=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoMesDB=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
+                  +gastosFactYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var utilMesDB=ventasMesDB-gastoMesDB;
     var setMes=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
     setMes('db-ventas-mes',ventasMesDB,'c-green');
@@ -372,7 +376,8 @@ async function loadDashboard(){
     // P1-a: MoM ventas from facturas, cobranza/gastos from movimientos_v2
     var ventasMesVal=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrMes=ytd.filter(function(m){return m.categoria==='cobranza'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
+               +gastosFactYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
 
     var {data:lastYearData}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior);
     var ly=lastYearData||[];
@@ -405,7 +410,7 @@ async function loadDashboard(){
     if(needsPrevYear){
       var prevResults=await Promise.all([
         sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1),
-        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada')
+        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
       ]);
       allCobrData=allCobrData.concat(prevResults[0].data||[]);
       allVentasFactData=allVentasFactData.concat(prevResults[1].data||[]);

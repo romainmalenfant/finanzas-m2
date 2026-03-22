@@ -121,7 +121,13 @@ async function verDetalleEmpresa(id){
     var {data:projs}=await sb.from('proyectos').select('*').ilike('nombre_cliente','%'+c.nombre+'%').eq('year',año);
     var {data:conts}=await sb.from('contactos').select('*').eq('cliente_id',id).order('nombre');
 
-    var ventas=mvmts.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    // Ventas YTD: suma de facturas emitidas Ingreso vigentes del año para este cliente
+    var {data:ventasYTDraw}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('cliente_id',id);
+    var ventasYTDrfc=[];
+    if(c.rfc){var {data:vr}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('receptor_rfc',c.rfc);ventasYTDrfc=vr||[];}
+    var seenV={}; var ventasRows=[];
+    (ventasYTDraw||[]).concat(ventasYTDrfc).forEach(function(f){var k=JSON.stringify(f);if(!seenV[k]){seenV[k]=true;ventasRows.push(f);}});
+    var ventas=ventasRows.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cxcTotal=cxcFacturas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var condLabels={'inmediato':'Pago inmediato','15':'15 días','30':'30 días','45':'45 días','60':'60 días','90':'90 días'};
 
@@ -220,7 +226,13 @@ async function verDetalleProveedor(id){
     var seenC={}; var cxp=[];
     (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
 
-    var totalCompras=mvmts.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    // Compras YTD: suma de facturas recibidas Ingreso del año para este proveedor
+    var {data:comprasYTDraw}=await sb.from('facturas').select('total').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('proveedor_id',String(id));
+    var comprasYTDrfc=[];
+    if(p.rfc){var {data:cr}=await sb.from('facturas').select('total').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('emisor_rfc',p.rfc);comprasYTDrfc=cr||[];}
+    var seenC2={}; var comprasRows=[];
+    (comprasYTDraw||[]).concat(comprasYTDrfc).forEach(function(f){var k=JSON.stringify(f);if(!seenC2[k]){seenC2[k]=true;comprasRows.push(f);}});
+    var totalCompras=comprasRows.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cxpTotal=cxp.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     var body=

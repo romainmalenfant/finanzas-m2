@@ -422,24 +422,69 @@ function mostrarPreviewSAT(emitidas,recibidas){
   var meses={};
   emitidas.forEach(function(f){var k=f.year+'-'+String(f.month).padStart(2,'0');if(!meses[k])meses[k]={año:f.year,mes:f.month,emitidas:[],recibidas:[]};meses[k].emitidas.push(f);});
   recibidas.forEach(function(f){var k=f.year+'-'+String(f.month).padStart(2,'0');if(!meses[k])meses[k]={año:f.year,mes:f.month,emitidas:[],recibidas:[]};meses[k].recibidas.push(f);});
-  var totalE=emitidas.reduce(function(a,f){return a+f.total;},0);
-  var totalR=recibidas.reduce(function(a,f){return a+f.total;},0);
-  document.getElementById('sat-preview-title').textContent='Previa — '+emitidas.length+' ventas, '+recibidas.length+' compras';
-  var html='<div style="margin-bottom:14px;padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;"><b>'+emitidas.length+'</b> facturas emitidas · Total: <b style="color:#3B6D11">'+fmt(totalE)+'</b><br><b>'+recibidas.length+'</b> facturas recibidas · Total: <b style="color:#A32D2D">'+fmt(totalR)+'</b><br><span style="color:#73726c;font-size:11px;">UUIDs ya existentes se omiten automáticamente.</span></div>';
+
+  function sumByEfecto(arr){
+    var r={};
+    arr.forEach(function(f){
+      var ef=f.efecto||'Ingreso';
+      if(ef.toLowerCase()==='pago')return;
+      if(!r[ef])r[ef]=0;
+      r[ef]+=f.total||0;
+    });
+    return r;
+  }
+
+  function renderResumen(totales,orden){
+    return orden.filter(function(ef){return totales[ef];}).map(function(ef){
+      var colors={Ingreso:'#3B6D11',Egreso:'#A32D2D','Nómina':'#7B5EA7','Nomina':'#7B5EA7'};
+      var c=colors[ef]||'#555';
+      return '<span style="margin-right:14px;"><span style="color:#555;">'+ef+':</span> <b style="color:'+c+'">'+fmt(totales[ef])+'</b></span>';
+    }).join('');
+  }
+
+  var ordenEfectos=['Ingreso','Egreso','Nómina','Nomina'];
+  var totalesE=sumByEfecto(emitidas);
+  var totalesR=sumByEfecto(recibidas);
+
+  document.getElementById('sat-preview-title').textContent='Previa — '+emitidas.length+' emitidas, '+recibidas.length+' recibidas';
+
+  var html='<div style="margin-bottom:14px;padding:12px;background:#EAF3DE;border-radius:8px;font-size:13px;">'
+    +'<div style="margin-bottom:5px;"><b>'+emitidas.length+' emitidas</b> &nbsp; '+renderResumen(totalesE,ordenEfectos)+'</div>'
+    +'<div><b>'+recibidas.length+' recibidas</b> &nbsp; '+renderResumen(totalesR,ordenEfectos)+'</div>'
+    +'<div style="color:#73726c;font-size:11px;margin-top:6px;">UUIDs ya existentes se omiten automáticamente. · Complementos de pago no suman monto.</div>'
+    +'</div>';
+
   Object.keys(meses).sort().forEach(function(k){
     var m=meses[k];
     html+='<div style="font-weight:500;font-size:13px;margin:12px 0 6px;">'+MONTHS[m.mes-1]+' '+m.año+'</div>';
     if(m.emitidas.length){
-      html+='<div style="font-size:11px;color:#3B6D11;margin-bottom:4px;">Ventas ('+m.emitidas.length+')</div>';
-      html+=m.emitidas.slice(0,5).map(function(f){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;"><span>'+esc((f.nombre_receptor||f.rfc_receptor||'').slice(0,40))+'</span><span style="color:#3B6D11;font-weight:500;">'+fmt(f.total)+'</span></div>';}).join('');
-      if(m.emitidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.emitidas.length-5)+' más</div>';
+      html+='<div style="font-size:11px;color:#3B6D11;margin-bottom:4px;">Emitidas ('+m.emitidas.length+')</div>';
+      html+=m.emitidas.map(function(f){
+        var ef=f.efecto||'Ingreso';
+        var isPago=ef.toLowerCase()==='pago';
+        var efColors={Ingreso:'#3B6D11',Egreso:'#A32D2D','Nómina':'#7B5EA7','Nomina':'#7B5EA7',Pago:'#888'};
+        var efC=efColors[ef]||'#888';
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'
+          +'<span>'+esc((f.nombre_receptor||f.rfc_receptor||'').slice(0,40))+' <span style="font-size:10px;color:'+efC+';background:'+efC+'18;padding:1px 5px;border-radius:3px;">'+ef+'</span></span>'
+          +'<span style="color:'+(isPago?'#aaa':efC)+';font-weight:500;">'+(isPago?'—':fmt(f.total))+'</span>'
+          +'</div>';
+      }).join('');
     }
     if(m.recibidas.length){
-      html+='<div style="font-size:11px;color:#A32D2D;margin:8px 0 4px;">Compras ('+m.recibidas.length+')</div>';
-      html+=m.recibidas.slice(0,5).map(function(f){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;"><span>'+esc((f.nombre_emisor||f.rfc_emisor||'').slice(0,40))+'</span><span style="color:#A32D2D;font-weight:500;">'+fmt(f.total)+'</span></div>';}).join('');
-      if(m.recibidas.length>5)html+='<div style="font-size:11px;color:#888780;padding:4px 0;">...y '+(m.recibidas.length-5)+' más</div>';
+      html+='<div style="font-size:11px;color:#A32D2D;margin:8px 0 4px;">Recibidas ('+m.recibidas.length+')</div>';
+      html+=m.recibidas.map(function(f){
+        var ef=f.efecto||'Ingreso';
+        var isPago=ef.toLowerCase()==='pago';
+        var efColors={Ingreso:'#A32D2D',Egreso:'#3B6D11','Nómina':'#7B5EA7','Nomina':'#7B5EA7',Pago:'#888'};
+        var efC=efColors[ef]||'#888';
+        return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:.5px solid #eeecea;">'
+          +'<span>'+esc((f.nombre_emisor||f.rfc_emisor||'').slice(0,40))+' <span style="font-size:10px;color:'+efC+';background:'+efC+'18;padding:1px 5px;border-radius:3px;">'+ef+'</span></span>'
+          +'<span style="color:'+(isPago?'#aaa':efC)+';font-weight:500;">'+(isPago?'—':fmt(f.total))+'</span>'
+          +'</div>';
+      }).join('');
     }
   });
+
   document.getElementById('sat-preview-body').innerHTML=html;
   document.getElementById('btn-confirmar-sat').textContent='Importar';
   document.getElementById('btn-confirmar-sat').onclick=confirmarImportSAT;

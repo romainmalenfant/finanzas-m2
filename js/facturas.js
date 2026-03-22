@@ -10,8 +10,9 @@ async function loadCarteraFacturas(){
   try{
     var hoy = new Date();
     var {data:pendientes} = await sb.from('facturas')
-      .select('id,receptor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado')
+      .select('id,receptor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado,efecto_sat')
       .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada')
+      .or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
       .order('fecha',{ascending:true}).limit(200);
     pendientes = pendientes||[];
     var el = document.getElementById('cartera-list-fact');
@@ -106,7 +107,7 @@ async function loadFacturas(){
 
 // ── KPIs ─────────────────────────────────────────────────
 function renderFacturasKPIs(){
-  var emitidas = allFacturas.filter(function(f){return f.tipo==='emitida'&&f.estatus==='vigente'&&!f.sin_factura;});
+  var emitidas = allFacturas.filter(function(f){var ef=(f.efecto_sat||'Ingreso').toLowerCase();return f.tipo==='emitida'&&f.estatus==='vigente'&&!f.sin_factura&&ef!=='nómina'&&ef!=='nomina'&&ef!=='pago'&&ef!=='egreso';});
   var ventasDirectas = allFacturas.filter(function(f){return f.tipo==='emitida'&&f.sin_factura;});
   var recibidas = allFacturas.filter(function(f){return f.tipo==='recibida'&&f.estatus==='vigente';});
   var cobrar = emitidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);

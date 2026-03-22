@@ -121,9 +121,11 @@ async function responderConsulta(){
       .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
 
     // CxC — facturas sin cobrar con antigüedad
+    // Solo Ingreso (ventas reales); excluye Pago (complementos), Egreso (notas crédito), Nómina
     var {data:cxcRows}=await sb.from('facturas')
       .select('receptor_nombre,receptor_rfc,total,fecha,numero_factura,concepto')
       .eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente')
+      .or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
       .order('fecha',{ascending:true});
     _cxcRows=(cxcRows||[]).map(function(m){return {contraparte:m.receptor_nombre,rfc_contraparte:m.receptor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
     updateBadges();
@@ -142,9 +144,12 @@ async function responderConsulta(){
     }).join('\n');
 
     // CxP — facturas sin pagar con antigüedad
+    // Solo Ingreso del proveedor (= compras/gastos reales para Grupo M2)
+    // Excluye Pago (complementos que proveedor manda) y Egreso (notas de crédito de proveedor)
     var {data:cxpRows}=await sb.from('facturas')
       .select('emisor_nombre,emisor_rfc,total,fecha,numero_factura,concepto')
       .eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente')
+      .or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
       .order('fecha',{ascending:true});
     _cxpRows=(cxpRows||[]).map(function(m){return {contraparte:m.emisor_nombre,rfc_contraparte:m.emisor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
     updateBadges();
@@ -335,7 +340,7 @@ async function loadDashboard(){
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
-      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada')
+      sb.from('facturas').select('total,month').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
     ]);
     var ytd=dashResults[0].data||[];
     var factYTD=dashResults[1].data||[];
@@ -364,7 +369,7 @@ async function loadDashboard(){
     setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
 
     // Por cobrar
-    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').or('efecto_sat.eq.Ingreso,efecto_sat.is.null');
     if(pending)pending=pending.map(function(f){return {monto:f.total};});
     var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
@@ -405,7 +410,7 @@ async function loadDashboard(){
     if(needsPrevYear){
       var prevResults=await Promise.all([
         sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1),
-        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada')
+        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada').or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
       ]);
       allCobrData=allCobrData.concat(prevResults[0].data||[]);
       allVentasFactData=allVentasFactData.concat(prevResults[1].data||[]);

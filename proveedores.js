@@ -256,7 +256,7 @@ async function eliminarProveedor(id){
 async function loadProveedoresKPIs(){
   try{
     var año=new Date().getFullYear();
-    var {data:cxpRaw}=await sb.from('facturas').select('emisor_nombre,total').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente');
+    var {data:cxpRaw}=await sb.from('facturas').select('emisor_nombre,total').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').or('efecto_sat.eq.Ingreso,efecto_sat.is.null');
     var cxp=(cxpRaw||[]).map(function(f){return {contraparte:f.emisor_nombre,monto:f.total};});
     var totalCXP=(cxp||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('prov-k-cxp').textContent=fmt(totalCXP);

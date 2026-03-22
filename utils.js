@@ -110,7 +110,7 @@ async function loadYTD(){
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var results=await Promise.all([
       sb.from(TABLE).select('categoria,monto').eq('year',curYear),
-      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',curYear).neq('estatus','cancelada')
+      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',curYear).neq('estatus','cancelada').or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
     ]);
     var mvData=results[0].data||[];
     var ventasYTD=(results[1].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);

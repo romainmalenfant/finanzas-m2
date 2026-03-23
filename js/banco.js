@@ -173,6 +173,30 @@ async function confirmarImportBanco(){
     });
     var {error}=await sb.from('movimientos_banco').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
     if(error) throw error;
+
+    // Sincronizar automáticamente a movimientos_v2 (flujo)
+    var flujoRows=rows.map(function(r){
+      var esAbono=r.tipo==='abono';
+      var catFlujo=esAbono
+        ?(r.categoria==='prestamo'?'prestamo':'cobranza')
+        :(r.categoria==='prestamo'?'prestamo':'gasto');
+      return {
+        id:'bk_'+r.id,
+        fecha:r.fecha,
+        descripcion:r.descripcion,
+        monto:esAbono?(r.abono||0):(r.cargo||0),
+        tipo:esAbono?'ingreso':'egreso',
+        categoria:catFlujo,
+        origen:esAbono?'banco_abono':'banco_cargo',
+        year:r.year,
+        month:r.month,
+        usuario:'banco_bbva',
+        etiqueta:r.categoria!=='otro'?_catLabels[r.categoria]||null:null
+      };
+    });
+    var {error:ef}=await sb.from('movimientos_v2').upsert(flujoRows,{onConflict:'id',ignoreDuplicates:true});
+    if(ef) console.warn('Flujo sync error:',ef.message);
+
     var cntA=rows.filter(function(r){return r.tipo==='abono';}).length;
     var cntC=rows.filter(function(r){return r.tipo==='cargo';}).length;
     cerrarSATPreview();

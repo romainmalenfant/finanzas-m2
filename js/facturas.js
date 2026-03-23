@@ -76,6 +76,15 @@ async function loadCarteraFacturas(){
   }catch(e){console.error('Cartera:',e);}
 }
 
+// ── Toggle CxC / CxP ──────────────────────────────────────
+function toggleCartera(tipo){
+  var showCxc = tipo==='cxc';
+  document.getElementById('panel-cartera-cxc').style.display = showCxc ? 'block' : 'none';
+  document.getElementById('panel-cartera-cxp').style.display = showCxc ? 'none' : 'block';
+  document.getElementById('btn-cartera-cxc').classList.toggle('active', showCxc);
+  document.getElementById('btn-cartera-cxp').classList.toggle('active', !showCxc);
+}
+
 async function loadCarteraCxP(){
   try{
     var hoy = new Date();
@@ -147,7 +156,7 @@ async function loadComplementosPorHacer(){
     var ct = document.getElementById('comp-hacer-count');
     if(!el) return;
     var {data:facts,error} = await sb.from('facturas')
-      .select('id,receptor_nombre,numero_factura,concepto,fecha,total')
+      .select('id,receptor_nombre,receptor_rfc,numero_factura,uuid_sat,concepto,fecha,total')
       .eq('tipo','emitida').eq('metodo_pago','PPD').eq('conciliado',true)
       .or('complemento_ok.is.null,complemento_ok.eq.false')
       .neq('estatus','cancelada')
@@ -159,33 +168,67 @@ async function loadComplementosPorHacer(){
       el.innerHTML = '<div class="empty-state" style="padding:8px 0;">✓ Sin pendientes</div>';
       return;
     }
-    // Get payment dates from movimientos_v2
+    // Get payment info (fecha + concepto BBVA) from movimientos_v2
     var factIds = facts.map(function(f){return f.id;});
     var {data:movs} = await sb.from('movimientos_v2')
-      .select('factura_id,fecha').in('factura_id',factIds);
+      .select('factura_id,fecha,descripcion').in('factura_id',factIds);
     var movByFact = {};
-    (movs||[]).forEach(function(m){ if(!movByFact[m.factura_id]) movByFact[m.factura_id]=m.fecha; });
+    (movs||[]).forEach(function(m){ if(!movByFact[m.factura_id]) movByFact[m.factura_id]={fecha:m.fecha,descripcion:m.descripcion}; });
     var hoy = new Date();
     if(ct) ct.textContent = facts.length+' pendiente'+(facts.length!==1?'s':'');
     var html = '';
     facts.forEach(function(f){
-      var fechaPago = movByFact[f.id] ? new Date(movByFact[f.id]+'T12:00') : new Date(f.fecha+'T12:00');
+      var pago = movByFact[f.id]||{};
+      var fechaPago = pago.fecha ? new Date(pago.fecha+'T12:00') : new Date(f.fecha+'T12:00');
       var deadline = new Date(fechaPago.getFullYear(), fechaPago.getMonth()+1, 5);
       var dias = Math.floor((deadline - hoy)/864e5);
       var vencido = dias < 0;
-      var deadlineColor = vencido ? '#dc2626' : dias<=3 ? '#d97706' : '#16a34a';
+      var urgente = !vencido && dias<=3;
+      var deadlineColor = vencido ? '#dc2626' : urgente ? '#d97706' : '#16a34a';
       var deadlineLabel = vencido ? Math.abs(dias)+'d vencido' : dias===0 ? 'Hoy' : dias+'d';
-      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;">'+
-        '<div style="flex:1;min-width:0;">'+
-          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.receptor_nombre||'—').slice(0,40))+'</div>'+
-          '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+esc(f.numero_factura||'—')+(f.concepto?' · '+esc(f.concepto.slice(0,30)):'')+'</div>'+
-        '</div>'+
-        '<div style="text-align:right;white-space:nowrap;">'+
-          '<div style="font-size:12px;font-weight:600;color:'+deadlineColor+';">Límite: '+fmtDate(deadline.toISOString().split('T')[0])+' ('+deadlineLabel+')</div>'+
-          '<div style="font-size:11px;color:var(--text-3);">Cobrado: '+fmtDate(movByFact[f.id]||f.fecha)+' · '+fmt(parseFloat(f.total)||0)+'</div>'+
-        '</div>'+
-        '<button class="btn-sm" onclick="marcarComplementoOk(\''+f.id+'\')" style="white-space:nowrap;'+(vencido?'border-color:#dc2626;color:#dc2626;':'')+'">Marcar enviado</button>'+
-      '</div>';
+      var borderStyle = vencido ? 'border:1px solid #dc262640;' : urgente ? 'border:1px solid #d9770640;' : 'border:0.5px solid var(--border);';
+      html +=
+        '<div style="'+borderStyle+'border-radius:8px;padding:12px 14px;margin:8px 14px;background:var(--bg-card);">'+
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">'+
+            '<div style="flex:1;min-width:0;">'+
+              // Cliente + folio
+              '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">'+
+                '<span style="font-size:13px;font-weight:600;color:var(--text-1);">'+esc((f.receptor_nombre||'—').slice(0,40))+'</span>'+
+                '<span style="font-size:11px;color:var(--text-3);">'+esc(f.numero_factura||'—')+'</span>'+
+              '</div>'+
+              // UUID
+              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">'+
+                '<span style="font-size:10px;color:var(--text-3);min-width:30px;">UUID</span>'+
+                '<span style="font-size:10px;font-family:monospace;color:var(--text-2);">'+(f.uuid_sat?esc(f.uuid_sat):'—')+'</span>'+
+                (f.uuid_sat?'<button class="btn-sm" onclick="_copiarUUID(\''+f.uuid_sat.replace(/'/g,"\\'")+'\')" style="padding:1px 6px;font-size:10px;">Copiar</button>':'')+
+              '</div>'+
+              // RFC + concepto factura
+              '<div style="font-size:11px;color:var(--text-3);margin-bottom:3px;">'+
+                'RFC: '+esc(f.receptor_rfc||'—')+
+                (f.concepto?' &nbsp;·&nbsp; Concepto: '+esc(f.concepto.slice(0,40)):'')+
+              '</div>'+
+              // Fechas
+              '<div style="font-size:11px;color:var(--text-3);margin-bottom:3px;">'+
+                'Fecha factura: <strong>'+fmtDate(f.fecha)+'</strong>'+
+                ' &nbsp;·&nbsp; Fecha pago: <strong>'+(pago.fecha?fmtDate(pago.fecha):'—')+'</strong>'+
+              '</div>'+
+              // Concepto BBVA
+              (pago.descripcion?
+                '<div style="font-size:11px;color:var(--text-2);">'+
+                  '<span style="color:var(--text-3);">Concepto pago: </span>'+esc(pago.descripcion.slice(0,70))+
+                '</div>':'')+
+            '</div>'+
+            // Deadline + monto
+            '<div style="text-align:right;min-width:130px;flex-shrink:0;">'+
+              '<div style="font-size:12px;font-weight:700;color:'+deadlineColor+';">Límite: '+fmtDate(deadline.toISOString().split('T')[0])+'</div>'+
+              '<div style="font-size:11px;color:'+deadlineColor+';margin-bottom:4px;">('+deadlineLabel+')</div>'+
+              '<div style="font-size:12px;color:var(--text-2);">'+fmt(parseFloat(f.total)||0)+'</div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="margin-top:10px;text-align:right;">'+
+            '<button class="btn-sm" onclick="marcarComplementoOk(\''+f.id+'\')" style="'+(vencido?'border-color:#dc2626;color:#dc2626;':'')+'">✓ Marcar complemento enviado</button>'+
+          '</div>'+
+        '</div>';
     });
     el.innerHTML = html;
   }catch(e){console.error('ComplementosPorHacer:',e);}

@@ -238,22 +238,23 @@
       </div>
     </div>
 
-    <!-- Antigüedad CxC -->
-    <div class="mvmts-card" style="margin-bottom:1rem;" id="cartera-card-fact">
-      <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · por cobrar</div>
-        <span class="mvmt-count" id="cartera-count-fact">—</span>
+    <!-- Antigüedad CxC / CxP -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-card-fact">
+      <div class="mvmts-hdr" style="flex-wrap:wrap;gap:8px;">
+        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera</div>
+        <div style="display:flex;gap:6px;">
+          <button id="btn-cartera-cxc" class="btn-sm active" onclick="toggleCartera('cxc')"
+            style="font-size:11px;">Por cobrar · <span id="cartera-count-fact">—</span></button>
+          <button id="btn-cartera-cxp" class="btn-sm" onclick="toggleCartera('cxp')"
+            style="font-size:11px;">Por pagar · <span id="cartera-cxp-count">—</span></button>
+        </div>
       </div>
-      <div id="cartera-list-fact"><div class="empty-state">Sin facturas pendientes</div></div>
-    </div>
-
-    <!-- Antigüedad CxP -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-cxp-card">
-      <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Antigüedad de proveedores · por pagar</div>
-        <span class="mvmt-count" id="cartera-cxp-count">—</span>
+      <div id="panel-cartera-cxc">
+        <div id="cartera-list-fact"><div class="empty-state">Sin facturas pendientes</div></div>
       </div>
-      <div id="cartera-cxp-list"><div class="empty-state">Sin facturas pendientes</div></div>
+      <div id="panel-cartera-cxp" style="display:none;">
+        <div id="cartera-cxp-list"><div class="empty-state">Sin facturas pendientes</div></div>
+      </div>
     </div>
 
     <!-- Complementos de Pago -->
@@ -472,6 +473,11 @@
         <button class="modal-close" onclick="cerrarFormMovimiento()">×</button>
       </div>
       <div class="modal-body">
+        <input type="hidden" id="mvmt-id-edit" value="">
+        <!-- Tipo lock (solo al editar) -->
+        <div id="mvmt-tipo-lock" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--bg-input);border-radius:8px;font-size:13px;color:var(--text-2);border:0.5px solid var(--border);">
+          Tipo: <strong id="mvmt-tipo-lock-label"></strong> <span style="font-size:11px;color:var(--text-3);">(no editable)</span>
+        </div>
 
         <!-- Cliente (venta, cobranza) -->
         <div class="form-group" id="campo-cliente">
@@ -619,9 +625,12 @@
         </div>
 
       </div>
-      <div class="modal-footer">
-        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarFormMovimiento()">Cancelar</button>
-        <button class="btn-primary" id="btn-save-mvmt" onclick="guardarFormMovimiento()">Guardar</button>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button id="btn-cancelar-pago" class="btn-sm" style="display:none;color:#dc2626;border-color:#dc2626;padding:8px 14px;" onclick="cancelarPagoManual()">Eliminar movimiento</button>
+        <div style="display:flex;gap:8px;margin-left:auto;">
+          <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarFormMovimiento()">Cancelar</button>
+          <button class="btn-primary" id="btn-save-mvmt" onclick="guardarFormMovimiento()">Guardar</button>
+        </div>
       </div>
     </div>
   </div>

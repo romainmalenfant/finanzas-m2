@@ -1,6 +1,7 @@
 // ── Formulario estructurado de movimiento ─────────────────
 // ── Venta factura toggle ─────────────────────────────────
 // [T7] _requiereFactura → M2State alias en config.js
+var _editMovId = null;
 
 function setRequiereFactura(val){
   _requiereFactura = val;
@@ -21,9 +22,14 @@ function setRequiereFactura(val){
 }
 
 function abrirFormMovimiento(tipo){
+  _editMovId = null;
   tipoMovActual=tipo;
   etiquetaSeleccionada='';
   metodoPagoSeleccionado='';
+  // Reset edit-only UI
+  var lockEl=document.getElementById('mvmt-tipo-lock'); if(lockEl) lockEl.style.display='none';
+  var delBtn=document.getElementById('btn-cancelar-pago'); if(delBtn) delBtn.style.display='none';
+  var saveBtn=document.getElementById('btn-save-mvmt'); if(saveBtn) saveBtn.textContent='Guardar';
   document.querySelectorAll('.etiq-btn').forEach(function(b){b.classList.remove('active');});
   document.querySelectorAll('#metodo-btns .etiq-btn').forEach(function(b){b.classList.remove('active');});
 
@@ -337,6 +343,23 @@ async function guardarFormMovimiento(){
   var btn=document.getElementById('btn-save-mvmt');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
+    // ── Editar movimiento existente ───────────────────────
+    if(_editMovId){
+      var updObj={
+        fecha:fecha, descripcion:descripcion, contraparte:contraparte,
+        monto:montoMXN, cliente_id:clienteId||null, proveedor_id:provId||null,
+        moneda:moneda, tipo_cambio:moneda==='USD'?tc:1,
+        metodo_pago:metodoPagoSeleccionado||null,
+        etiqueta:(tipoMovActual==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
+        year:fechaBase.getFullYear(), month:fechaBase.getMonth()+1
+      };
+      var {error:ue}=await sb.from('movimientos_v2').update(updObj).eq('id',_editMovId);
+      if(ue) throw ue;
+      cerrarFormMovimiento();
+      showStatus('Movimiento actualizado');
+      await loadMovements();
+      return;
+    }
     if(tipoMovActual==='venta'){
       // P1-a: venta → escribe en facturas, no en movimientos_v2
       var sinFact=!_requiereFactura;
@@ -406,6 +429,63 @@ async function deleteMovement(id, usuario){
   }
   try{await deleteRow(id);await loadMovements();}
   catch(e){showError('No se pudo eliminar: '+e.message);}
+}
+
+// ── Editar / eliminar movimiento manual ──────────────────
+function editarMovimiento(id){
+  var m = movements.find(function(x){return x.id===id;});
+  if(!m) return;
+  var tipo = (m.tipo==='ingreso'||m.categoria==='cobranza') ? 'cobranza' : 'gasto';
+  abrirFormMovimiento(tipo);
+  _editMovId = id;
+  document.getElementById('form-mvmt-title').textContent = tipo==='cobranza' ? 'Editar cobranza' : 'Editar gasto';
+  var saveBtn=document.getElementById('btn-save-mvmt'); if(saveBtn) saveBtn.textContent='Guardar cambios';
+  var lockEl=document.getElementById('mvmt-tipo-lock'); if(lockEl) lockEl.style.display='block';
+  var lockLbl=document.getElementById('mvmt-tipo-lock-label'); if(lockLbl) lockLbl.textContent=tipo==='cobranza'?'Cobranza':'Gasto';
+  var delBtn=document.getElementById('btn-cancelar-pago'); if(delBtn) delBtn.style.display='inline-flex';
+  setTimeout(function(){
+    document.getElementById('mvmt-monto').value = m.monto||'';
+    document.getElementById('mvmt-concepto').value = m.descripcion||'';
+    document.getElementById('mvmt-fecha').value = m.fecha||'';
+    if(m.moneda) document.getElementById('mvmt-moneda').value = m.moneda;
+    if(m.moneda==='USD'&&m.tipo_cambio){ document.getElementById('mvmt-tc').value=m.tipo_cambio; toggleTipoCambio('USD'); }
+    if(m.metodo_pago){
+      metodoPagoSeleccionado=m.metodo_pago;
+      document.querySelectorAll('#metodo-btns .etiq-btn').forEach(function(b){ b.classList.toggle('active',b.textContent===m.metodo_pago); });
+    }
+    if(m.etiqueta){
+      etiquetaSeleccionada=m.etiqueta;
+      document.querySelectorAll('.etiq-btn').forEach(function(b){ if(b.textContent===m.etiqueta) b.classList.add('active'); });
+    }
+    if(tipo==='cobranza'&&m.cliente_id){
+      var cli=clientes.find(function(c){return c.id===m.cliente_id;});
+      if(cli){
+        document.getElementById('mvmt-cliente-id').value=cli.id;
+        document.getElementById('cliente-seleccionado').style.display='flex';
+        document.getElementById('cliente-sel-nombre').textContent=cli.nombre;
+      }
+    }
+    if(tipo==='gasto'&&m.proveedor_id){
+      var prov2=proveedores.find(function(p){return p.id===m.proveedor_id;});
+      if(prov2){
+        document.getElementById('mvmt-prov-id').value=prov2.id;
+        document.getElementById('prov-seleccionado').style.display='flex';
+        document.getElementById('prov-sel-nombre').textContent=prov2.nombre;
+      }
+    }
+  }, 30);
+}
+
+async function cancelarPagoManual(){
+  if(!_editMovId) return;
+  if(!confirm('¿Eliminar este movimiento? Esta acción no se puede deshacer.')) return;
+  var id=_editMovId;
+  cerrarFormMovimiento();
+  try{
+    await deleteRow(id);
+    showStatus('Movimiento eliminado');
+    await loadMovements();
+  }catch(e){ showError('No se pudo eliminar: '+e.message); }
 }
 
 // ── Conciliación rápida post-guardado ────────────────────

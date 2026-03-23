@@ -239,36 +239,24 @@ function sortList(list, sortKey){
 
 function sortAndRender(){
   var sortKey=document.getElementById('mvmt-sort').value;
-  // P1-a: merge movements (cobranza/gasto) + ventasMes (from facturas)
-  var ventasAsMov=ventasMes.map(function(f){
-    return {
-      id:f.id, fecha:f.fecha, monto:f.total,
-      tipo:'ingreso', categoria:'venta', origen:'factura',
-      contraparte:f.receptor_nombre||'',
-      descripcion:f.concepto||f.receptor_nombre||'Venta',
-      numero_factura:f.sin_factura?f.numero_vta:f.numero_factura,
-      usuario:null, _esFact:true
-    };
-  });
-  var merged=movements.concat(ventasAsMov);
-  var sorted=sortList(merged, sortKey);
-  var me=getUserName();
+  var sorted=sortList(movements, sortKey);
   var el=document.getElementById('mvmts-list');
   el.innerHTML=sorted.map(function(m){
-    // Ingreso o egreso
-    var esTipoIngreso = m.tipo==='ingreso' || m.categoria==='venta' || m.categoria==='cobranza';
+    var esTipoIngreso = m.tipo==='ingreso' || m.categoria==='cobranza';
     var badgeLabel = esTipoIngreso ? 'Ingreso' : 'Gasto';
     var badgeCls   = esTipoIngreso ? 'bv' : 'bg';
-    // Descripción: mostrar contraparte sin duplicar
     var desc = m.contraparte
       ? esc(m.contraparte)
       : esc((m.descripcion||'').replace(/^(Venta|Cobranza|Gasto|Ingreso)[^a-z]*/i,'').trim().slice(0,50)||m.descripcion||'');
-    // Método pago: default Transferencia para banco
     var metodo = m.metodo_pago || (m.origen==='banco_abono'||m.origen==='banco_cargo' ? 'Transferencia' : null);
+    var esManual = m.origen==='manual';
     return '<div class="mvmt-item">'+
       '<div class="mvmt-dot" style="background:'+(esTipoIngreso?'#34d399':'#d97706')+'"></div>'+
       '<div class="mvmt-info">'+
-        '<div class="mvmt-desc">'+desc+'</div>'+
+        '<div class="mvmt-desc">'+desc+
+          (esManual?'<button class="btn-sm" onclick="editarMovimiento(\''+m.id+'\')" style="font-size:11px;padding:1px 7px;margin-left:8px;vertical-align:middle;" title="Editar">✎</button>':'')+
+          (m.conciliado?'<span style="font-size:10px;color:#1d4ed8;background:#dbeafe;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;">✓</span>':'')+
+        '</div>'+
         '<div class="mvmt-meta">'+
           '<span class="badge '+badgeCls+'">'+badgeLabel+'</span>'+
           (m.etiqueta?'<span class="badge" style="background:var(--bg-hover);color:var(--text-2);">'+esc(m.etiqueta)+'</span>':'')+
@@ -284,11 +272,10 @@ function sortAndRender(){
 
 function renderMovements(){
   var el=document.getElementById('mvmts-list');
-  if(!el) return; // safety guard
+  if(!el) return;
   var ct=document.getElementById('mvmt-count');
-  var total=movements.length+ventasMes.length;
-  ct.textContent=total+' movimiento'+(total!==1?'s':'');
-  if(!movements.length&&!ventasMes.length){
+  ct.textContent=movements.length+' movimiento'+(movements.length!==1?'s':'');
+  if(!movements.length){
     el.innerHTML=
       '<div class="empty-state-cta">'+
         '<svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;">'+

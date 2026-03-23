@@ -36,16 +36,16 @@ function parseBBVAExcel(buf){
 // ── Categoría ─────────────────────────────────────────────────────────────
 function detectarCategoriaBanco(concepto){
   var c=(concepto||'').toUpperCase();
-  if(/PRIMA VACACIONAL|DISPERSION NOMINA|PAGO NOMINA|FINIQUITO/.test(c)) return 'nomina';
-  if(/\bIMSS\b|AFORE|\bINFONAVIT\b/.test(c))                             return 'obligacion_patronal';
-  if(/SAT\/GUIA|SAT GUIA|PAGO SAT|KONFIO/.test(c))                       return 'impuesto';
-  if(/DEPOSITO DE TERCERO|SPEI RECIBIDO/.test(c))                        return 'cliente';
+  if(/PRIMA VACACIONAL|DISPERSION NOMINA|PAGO NOMINA/.test(c))  return 'nomina';
+  if(/\bIMSS\b|AFORE|\bINFONAVIT\b/.test(c))                    return 'obligacion_patronal';
+  if(/SAT\/GUIA|SAT GUIA|PAGO SAT|KONFIO/.test(c))              return 'impuesto';
+  if(/DEPOSITO DE TERCERO|SPEI RECIBIDO/.test(c))               return 'cliente';
   return 'otro';
 }
 
 var _catLabels={
-  nomina:'Nómina',obligacion_patronal:'Obl. patronal',
-  impuesto:'Impuesto',cliente:'Cliente',otro:'Por conciliar'
+  nomina:'Nómina', obligacion_patronal:'Obl. patronal',
+  impuesto:'Impuesto', cliente:'Cliente', otro:'General'
 };
 var _catColors={
   nomina:'background:#fef9c3;color:#854d0e',
@@ -205,6 +205,28 @@ function _renderBancoKPIs(movs){
 // Public wrapper — called from index.html sort selector
 function renderMovsBanco(){ _renderMovsBanco(_bancoData); }
 
+// ── Categoría editable ────────────────────────────────────────────────────
+var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','otro'];
+function _catSelect(id, current){
+  return '<select onchange="_cambiarCategoria(\''+id+'\',this.value)" '+
+    'style="font-size:10px;padding:1px 6px;border:0.5px solid var(--border);border-radius:8px;'+
+    'background:'+ (_catColors[current]||_catColors.otro).split(';')[0].replace('background:','')+
+    ';color:'+ (_catColors[current]||_catColors.otro).split(';')[1].replace('color:','')+
+    ';font-family:inherit;cursor:pointer;">'+
+    _catOpts.map(function(c){
+      return '<option value="'+c+'"'+(c===current?' selected':'')+'>'+_catLabels[c]+'</option>';
+    }).join('')+
+  '</select>';
+}
+async function _cambiarCategoria(id, cat){
+  try{
+    await sb.from('movimientos_banco').update({categoria:cat}).eq('id',id);
+    var mi=_bancoData.findIndex(function(m){return m.id===id;});
+    if(mi>=0) _bancoData[mi].categoria=cat;
+    _renderMovsBanco(_bancoData);
+  }catch(e){showError('Error al cambiar categoría: '+e.message);}
+}
+
 function _renderMovsBanco(movs){
   var el=document.getElementById('banco-list');
   var ct=document.getElementById('banco-count');
@@ -229,7 +251,7 @@ function _renderMovsBanco(movs){
         '<td style="text-align:right;color:#dc2626;">'+(m.cargo?fmt(parseFloat(m.cargo)):'')+'</td>'+
         '<td style="text-align:right;color:#16a34a;">'+(m.abono?fmt(parseFloat(m.abono)):'')+'</td>'+
         '<td style="text-align:right;">'+fmt(parseFloat(m.saldo)||0)+'</td>'+
-        '<td><span style="'+(_catColors[cat]||'')+';border-radius:8px;padding:1px 8px;font-size:10px;">'+(_catLabels[cat]||cat)+'</span></td>'+
+        '<td>'+_catSelect(m.id,cat)+'</td>'+
         '<td>'+estadoHtml+'</td>'+
       '</tr>';
     }).join('')+'</tbody></table></div>';

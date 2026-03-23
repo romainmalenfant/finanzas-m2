@@ -198,7 +198,7 @@ function filtrarFacturas(q){
       if(estatusFiltro==='emitida')   return !f.conciliado && f.estatus!=='cancelada';
       return true;
     }
-    if(facturasTipo==='complementos') return f.complemento_requerido&&!f.conciliado;
+    if(facturasTipo==='complementos') return f.tipo==='emitida'&&f.complemento_requerido&&!f.conciliado;
     if(facturasTipo==='cxc') return f.tipo==='emitida'&&!f.conciliado&&f.estatus!=='cancelada';
     if(facturasTipo==='cxp') return f.tipo==='recibida'&&!f.conciliado&&f.estatus!=='cancelada';
     return true;

@@ -22,6 +22,8 @@ async function handlePDF(input){
   }
   showStatus('Leyendo PDF...',0);
   try{
+    if(typeof pdfjsLib!=='undefined')
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     var arrayBuffer=await file.arrayBuffer();
     var pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
     var textoTotal='';

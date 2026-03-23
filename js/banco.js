@@ -13,11 +13,11 @@ function parseBBVAExcel(buf){
   var movs = [];
   for(var i=2;i<rows.length;i++){
     var r        = rows[i];
-    var fechaRaw = r[1];
-    var concepto = String(r[2]||'').trim();
-    var cargo    = parseFloat(String(r[3]||'').replace(/[$,]/g,''))||0;
-    var abono    = parseFloat(String(r[4]||'').replace(/[$,]/g,''))||0;
-    var saldo    = parseFloat(String(r[5]||'').replace(/[$,]/g,''))||0;
+    var fechaRaw = r[0];  // col B = index 0 (sheet starts at col B)
+    var concepto = String(r[1]||'').trim();
+    var cargo    = parseFloat(String(r[2]||'').replace(/[$,]/g,''))||0;
+    var abono    = parseFloat(String(r[3]||'').replace(/[$,]/g,''))||0;
+    var saldo    = parseFloat(String(r[4]||'').replace(/[$,]/g,''))||0;
     if(!fechaRaw&&!concepto) continue;
     var fecha;
     if(fechaRaw instanceof Date){

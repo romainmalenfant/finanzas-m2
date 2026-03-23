@@ -91,7 +91,9 @@ async function checkSession(){
 
 // ── Init ─────────────────────────────────────────────────
 (async function init(){
-  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // Configure PDF.js worker only when the library has loaded (it is deferred)
+  if(typeof pdfjsLib!=='undefined')
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   // Check existing session — if valid, mostrarApp calls iniciarApp
   var hasSession=await checkSession();
   if(!hasSession)return; // wait for login

@@ -5,6 +5,7 @@ var _bancoPreviewData    = [];
 var _bancoData           = [];
 var _concMatches         = [];
 var _rowsPendingImport   = [];
+var _todasFacturasConc   = [];
 
 // ── Helpers de fecha ──────────────────────────────────────────────────────
 function _parseFechaBBVA(v){
@@ -402,6 +403,7 @@ async function conciliarMes(){
     var {data:facts}=await sb.from('facturas').select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
       .eq('conciliado',false).neq('estatus','cancelada').in('efecto_sat',['Ingreso','ingreso']);
     var fl=facts||[];
+    _todasFacturasConc=fl;
     var matches=toMatch.map(function(m){
       var monto=parseFloat(m.abono||m.cargo)||0;
       var esAbono=(m.abono||0)>0;
@@ -423,9 +425,51 @@ async function abrirConciliacion(movId){
   try{
     var {data:facts}=await sb.from('facturas').select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
       .eq('tipo',esAbono?'emitida':'recibida').eq('conciliado',false).neq('estatus','cancelada');
-    var candidatos=(facts||[]).filter(function(f){return Math.abs((parseFloat(f.total)||0)-monto)<=1.0;});
+    _todasFacturasConc=facts||[];
+    var candidatos=_todasFacturasConc.filter(function(f){return Math.abs((parseFloat(f.total)||0)-monto)<=1.0;});
     _mostrarModalConciliacion([{mov:m,candidatos:candidatos}]);
   }catch(e){showError('Error: '+e.message);}
+}
+
+function _renderCandidatosConc(xi, list, esAbono, monto){
+  if(!list.length){
+    return '<div style="font-size:11px;color:#f59e0b;padding:6px 0;">Sin facturas con monto similar (±$1.00)</div>';
+  }
+  return list.map(function(f,fi){
+    var nombre=(f.receptor_nombre||f.emisor_nombre||'—').slice(0,40);
+    var diff=Math.abs((parseFloat(f.total)||0)-monto);
+    return '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;margin-top:4px;">'+
+      '<input type="radio" name="conc_'+xi+'" value="'+f.id+'" '+(fi===0?'checked':'')+'>'+
+      '<div style="flex:1;font-size:11px;">'+esc(nombre)+'<span style="color:var(--text-3);"> · '+fmtDate(f.fecha)+'</span></div>'+
+      '<div style="font-size:11px;font-weight:600;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(parseFloat(f.total)||0)+
+      (diff>0?'<span style="color:var(--text-3);font-weight:400;font-size:10px;"> Δ'+fmt(diff)+'</span>':'')+'</div>'+
+    '</label>';
+  }).join('');
+}
+
+function _filtrarFacturasConc(xi, q){
+  var x=_concMatches[xi];if(!x)return;
+  var esAbono=(x.mov.abono||0)>0;
+  var monto=parseFloat(x.mov.abono||x.mov.cargo)||0;
+  var tipoExpected=esAbono?'emitida':'recibida';
+  var term=(q||'').toLowerCase().trim();
+  var list;
+  if(!term){
+    list=x.candidatos;
+  } else {
+    var numTerm=parseFloat(term.replace(/,/g,''));
+    list=_todasFacturasConc.filter(function(f){
+      if(f.tipo!==tipoExpected) return false;
+      var nombre=(f.receptor_nombre||f.emisor_nombre||'').toLowerCase();
+      var total=parseFloat(f.total)||0;
+      return nombre.includes(term)||(isNaN(numTerm)?false:Math.abs(total-numTerm)<=1.0);
+    });
+  }
+  var el=document.getElementById('conc-candidates-'+xi);
+  if(el) el.innerHTML=_renderCandidatosConc(xi,list,esAbono,monto);
+  // show confirm button only if list has items
+  var btnConf=document.getElementById('conc-btn-confirmar-'+xi);
+  if(btnConf) btnConf.style.display=list.length?'':'none';
 }
 
 function _mostrarModalConciliacion(matches){
@@ -441,31 +485,21 @@ function _mostrarModalConciliacion(matches){
       var esAbono=(m.abono||0)>0;
       var monto=parseFloat(m.abono||m.cargo)||0;
       var tieneMatch=x.candidatos.length>0;
-      // borde: verde si hay sugerencia, ámbar si no
       var cardBorder=tieneMatch?'border:1px solid #16a34a;':'border:1px solid #f59e0b;';
-      var candidatosHtml=tieneMatch
-        ? x.candidatos.map(function(f,fi){
-            var nombre=(f.receptor_nombre||f.emisor_nombre||'—').slice(0,40);
-            var diff=Math.abs((parseFloat(f.total)||0)-monto);
-            return '<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:0.5px solid var(--border);border-radius:6px;cursor:pointer;margin-top:4px;">'+
-              '<input type="radio" name="conc_'+xi+'" value="'+f.id+'" '+(fi===0?'checked':'')+'>'+
-              '<div style="flex:1;font-size:11px;">'+esc(nombre)+'<span style="color:var(--text-3);"> · '+fmtDate(f.fecha)+'</span></div>'+
-              '<div style="font-size:11px;font-weight:600;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(parseFloat(f.total)||0)+
-              (diff>0?'<span style="color:var(--text-3);font-weight:400;font-size:10px;"> Δ'+fmt(diff)+'</span>':'')+'</div>'+
-            '</label>';
-          }).join('')
-        : '<div style="font-size:11px;color:#f59e0b;padding:6px 0;">Sin facturas con monto similar (±$1.00)</div>';
       return '<div style="'+cardBorder+'border-radius:8px;padding:10px 12px;margin-bottom:10px;">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
           '<div><div style="font-size:11px;font-weight:600;">'+esc((m.descripcion||'').slice(0,65))+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
           '<div style="font-size:15px;font-weight:700;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(monto)+'</div>'+
         '</div>'+
-        candidatosHtml+
+        '<div id="conc-candidates-'+xi+'">'+_renderCandidatosConc(xi,x.candidatos,esAbono,monto)+'</div>'+
+        '<div style="margin-top:8px;">'+
+          '<input type="text" placeholder="Buscar factura por nombre o monto…" '+
+            'oninput="_filtrarFacturasConc('+xi+',this.value)" '+
+            'style="width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text-1);box-sizing:border-box;">'+
+        '</div>'+
         '<div style="display:flex;gap:8px;margin-top:8px;">'+
-        (tieneMatch
-          ? '<button class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="font-size:11px;">✓ Confirmar match</button>'
-          : '')+
+        '<button id="conc-btn-confirmar-'+xi+'" class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="font-size:11px;'+(tieneMatch?'':'display:none;')+'">✓ Confirmar</button>'+
         '<button class="btn-sm" onclick="_forzarConciliacion('+xi+')" style="font-size:11px;color:var(--text-3);border-color:var(--border);">Marcar conciliado sin factura</button>'+
         '</div>'+
       '</div>';

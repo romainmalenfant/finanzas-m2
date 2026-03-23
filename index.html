@@ -1415,14 +1415,18 @@
           <div style="font-size:12px;color:var(--text-3);">Excel del estado de cuenta mensual de BBVA</div>
         </div>
         <label class="btn-sm" for="bbva-file-input" style="cursor:pointer;">Subir Excel BBVA</label>
-        <input type="file" id="bbva-file-input" accept=".xlsx,.xls,.pdf" multiple style="display:none" onchange="importarBBVAMultiple(this)">
+        <input type="file" id="bbva-file-input" accept=".xlsx,.xls" style="display:none" onchange="importarBBVAExcel(this)">
       </div>
     </div>
 
-    <!-- Conciliar -->
-    <div style="display:flex;justify-content:flex-end;margin-bottom:1.5rem;">
+    <!-- Conciliar / Año -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <select id="banco-year-sel" onchange="loadBanco()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;"></select>
       <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar</button>
     </div>
+
+    <!-- KPIs bancarios -->
+    <div id="banco-kpis" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;"></div>
 
     <!-- Insights bancarios -->
     <div id="banco-insights" style="margin-bottom:1.5rem;"></div>
@@ -1617,5 +1621,6 @@
   <script src="js/auth.js"></script>
   <script src="js/cotizaciones.js"></script>
   <script src="js/facturas.js"></script>
+  <script src="js/banco.js"></script>
 </body>
 </html>

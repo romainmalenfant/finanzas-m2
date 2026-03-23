@@ -151,7 +151,18 @@ function initSATTab(){
       añoEl.appendChild(o);
     }
   }
+  // Init banco-year-sel if needed
+  var bancoYearSel=document.getElementById('banco-year-sel');
+  if(bancoYearSel&&!bancoYearSel.options.length){
+    for(var by=curYear-3;by<=curYear+1;by++){
+      var bo=document.createElement('option');
+      bo.value=by; bo.textContent=by;
+      if(by===curYear)bo.selected=true;
+      bancoYearSel.appendChild(bo);
+    }
+  }
   loadSATData();
+  if(typeof loadBanco==='function') loadBanco();
 }
 
 async function loadSATData(){

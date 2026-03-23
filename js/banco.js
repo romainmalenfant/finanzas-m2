@@ -39,7 +39,7 @@ function detectarCategoriaBanco(concepto){
   if(/PRIMA VACACIONAL|DISPERSION NOMINA|PAGO NOMINA/.test(c))  return 'nomina';
   if(/\bIMSS\b|AFORE|\bINFONAVIT\b/.test(c))                    return 'obligacion_patronal';
   if(/\bSAT\b.*GUIA|SAT GUIA|PAGO SAT|PAGO.*\bSAT\b/.test(c)) return 'impuesto';
-  if(/\bKONFIO\b/.test(c))                                       return 'prestamo';
+  if(/\bMUTUO\b/.test(c))                                        return 'prestamo';
   if(/DEPOSITO DE TERCERO|SPEI RECIBIDO/.test(c))               return 'cliente';
   return 'otro';
 }

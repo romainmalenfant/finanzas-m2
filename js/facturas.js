@@ -111,7 +111,10 @@ function renderFacturasKPIs(){
   var ventasDirectas = allFacturas.filter(function(f){return f.tipo==='emitida'&&f.sin_factura;});
   var recibidas = allFacturas.filter(function(f){var ef=(f.efecto_sat||'Ingreso').toLowerCase();return f.tipo==='recibida'&&f.estatus==='vigente'&&ef!=='pago'&&ef!=='egreso'&&ef!=='nómina'&&ef!=='nomina';});
   var cobrar = emitidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-  var ppd = allFacturas.filter(function(f){return f.complemento_requerido&&!f.conciliado;});
+  // Complementos pendientes = emitidas PPD Ingreso sin conciliar y no canceladas
+  var ppd = allFacturas.filter(function(f){
+    return f.tipo==='emitida' && (f.efecto_sat||'Ingreso')==='Ingreso' && f.metodo_pago==='PPD' && !f.conciliado && f.estatus!=='cancelada';
+  });
   // FEAT-01: totales monetarios de recibidas y ventas directas
   var totalRecibidas = recibidas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
   var totalVentasDirectas = ventasDirectas.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -456,10 +459,37 @@ async function verDetalleFactura(id){
     : diasVenc === 0 ? 'Hoy'
     : diasVenc+'d para vencer';
 
+  // IVA: usar valor guardado, o calcular desde subtotal, o estimar del total
+  var totalNum = parseFloat(f.total)||0;
+  var subtotalNum = parseFloat(f.subtotal)||0;
+  var ivaCalc = (parseFloat(f.iva)||0) > 0 ? parseFloat(f.iva)
+    : subtotalNum > 0 ? totalNum - subtotalNum
+    : totalNum * 16/116;
+
+  // Fecha de vencimiento: usar guardada o calcular desde condiciones del cliente/proveedor
+  var fechaVencDisplay = f.fecha_vencimiento ? fmtDate(f.fecha_vencimiento) : '—';
+  var fechaVencVal = f.fecha_vencimiento || '';
+  if(!fechaVencVal && f.fecha){
+    var dias30 = 30;
+    if(f.tipo==='emitida' && f.cliente_id){
+      var cliObj=(clientes||[]).find(function(c){return c.id===f.cliente_id;});
+      if(cliObj && DIAS_CONDICIONES[cliObj.condiciones_pago]!=null) dias30=DIAS_CONDICIONES[cliObj.condiciones_pago];
+    } else if(f.tipo==='recibida' && f.proveedor_id){
+      var provObj=(proveedores||[]).find(function(p){return p.id===f.proveedor_id;});
+      if(provObj && DIAS_CONDICIONES[provObj.condiciones_pago]!=null) dias30=DIAS_CONDICIONES[provObj.condiciones_pago];
+    }
+    var fBase=new Date(f.fecha+'T12:00'); fBase.setDate(fBase.getDate()+dias30);
+    fechaVencVal=fBase.toISOString().split('T')[0];
+    fechaVencDisplay=fmtDate(fechaVencVal)+' (estimado)';
+  }
+
+  var esSAT = f.origen==='sat';
+  var uuidStr = f.uuid_sat||'';
+
   var body =
     '<div class="detail-section"><div class="detail-kpi-grid">'+
-      '<div class="detail-kpi"><div class="detail-kpi-label">Total</div><div class="detail-kpi-value '+(f.tipo==='emitida'?'c-green':'c-red')+'">'+fmt(parseFloat(f.total)||0)+'</div></div>'+
-      '<div class="detail-kpi"><div class="detail-kpi-label">IVA</div><div class="detail-kpi-value" style="color:var(--text-2);">'+fmt(parseFloat(f.iva)||0)+'</div></div>'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">Total</div><div class="detail-kpi-value '+(f.tipo==='emitida'?'c-green':'c-red')+'">'+fmt(totalNum)+'</div></div>'+
+      '<div class="detail-kpi"><div class="detail-kpi-label">IVA</div><div class="detail-kpi-value" style="color:var(--text-2);">'+fmt(ivaCalc)+'</div></div>'+
       '<div class="detail-kpi"><div class="detail-kpi-label">Vencimiento</div><div class="detail-kpi-value" style="color:'+semColor+';">'+diasLabel+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">Datos</div><div class="detail-grid">'+
@@ -472,14 +502,41 @@ async function verDetalleFactura(id){
     '</div>'+
     (f.concepto?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Concepto</div><div class="detail-field-value">'+esc(f.concepto)+'</div></div>':'')+
     (f.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(f.notas)+'</div></div>':'')+
+    // UUID con botón copiar
+    (uuidStr?'<div class="detail-field" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'+
+      '<div class="detail-field-label" style="min-width:40px;">UUID</div>'+
+      '<div class="detail-field-value" style="font-size:10px;font-family:monospace;flex:1;word-break:break-all;">'+esc(uuidStr)+'</div>'+
+      '<button class="btn-sm" onclick="_copiarUUID(\''+uuidStr.replace(/'/g,"\\'")+'\')" style="padding:2px 10px;font-size:11px;">Copiar</button>'+
+    '</div>':'')+
+    // Vencimiento editable
+    '<div class="detail-field" style="margin-top:8px;display:flex;align-items:center;gap:8px;">'+
+      '<div class="detail-field-label" style="min-width:80px;">Vencimiento</div>'+
+      '<input type="date" id="det-venc-input" value="'+fechaVencVal+'" style="border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:12px;background:var(--bg-card);">'+
+      '<button class="btn-sm" onclick="_guardarVencimiento(\''+f.id+'\',document.getElementById(\'det-venc-input\').value)" style="padding:2px 10px;font-size:11px;">Guardar</button>'+
     '</div>'+
-    '<div class="detail-section" style="display:flex;gap:8px;flex-wrap:wrap;">'+
-      /* [T7] Marcar pagada eliminado — conciliación solo vía SAT & Banco */
-      (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-sm" onclick="editarFactura(\''+f.id+'\')">Editar</button>':'')+
+    '</div>'+
+    '<div class="detail-section" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+      (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-sm" onclick="editarFactura(\''+f.id+'\')">Editar'+(esSAT?' (campos limitados)':'')+'</button>':'')+
       '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar factura</button>'+
+      (esSAT?'<span style="font-size:11px;color:var(--text-3);margin-left:4px;">Origen SAT · UUID, fechas y montos bloqueados</span>':'')+
     '</div>';
 
   abrirDetail(nombre,'Factura '+(f.tipo==='emitida'?'emitida':'recibida'),ini,body, function(){cerrarDetail();editarFactura(f.id);});
+}
+
+function _copiarUUID(u){
+  navigator.clipboard.writeText(u).then(function(){showStatus('UUID copiado al portapapeles');});
+}
+
+async function _guardarVencimiento(id,fecha){
+  if(!fecha){showError('Selecciona una fecha');return;}
+  try{
+    await sb.from('facturas').update({fecha_vencimiento:fecha}).eq('id',id);
+    // Actualizar en memoria
+    var idx=allFacturas.findIndex(function(x){return x.id===id;});
+    if(idx>=0) allFacturas[idx].fecha_vencimiento=fecha;
+    showStatus('Vencimiento guardado');
+  }catch(e){showError('Error: '+e.message);}
 }
 
 // marcarFacturaPagada eliminado — conciliación solo vía SAT & Banco (ver sat.js)
@@ -592,6 +649,32 @@ async function editarFactura(id){
   }
   cerrarDetail();
   document.getElementById('fact-modal').style.display='flex';
+
+  // Bloquear campos si viene del SAT
+  var isSAT = f.origen==='sat';
+  var satLockIds = ['fact-tipo','fact-fecha','fact-uuid','fact-subtotal','fact-iva','fact-total',
+                    'fact-cliente-search','fact-prov-search','fact-numero','fact-con-sat','fact-sin-sat'];
+  satLockIds.forEach(function(elId){
+    var el=document.getElementById(elId);
+    if(!el)return;
+    el.readOnly = isSAT;
+    el.style.background    = isSAT ? 'var(--bg-card-2)' : '';
+    el.style.cursor        = isSAT ? 'not-allowed'      : '';
+    el.style.pointerEvents = isSAT ? 'none'             : '';
+    el.style.opacity       = isSAT ? '0.6'              : '';
+  });
+  // Mostrar aviso SAT
+  var satMsg=document.getElementById('fact-sat-lock-msg');
+  if(!satMsg){
+    satMsg=document.createElement('div');
+    satMsg.id='fact-sat-lock-msg';
+    satMsg.style.cssText='font-size:11px;color:var(--text-3);padding:4px 8px;background:var(--bg-card-2);border-radius:6px;margin-bottom:8px;';
+    var modal=document.getElementById('fact-modal');
+    var form=modal&&modal.querySelector('form');
+    if(form) form.insertBefore(satMsg,form.firstChild);
+  }
+  satMsg.textContent = isSAT ? '🔒 Factura SAT · Solo puedes editar: método de pago, concepto, proyecto y notas.' : '';
+  satMsg.style.display = isSAT ? 'block' : 'none';
 }
 
 // ── Con/sin factura SAT toggle ─────────────────────────

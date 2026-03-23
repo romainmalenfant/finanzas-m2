@@ -151,7 +151,7 @@ async function verDetalleEmpresa(id){
         cxcFacturas.sort(function(a,b){return a.fecha>b.fecha?1:-1;}).map(function(f){
           var dias=f.fecha?Math.floor((hoy-new Date(f.fecha))/(864e5)):0;
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
-          return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();verDetalleFactura(\''+f.id+'\')"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
+          return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleFactura(\''+f.id+'\')"><div><div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.descripcion||'Sin desc.').slice(0,40)+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha)+(f.fecha?' · <span style="color:'+color+';">'+dias+'d</span>':'')+'</div></div>'+
             '<span style="font-weight:600;color:#fbbf24;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')  +
@@ -257,7 +257,7 @@ async function verDetalleProveedor(id){
           var dias=Math.floor((hoy-new Date(f.fecha))/(864e5));
           var color=dias>60?'#f87171':dias>30?'#fbbf24':'#34d399';
           var fdesc=(f.numero_factura||f.descripcion||'').replace(/undefined|null/g,'').trim()||'Sin desc.';
-          return '<div class="detail-list-item" style="cursor:pointer;" onclick="cerrarDetail();verDetalleFactura(\''+f.id+'\')"><div><div style="font-size:12px;color:var(--text-1);">'+esc(fdesc.slice(0,40))+'</div>'+
+          return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleFactura(\''+f.id+'\')"><div><div style="font-size:12px;color:var(--text-1);">'+esc(fdesc.slice(0,40))+'</div>'+
             '<div style="font-size:10px;color:var(--text-3);">'+fmtDateFull(f.fecha||'')+(f.fecha?' · <span style="color:'+color+';">'+dias+'d</span>':'')+'</div></div>'+
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(f.monto)||0)+'</span></div>';
         }).join('')+'</div>':'')+

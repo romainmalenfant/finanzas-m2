@@ -447,17 +447,19 @@ async function verDetalleFactura(id){
   var ini = nombre.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'F';
   var hoy = new Date();
   // Fecha vencimiento: usar guardada o estimar desde condiciones del cliente/proveedor
-  var _vencFecha = f.fecha_vencimiento;
-  if(!_vencFecha && f.fecha){
+  var fechaVencVal = f.fecha_vencimiento || '';
+  var fechaVencDisplay = f.fecha_vencimiento ? fmtDate(f.fecha_vencimiento) : '—';
+  if(!fechaVencVal && f.fecha){
     var _dias=30;
     if(f.tipo==='emitida'&&f.cliente_id){var _c=(clientes||[]).find(function(c){return c.id===f.cliente_id;});if(_c&&DIAS_CONDICIONES[_c.condiciones_pago]!=null)_dias=DIAS_CONDICIONES[_c.condiciones_pago];}
     else if(f.tipo==='recibida'&&f.proveedor_id){var _p=(proveedores||[]).find(function(p){return p.id===f.proveedor_id;});if(_p&&DIAS_CONDICIONES[_p.condiciones_pago]!=null)_dias=DIAS_CONDICIONES[_p.condiciones_pago];}
     var _fb=new Date(f.fecha+'T12:00');_fb.setDate(_fb.getDate()+_dias);
-    _vencFecha=_fb.toISOString().split('T')[0];
+    fechaVencVal=_fb.toISOString().split('T')[0];
+    fechaVencDisplay=fmtDate(fechaVencVal)+' (est.)';
   }
   // Días para vencer (negativo = ya venció)
-  var diasVenc = _vencFecha
-    ? Math.floor((new Date(_vencFecha+'T12:00') - hoy) / 864e5)
+  var diasVenc = fechaVencVal
+    ? Math.floor((new Date(fechaVencVal+'T12:00') - hoy) / 864e5)
     : null;
   var semColor = diasVenc === null ? 'var(--text-3)'
     : diasVenc < 0  ? '#dc2626'
@@ -474,23 +476,6 @@ async function verDetalleFactura(id){
   var ivaCalc = (parseFloat(f.iva)||0) > 0 ? parseFloat(f.iva)
     : subtotalNum > 0 ? totalNum - subtotalNum
     : totalNum * 16/116;
-
-  // Fecha de vencimiento: usar guardada o calcular desde condiciones del cliente/proveedor
-  var fechaVencDisplay = f.fecha_vencimiento ? fmtDate(f.fecha_vencimiento) : '—';
-  var fechaVencVal = f.fecha_vencimiento || '';
-  if(!fechaVencVal && f.fecha){
-    var dias30 = 30;
-    if(f.tipo==='emitida' && f.cliente_id){
-      var cliObj=(clientes||[]).find(function(c){return c.id===f.cliente_id;});
-      if(cliObj && DIAS_CONDICIONES[cliObj.condiciones_pago]!=null) dias30=DIAS_CONDICIONES[cliObj.condiciones_pago];
-    } else if(f.tipo==='recibida' && f.proveedor_id){
-      var provObj=(proveedores||[]).find(function(p){return p.id===f.proveedor_id;});
-      if(provObj && DIAS_CONDICIONES[provObj.condiciones_pago]!=null) dias30=DIAS_CONDICIONES[provObj.condiciones_pago];
-    }
-    var fBase=new Date(f.fecha+'T12:00'); fBase.setDate(fBase.getDate()+dias30);
-    fechaVencVal=fBase.toISOString().split('T')[0];
-    fechaVencDisplay=fmtDate(fechaVencVal)+' (estimado)';
-  }
 
   var esSAT = f.origen==='sat';
   var uuidStr = f.uuid_sat||'';

@@ -108,12 +108,12 @@ async function verDetalleEmpresa(id){
     var seen={}; var mvmts=[];
     (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'')+(m.descripcion||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
 
-    var {data:cx1raw}=await sb.from('facturas').select('total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('cliente_id',id);
-    var cx1=(cx1raw||[]).map(function(f){return {monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
+    var {data:cx1raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('cliente_id',id);
+    var cx1=(cx1raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
     var cx2data=[];
     if(c.rfc){
-      var {data:cx2raw}=await sb.from('facturas').select('total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('receptor_rfc',c.rfc);
-      cx2data=(cx2raw||[]).map(function(f){return {monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
+      var {data:cx2raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('receptor_rfc',c.rfc);
+      cx2data=(cx2raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
     }
     var seenC={}; var cxcFacturas=[];
     (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxcFacturas.push(m);}}); 
@@ -216,12 +216,12 @@ async function verDetalleProveedor(id){
     var seen={}; var mvmts=[];
     (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
 
-    var {data:cx1raw}=await sb.from('facturas').select('total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('proveedor_id',String(id));
-    var cx1=(cx1raw||[]).map(function(f){return {monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
+    var {data:cx1raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('proveedor_id',String(id));
+    var cx1=(cx1raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
     var cx2data=[];
     if(p.rfc){
-      var {data:cx2raw}=await sb.from('facturas').select('total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('emisor_rfc',p.rfc);
-      cx2data=(cx2raw||[]).map(function(f){return {monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
+      var {data:cx2raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('emisor_rfc',p.rfc);
+      cx2data=(cx2raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
     }
     var seenC={}; var cxp=[];
     (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxp.push(m);}});

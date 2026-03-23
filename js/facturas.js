@@ -446,9 +446,18 @@ async function verDetalleFactura(id){
   var nombre = f.tipo==='emitida'?(f.receptor_nombre||f.receptor_rfc||'—'):(f.emisor_nombre||f.emisor_rfc||'—');
   var ini = nombre.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'F';
   var hoy = new Date();
+  // Fecha vencimiento: usar guardada o estimar desde condiciones del cliente/proveedor
+  var _vencFecha = f.fecha_vencimiento;
+  if(!_vencFecha && f.fecha){
+    var _dias=30;
+    if(f.tipo==='emitida'&&f.cliente_id){var _c=(clientes||[]).find(function(c){return c.id===f.cliente_id;});if(_c&&DIAS_CONDICIONES[_c.condiciones_pago]!=null)_dias=DIAS_CONDICIONES[_c.condiciones_pago];}
+    else if(f.tipo==='recibida'&&f.proveedor_id){var _p=(proveedores||[]).find(function(p){return p.id===f.proveedor_id;});if(_p&&DIAS_CONDICIONES[_p.condiciones_pago]!=null)_dias=DIAS_CONDICIONES[_p.condiciones_pago];}
+    var _fb=new Date(f.fecha+'T12:00');_fb.setDate(_fb.getDate()+_dias);
+    _vencFecha=_fb.toISOString().split('T')[0];
+  }
   // Días para vencer (negativo = ya venció)
-  var diasVenc = f.fecha_vencimiento
-    ? Math.floor((new Date(f.fecha_vencimiento+'T12:00') - hoy) / 864e5)
+  var diasVenc = _vencFecha
+    ? Math.floor((new Date(_vencFecha+'T12:00') - hoy) / 864e5)
     : null;
   var semColor = diasVenc === null ? 'var(--text-3)'
     : diasVenc < 0  ? '#dc2626'

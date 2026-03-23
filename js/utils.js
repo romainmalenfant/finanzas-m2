@@ -16,7 +16,7 @@ function toggleTheme(){
 })();
 
 // ── Helpers ──────────────────────────────────────────────
-function fmt(n){var a=Math.abs(Math.round(n));return(n<0?'-':'')+'$'+a.toLocaleString('es-MX');}
+function fmt(n){var a=Math.abs(n);return(n<0?'-':'')+'$'+a.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtDate(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');var hoy=new Date();var base=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return d.getFullYear()===hoy.getFullYear()?base:base+' '+d.getFullYear();}
 function fmtDateFull(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]+' '+d.getFullYear();}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}

@@ -104,7 +104,7 @@ async function mostrarPreviewBanco(movs,fileName){
       '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px;">'+
         '<div><div style="font-size:11px;color:var(--text-3);">Abonos</div><div style="font-size:16px;font-weight:700;color:#16a34a;">'+fmt(totalAbonos)+'</div></div>'+
         '<div><div style="font-size:11px;color:var(--text-3);">Cargos</div><div style="font-size:16px;font-weight:700;color:#dc2626;">'+fmt(totalCargos)+'</div></div>'+
-        '<div><div style="font-size:11px;color:var(--text-3);">Saldo inicial</div><div style="font-size:14px;font-weight:600;">'+fmt(firstMov.saldo)+'</div></div>'+
+        '<div><div style="font-size:11px;color:var(--text-3);">Saldo inicial</div><div style="font-size:14px;font-weight:600;">'+fmt(firstMov.saldo+firstMov.cargo-firstMov.abono)+'</div></div>'+
         '<div><div style="font-size:11px;color:var(--text-3);">Saldo final</div><div style="font-size:14px;font-weight:600;">'+fmt(saldoFinal)+'</div></div>'+
       '</div>'+
       '<div style="font-size:11px;color:var(--text-3);">'+movs.length+' movimientos · '+esc(fileName)+'</div>'+
@@ -200,6 +200,9 @@ function _renderBancoKPIs(movs){
     '<div class="mcard"><div class="mlabel">Cargos año</div><div class="mvalue c-red">'+fmt(cargos)+'</div></div>'+
     '<div class="mcard"><div class="mlabel">Sin conciliar</div><div class="mvalue c-amber">'+sinConc+'</div></div>';
 }
+
+// Public wrapper — called from index.html sort selector
+function renderMovsBanco(){ _renderMovsBanco(_bancoData); }
 
 function _renderMovsBanco(movs){
   var el=document.getElementById('banco-list');

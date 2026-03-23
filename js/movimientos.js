@@ -151,7 +151,8 @@ async function processMovement(){
       year:p.year,
       month:p.month,
       usuario:userName,
-      etiqueta:(p.category==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null
+      etiqueta:(p.category==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
+      origen:'manual'
     };
     await insertMovement(mv);
     var mesDistinto=(p.year!==curYear||p.month!==curMonth+1);

@@ -83,10 +83,21 @@ async function insertEntrega(entrega){
 }
 
 // ── Navigation ───────────────────────────────────────────
-function prevMonth(){if(curMonth===0){curMonth=11;curYear--;}else{curMonth--;}loadMovements();}
-function nextMonth(){if(curMonth===11){curMonth=0;curYear++;}else{curMonth++;}loadMovements();}
-function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMovements();}
+function prevMonth(){if(curMonth===0){curMonth=11;curYear--;}else{curMonth--;}loadMovements();_syncFacturasNav();}
+function nextMonth(){if(curMonth===11){curMonth=0;curYear++;}else{curMonth++;}loadMovements();_syncFacturasNav();}
+function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMovements();_syncFacturasNav();}
 function handleKey(e){if(e.ctrlKey&&e.key==='Enter')processMovement();}
+
+function _syncFacturasNav(){
+  var factTab=document.getElementById('tab-facturas');
+  if(!factTab||factTab.style.display==='none')return;
+  if(typeof facturasMonthFilter!=='undefined')facturasMonthFilter=curMonth+1;
+  var mSel=document.getElementById('fact-month-filter');
+  if(mSel)mSel.value=String(curMonth+1);
+  var ySel=document.getElementById('fact-year-filter');
+  if(ySel)ySel.value=String(curYear);
+  if(typeof loadFacturas==='function')loadFacturas();
+}
 
 
 // ── Polling ──────────────────────────────────────────────

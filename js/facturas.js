@@ -2,6 +2,7 @@
 var allFacturas = [];
 var facturasTipo = 'emitidas'; // emitidas | recibidas | conciliadas | complementos
 var facturasYearFilter = new Date().getFullYear();
+var facturasMonthFilter = 0; // 0 = todo el año, 1-12 = mes específico
 
 // ── Load ─────────────────────────────────────────────────
 
@@ -92,6 +93,20 @@ async function loadFacturas(){
     }
     facturasYearFilter = parseInt((yearSel&&yearSel.value)||new Date().getFullYear());
 
+    // Month filter dropdown init
+    var monthSel = document.getElementById('fact-month-filter');
+    if(monthSel && !monthSel.options.length){
+      var mNames=['Todos','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      mNames.forEach(function(m,i){
+        var mo=document.createElement('option');
+        mo.value=i; mo.textContent=m;
+        monthSel.appendChild(mo);
+      });
+      // Default: current month
+      monthSel.value=String(curMonth+1);
+    }
+    facturasMonthFilter = parseInt((monthSel&&monthSel.value)||0);
+
     var {data,error} = await sb.from('facturas').select('*').eq('year',facturasYearFilter).order('fecha',{ascending:false});
     if(error)throw error;
     allFacturas = data||[];
@@ -181,6 +196,11 @@ function filtrarFacturas(q){
   var estatusFiltro = (document.getElementById('fact-estatus-filter')||{}).value||'';
 
   var filtered = allFacturas.filter(function(f){
+    // Month filter
+    if(facturasMonthFilter>0 && f.fecha){
+      var fm=new Date(f.fecha+'T12:00').getMonth()+1;
+      if(fm!==facturasMonthFilter)return false;
+    }
     // Tab filter
     if(facturasTipo==='emitidas'){
       if(f.tipo!=='emitida'||f.sin_factura) return false;

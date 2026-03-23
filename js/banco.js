@@ -63,27 +63,32 @@ function parseBBVAExcel(buf){
 }
 
 // ── Categoría ─────────────────────────────────────────────────────────────
-function detectarCategoriaBanco(concepto){
+// esAbono: true = abono (ingreso), false = cargo (egreso)
+function detectarCategoriaBanco(concepto, esAbono){
   var c=(concepto||'').toUpperCase();
+  if(/\bMUTUO\b/.test(c))                                        return 'prestamo';
   if(/PRIMA VACACIONAL|DISPERSION NOMINA|PAGO NOMINA/.test(c))  return 'nomina';
   if(/\bIMSS\b|AFORE|\bINFONAVIT\b/.test(c))                    return 'obligacion_patronal';
   if(/\bSAT\b.*GUIA|SAT GUIA|PAGO SAT|PAGO.*\bSAT\b/.test(c)) return 'impuesto';
-  if(/\bMUTUO\b/.test(c))                                        return 'prestamo';
-  if(/DEPOSITO DE TERCERO|SPEI RECIBIDO/.test(c))               return 'cliente';
-  return 'otro';
+  // Default por tipo de movimiento
+  return esAbono ? 'cliente' : 'proveedor';
 }
 
 var _catLabels={
-  nomina:'Nómina', obligacion_patronal:'Obl. patronal',
-  impuesto:'Impuesto', cliente:'Cliente', prestamo:'Préstamo', otro:'General'
+  nomina:'Nómina',
+  obligacion_patronal:'Obl. patronal',
+  impuesto:'Impuesto',
+  cliente:'Pago Cliente',
+  proveedor:'Pago Proveedores',
+  prestamo:'Préstamo'
 };
 var _catColors={
   nomina:'background:#fef9c3;color:#854d0e',
   obligacion_patronal:'background:#fee2e2;color:#991b1b',
   impuesto:'background:#fce7f3;color:#9d174d',
   cliente:'background:#d1fae5;color:#065f46',
-  prestamo:'background:#ede9fe;color:#5b21b6',
-  otro:'background:#e0e7ff;color:#3730a3'
+  proveedor:'background:#e0e7ff;color:#3730a3',
+  prestamo:'background:#ede9fe;color:#5b21b6'
 };
 
 // ── Import Entry Point ────────────────────────────────────────────────────
@@ -133,7 +138,7 @@ async function mostrarPreviewBanco(movs,fileName){
 
   // Conteo por categoría
   var catCount={};
-  movs.forEach(function(m){var c=detectarCategoriaBanco(m.concepto);catCount[c]=(catCount[c]||0)+1;});
+  movs.forEach(function(m){var c=detectarCategoriaBanco(m.concepto,m.abono>0);catCount[c]=(catCount[c]||0)+1;});
 
   var summaryHtml=
     '<div style="background:var(--bg-card-2);border-radius:8px;padding:12px;margin-bottom:12px;">'+
@@ -156,7 +161,7 @@ async function mostrarPreviewBanco(movs,fileName){
     '<th style="text-align:right;">Abono</th><th style="text-align:right;">Saldo</th><th>Categoría</th>'+
     '</tr></thead><tbody>'+
     movs.map(function(m){
-      var cat=detectarCategoriaBanco(m.concepto);
+      var cat=detectarCategoriaBanco(m.concepto,m.abono>0);
       return '<tr>'+
         '<td style="white-space:nowrap;">'+fmtDate(m.fecha)+'</td>'+
         '<td style="font-size:11px;max-width:260px;">'+esc(m.concepto.slice(0,80))+'</td>'+
@@ -181,7 +186,7 @@ async function mostrarPreviewBanco(movs,fileName){
 function _buildBancoRows(movs){
   return movs.map(function(m,i){
     var esAbono=m.abono>0;
-    var cat=detectarCategoriaBanco(m.concepto);
+    var cat=detectarCategoriaBanco(m.concepto,esAbono);
     var monto=esAbono?m.abono:m.cargo;
     var safeKey=m.concepto.replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
     return {
@@ -331,7 +336,7 @@ function _renderBancoKPIs(movs){
 function renderMovsBanco(){ _renderMovsBanco(_bancoData); }
 
 // ── Categoría editable ────────────────────────────────────────────────────
-var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','prestamo','otro'];
+var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','proveedor','prestamo'];
 function _catSelect(id, current){
   return '<select onchange="_cambiarCategoria(\''+id+'\',this.value)" '+
     'style="font-size:10px;padding:1px 6px;border:0.5px solid var(--border);border-radius:8px;'+
@@ -385,7 +390,7 @@ function _renderMovsBanco(movs){
 // ── Conciliación masiva ───────────────────────────────────────────────────
 async function conciliarMes(){
   var toMatch=_bancoData.filter(function(m){
-    return !m.conciliado&&(m.categoria==='cliente'||m.categoria==='otro'||!m.categoria);
+    return !m.conciliado&&(m.categoria==='cliente'||m.categoria==='proveedor'||!m.categoria);
   });
   if(!toMatch.length){showStatus('No hay movimientos pendientes de conciliar.');return;}
   showStatus('Buscando matches…',0);

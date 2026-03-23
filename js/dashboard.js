@@ -334,7 +334,7 @@ async function loadDashboard(){
   try{
     // P1-a: ventas YTD from facturas emitidas Ingreso; compras from facturas recibidas Ingreso; gastos from movimientos_v2
     var dashResults=await Promise.all([
-      sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
+      sb.from('movimientos_v2').select('categoria,tipo,monto,month,year').eq('year',año),
       sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
       sb.from('facturas').select('total,month').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
     ]);

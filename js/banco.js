@@ -434,12 +434,16 @@ function _mostrarModalConciliacion(matches){
   var sinSug=matches.filter(function(x){return x.candidatos.length===0;}).length;
 
   var html='<div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">'+
-    conSug+' con sugerencia · '+sinSug+' sin match exacto</div>'+
+    '<span style="color:#16a34a;font-weight:600;">'+conSug+' con sugerencia</span>'+
+    ' · <span style="color:#f87171;">'+sinSug+' sin match exacto</span></div>'+
     matches.map(function(x,xi){
       var m=x.mov;
       var esAbono=(m.abono||0)>0;
       var monto=parseFloat(m.abono||m.cargo)||0;
-      var candidatosHtml=x.candidatos.length
+      var tieneMatch=x.candidatos.length>0;
+      // borde: verde si hay sugerencia, ámbar si no
+      var cardBorder=tieneMatch?'border:1px solid #16a34a;':'border:1px solid #f59e0b;';
+      var candidatosHtml=tieneMatch
         ? x.candidatos.map(function(f,fi){
             var nombre=(f.receptor_nombre||f.emisor_nombre||'—').slice(0,40);
             var diff=Math.abs((parseFloat(f.total)||0)-monto);
@@ -450,17 +454,20 @@ function _mostrarModalConciliacion(matches){
               (diff>0?'<span style="color:var(--text-3);font-weight:400;font-size:10px;"> Δ'+fmt(diff)+'</span>':'')+'</div>'+
             '</label>';
           }).join('')
-        : '<div style="font-size:11px;color:var(--text-3);padding:6px 0;">Sin facturas con monto similar (±$1.00)</div>';
-      return '<div style="border:0.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">'+
+        : '<div style="font-size:11px;color:#f59e0b;padding:6px 0;">Sin facturas con monto similar (±$1.00)</div>';
+      return '<div style="'+cardBorder+'border-radius:8px;padding:10px 12px;margin-bottom:10px;">'+
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
           '<div><div style="font-size:11px;font-weight:600;">'+esc((m.descripcion||'').slice(0,65))+'</div>'+
           '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
           '<div style="font-size:15px;font-weight:700;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(monto)+'</div>'+
         '</div>'+
         candidatosHtml+
-        (x.candidatos.length
-          ? '<button class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="margin-top:8px;font-size:11px;">✓ Confirmar match</button>'
+        '<div style="display:flex;gap:8px;margin-top:8px;">'+
+        (tieneMatch
+          ? '<button class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="font-size:11px;">✓ Confirmar match</button>'
           : '')+
+        '<button class="btn-sm" onclick="_forzarConciliacion('+xi+')" style="font-size:11px;color:var(--text-3);border-color:var(--border);">Marcar conciliado sin factura</button>'+
+        '</div>'+
       '</div>';
     }).join('');
 
@@ -483,17 +490,25 @@ async function _confirmarConcMatch(xi){
   try{
     await sb.from('facturas').update({conciliado:true}).eq('id',factId);
     await sb.from('movimientos_v2').update({conciliado:true,factura_id:factId}).eq('id',x.mov.id);
-    // Update in memory
     var mi=_bancoData.findIndex(function(m){return m.id===x.mov.id;});
     if(mi>=0){_bancoData[mi].conciliado=true;_bancoData[mi].factura_id=factId;}
     _concMatches.splice(xi,1);
-    // Re-render modal
-    if(_concMatches.length){
-      _mostrarModalConciliacion(_concMatches);
-    } else {
-      cerrarSATPreview();
-      showStatus('✓ Conciliación completada');
-    }
+    if(_concMatches.length){_mostrarModalConciliacion(_concMatches);}
+    else{cerrarSATPreview();showStatus('✓ Conciliación completada');}
+    _renderBancoKPIs(_bancoData);
+    _renderMovsBanco(_bancoData);
+  }catch(e){showError('Error: '+e.message);}
+}
+
+async function _forzarConciliacion(xi){
+  var x=_concMatches[xi];if(!x)return;
+  try{
+    await sb.from('movimientos_v2').update({conciliado:true}).eq('id',x.mov.id);
+    var mi=_bancoData.findIndex(function(m){return m.id===x.mov.id;});
+    if(mi>=0){_bancoData[mi].conciliado=true;}
+    _concMatches.splice(xi,1);
+    if(_concMatches.length){_mostrarModalConciliacion(_concMatches);}
+    else{cerrarSATPreview();showStatus('✓ Conciliación completada');}
     _renderBancoKPIs(_bancoData);
     _renderMovsBanco(_bancoData);
   }catch(e){showError('Error: '+e.message);}

@@ -84,12 +84,15 @@ async function loadMovements(){
   if(listEl)listEl.innerHTML=[1,2,3,4,5].map(function(){return '<div class="sk-card"><div class="sk-avatar skeleton"></div><div class="sk-card-body"><div class="sk-line skeleton"></div><div class="sk-line-sm skeleton"></div></div></div>';}).join("");
   try{
     // P1-a: load movimientos (cobranza/gasto/BBVA) AND ventas from facturas in parallel
+    var todosLosMeses=(curMonth===-1);
+    var qMov=sb.from(TABLE).select('*').eq('year',curYear).in('origen',['manual','banco_abono','banco_cargo']);
+    if(!todosLosMeses)qMov=qMov.eq('month',curMonth+1);
+    var qFact=sb.from('facturas').select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
+      .eq('tipo','emitida').eq('year',curYear);
+    if(!todosLosMeses)qFact=qFact.eq('month',curMonth+1);
     var results=await Promise.all([
-      sb.from(TABLE).select('*').eq('year',curYear).eq('month',curMonth+1)
-        .in('origen',['manual','banco_abono','banco_cargo'])
-        .order('fecha',{ascending:false}),
-      sb.from('facturas').select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
-        .eq('tipo','emitida').eq('year',curYear).eq('month',curMonth+1).order('fecha',{ascending:false})
+      qMov.order('fecha',{ascending:false}),
+      qFact.order('fecha',{ascending:false})
     ]);
     if(results[0].error)throw results[0].error;
     // Facturas query failure is non-fatal — degrade gracefully

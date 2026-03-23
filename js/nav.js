@@ -99,6 +99,9 @@ function initFlujoSelectors(){
   } else if(ySel){ySel.value=String(curYear);}
   var mSel=document.getElementById('flujo-month-sel');
   if(mSel&&!mSel.options.length){
+    var todosOpt=document.createElement('option');
+    todosOpt.value=-1;todosOpt.textContent='Todos los meses';
+    mSel.appendChild(todosOpt);
     MONTHS.forEach(function(m,i){
       var o=document.createElement('option');
       o.value=i;o.textContent=m;

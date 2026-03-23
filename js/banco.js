@@ -337,11 +337,13 @@ function renderMovsBanco(){ _renderMovsBanco(_bancoData); }
 
 // ── Categoría editable ────────────────────────────────────────────────────
 var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','proveedor','prestamo'];
+var _catColorFallback='background:#e0e7ff;color:#3730a3';
 function _catSelect(id, current){
+  var style=_catColors[current]||_catColorFallback;
   return '<select onchange="_cambiarCategoria(\''+id+'\',this.value)" '+
     'style="font-size:10px;padding:1px 6px;border:0.5px solid var(--border);border-radius:8px;'+
-    'background:'+ (_catColors[current]||_catColors.otro).split(';')[0].replace('background:','')+
-    ';color:'+ (_catColors[current]||_catColors.otro).split(';')[1].replace('color:','')+
+    'background:'+style.split(';')[0].replace('background:','')+
+    ';color:'+style.split(';')[1].replace('color:','')+
     ';font-family:inherit;cursor:pointer;">'+
     _catOpts.map(function(c){
       return '<option value="'+c+'"'+(c===current?' selected':'')+'>'+_catLabels[c]+'</option>';

@@ -184,7 +184,7 @@ function computeMetrics(){
 
 // ── Render ───────────────────────────────────────────────
 function render(){
-  var _ml=document.getElementById('month-label');if(_ml)_ml.textContent=MONTHS[curMonth]+' '+curYear;
+  var _ml=document.getElementById('month-label');if(_ml)_ml.textContent=(curMonth===-1?'Todo '+curYear:MONTHS[curMonth]+' '+curYear);
   var m=computeMetrics();
   document.getElementById('m-ventas').textContent=fmt(m.ventas);
   document.getElementById('m-cobr').textContent=fmt(m.cobr);

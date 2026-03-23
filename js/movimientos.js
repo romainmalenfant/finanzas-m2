@@ -208,8 +208,8 @@ function renderChart(m){
   if(!ctx)return; // canvas not in DOM yet
   ctx.style.background='transparent';
   var vals=[m.ventas,m.cobr,m.gastos,m.cxc];
-  var bg=['#34d39933','#60a5fa33','#f8717133','#fbbf2433'];
-  var br=['#34d399','#60a5fa','#f87171','#fbbf24'];
+  var bg=['#34d39933','#60a5fa33','#d9770633','#fbbf2433'];
+  var br=['#34d399','#60a5fa','#d97706','#fbbf24'];
   if(myChart){myChart.destroy();}
   myChart=new Chart(ctx,{
     type:'bar',
@@ -266,7 +266,7 @@ function sortAndRender(){
     // Método pago: default Transferencia para banco
     var metodo = m.metodo_pago || (m.origen==='banco_abono'||m.origen==='banco_cargo' ? 'Transferencia' : null);
     return '<div class="mvmt-item">'+
-      '<div class="mvmt-dot" style="background:'+(esTipoIngreso?'#34d399':'#f87171')+'"></div>'+
+      '<div class="mvmt-dot" style="background:'+(esTipoIngreso?'#34d399':'#d97706')+'"></div>'+
       '<div class="mvmt-info">'+
         '<div class="mvmt-desc">'+desc+'</div>'+
         '<div class="mvmt-meta">'+
@@ -277,7 +277,7 @@ function sortAndRender(){
           '<span class="mvmt-date">'+fmtDate(m.fecha)+'</span>'+
         '</div>'+
       '</div>'+
-      '<div class="mvmt-amount" style="color:'+(esTipoIngreso?'#34d399':'#f87171')+'">'+(esTipoIngreso?'+':'-')+fmt(parseFloat(m.monto)||0)+'</div>'+
+      '<div class="mvmt-amount" style="color:'+(esTipoIngreso?'#34d399':'#d97706')+'">'+(esTipoIngreso?'+':'-')+fmt(parseFloat(m.monto)||0)+'</div>'+
     '</div>';
   }).join('');
 }

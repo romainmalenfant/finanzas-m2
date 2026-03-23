@@ -31,7 +31,7 @@ async function loadFinanzasKPIs(){
     var saldo = ingresos - egresos;
     var set=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
     set('fin-ingresos', ingresos, 'c-green');
-    set('fin-egresos',  egresos,  'c-red');
+    set('fin-egresos',  egresos,  'c-amber');
     var saldoEl=document.getElementById('fin-saldo');
     if(saldoEl){saldoEl.textContent=fmt(saldo);saldoEl.className='mvalue '+(saldo>=0?'c-util-pos':'c-util-neg');}
   }catch(e){console.error('Flujo KPIs:',e);}
@@ -247,7 +247,7 @@ async function loadCxC(){
   try{
     var {data}=await sb.from('facturas')
       .select('receptor_nombre,total,fecha')
-      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada');
+      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada').eq('efecto_sat','Ingreso');
     if(data)data=data.map(function(f){return {contraparte:f.receptor_nombre,monto:f.total,fecha:f.fecha};});
     var rows=data||[];
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
@@ -352,8 +352,10 @@ async function loadDashboard(){
     document.getElementById('db-ventas-ytd').textContent=fmt(ventasYTD);
     document.getElementById('db-util-ytd').textContent=fmt(utilYTD);
     document.getElementById('db-cobr-ytd').textContent=fmt(cobrYTD);
-    document.getElementById('db-gasto-ytd').textContent=fmt(gastoYTD);
-    document.getElementById('db-flujo-ytd').textContent=fmt(flujoYTD);
+    var gastoYtdEl=document.getElementById('db-gasto-ytd');
+    if(gastoYtdEl){gastoYtdEl.textContent=fmt(gastoYTD);gastoYtdEl.className='mvalue c-amber';}
+    var flujoYtdEl=document.getElementById('db-flujo-ytd');
+    if(flujoYtdEl){flujoYtdEl.textContent=fmt(flujoYTD);flujoYtdEl.className='mvalue '+(flujoYTD>=0?'c-util-pos':'c-util-neg');}
     document.getElementById('db-util-ytd').className='mvalue-hero '+(utilYTD>=0?'c-util-pos':'c-util-neg');
     // P1-d: KPIs del mes en Dashboard
     var ventasMesDB=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -364,7 +366,7 @@ async function loadDashboard(){
     var setMes=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
     setMes('db-ventas-mes',ventasMesDB,'c-green');
     setMes('db-cobr-mes',cobrMesDB,'c-blue');
-    setMes('db-gasto-mes',gastoMesDB,'c-red');
+    setMes('db-gasto-mes',gastoMesDB,'c-amber');
     setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
 
     // Por cobrar — solo Ingreso (excluye complementos de pago y notas de crédito)

@@ -295,15 +295,24 @@ function renderFacturaRow(f, hoy){
   nameDiv.style.cssText = 'font-size:12px;font-weight:500;color:var(--text-1);';
   nameDiv.textContent = nombre.slice(0,35);
   nameCell.appendChild(nameDiv);
-  if(f.concepto){
-    var concDiv = document.createElement('div');
-    concDiv.style.cssText = 'font-size:10px;color:var(--text-3);';
-    concDiv.textContent = f.concepto.slice(0,35);
-    nameCell.appendChild(concDiv);
-  }
   tr.appendChild(nameCell);
 
-  // Col 2: folio interno
+  // Col 2: concepto (o badge Nómina)
+  var concCell = document.createElement('td');
+  concCell.className = 'muted';
+  var efSat = (f.efecto_sat||'').toLowerCase();
+  if(efSat==='nómina'||efSat==='nomina'){
+    var nomBadge = document.createElement('span');
+    nomBadge.style.cssText = 'padding:2px 7px;border-radius:5px;font-size:11px;font-weight:500;background:#fef9c3;color:#854d0e;';
+    nomBadge.textContent = 'Nómina';
+    concCell.appendChild(nomBadge);
+  } else {
+    concCell.style.cssText = 'font-size:11px;color:var(--text-2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    concCell.textContent = (f.concepto||'—').slice(0,50);
+  }
+  tr.appendChild(concCell);
+
+  // Col 3: folio interno
   var folioCell = document.createElement('td');
   folioCell.className = 'muted';
   if(f.sin_factura){
@@ -317,7 +326,7 @@ function renderFacturaRow(f, hoy){
   }
   tr.appendChild(folioCell);
 
-  // Col 3: fecha emisión
+  // Col 4: fecha emisión
   var fechaCell = document.createElement('td');
   fechaCell.className = 'muted';
   fechaCell.textContent = fmtDate(f.fecha||'');
@@ -443,7 +452,7 @@ function renderFacturasList(list){
   var thead = document.createElement('thead');
   var thVenc = isDirecta ? '' : '<th>Vencimiento</th>';
   thead.innerHTML = '<tr><th>'+(isRecibida?'Proveedor':'Cliente')+'</th>'
-    + '<th>Folio</th><th>Emisión</th>'+thVenc+'<th>Método</th><th>Proyecto</th>'
+    + '<th>Concepto</th><th>Folio</th><th>Emisión</th>'+thVenc+'<th>Método</th><th>Proyecto</th>'
     + '<th style="text-align:right;">Total</th><th>Estatus</th></tr>';
   var tbody = document.createElement('tbody');
   var hoy = new Date();

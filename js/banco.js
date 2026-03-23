@@ -38,20 +38,22 @@ function detectarCategoriaBanco(concepto){
   var c=(concepto||'').toUpperCase();
   if(/PRIMA VACACIONAL|DISPERSION NOMINA|PAGO NOMINA/.test(c))  return 'nomina';
   if(/\bIMSS\b|AFORE|\bINFONAVIT\b/.test(c))                    return 'obligacion_patronal';
-  if(/SAT\/GUIA|SAT GUIA|PAGO SAT|KONFIO/.test(c))              return 'impuesto';
+  if(/\bSAT\b.*GUIA|SAT GUIA|PAGO SAT|PAGO.*\bSAT\b/.test(c)) return 'impuesto';
+  if(/\bKONFIO\b/.test(c))                                       return 'prestamo';
   if(/DEPOSITO DE TERCERO|SPEI RECIBIDO/.test(c))               return 'cliente';
   return 'otro';
 }
 
 var _catLabels={
   nomina:'Nómina', obligacion_patronal:'Obl. patronal',
-  impuesto:'Impuesto', cliente:'Cliente', otro:'General'
+  impuesto:'Impuesto', cliente:'Cliente', prestamo:'Préstamo', otro:'General'
 };
 var _catColors={
   nomina:'background:#fef9c3;color:#854d0e',
   obligacion_patronal:'background:#fee2e2;color:#991b1b',
   impuesto:'background:#fce7f3;color:#9d174d',
   cliente:'background:#d1fae5;color:#065f46',
+  prestamo:'background:#ede9fe;color:#5b21b6',
   otro:'background:#e0e7ff;color:#3730a3'
 };
 
@@ -76,8 +78,14 @@ async function importarBBVAExcel(input){
 async function mostrarPreviewBanco(movs,fileName){
   var totalAbonos = movs.reduce(function(a,m){return a+m.abono;},0);
   var totalCargos = movs.reduce(function(a,m){return a+m.cargo;},0);
-  var saldoFinal  = movs[0].saldo;          // más reciente (orden desc)
-  var firstMov    = movs[movs.length-1];    // más antiguo = primera transacción
+  // Saldo final = último movimiento del día más reciente (BBVA ASC dentro del día)
+  var maxFecha    = movs[0].fecha;
+  var maxFechaGrp = movs.filter(function(m){return m.fecha===maxFecha;});
+  var saldoFinal  = maxFechaGrp[maxFechaGrp.length-1].saldo;
+  // Saldo inicial = antes del primer movimiento del día más antiguo
+  var minFecha    = movs[movs.length-1].fecha;
+  var minFechaGrp = movs.filter(function(m){return m.fecha===minFecha;});
+  var firstMov    = minFechaGrp[0];         // primer txn del día más antiguo
 
   // Continuidad con mes anterior
   var continuityHtml='';
@@ -180,7 +188,7 @@ async function loadBanco(){
   try{
     var yearSel=document.getElementById('banco-year-sel');
     var año=parseInt((yearSel&&yearSel.value)||new Date().getFullYear());
-    var {data,error}=await sb.from('movimientos_banco').select('*').eq('year',año).order('fecha',{ascending:false}).order('orden',{ascending:true});
+    var {data,error}=await sb.from('movimientos_banco').select('*').eq('year',año).order('fecha',{ascending:false}).order('orden',{ascending:false});
     if(error) throw error;
     _bancoData=data||[];
     _renderBancoKPIs(_bancoData);
@@ -206,7 +214,7 @@ function _renderBancoKPIs(movs){
 function renderMovsBanco(){ _renderMovsBanco(_bancoData); }
 
 // ── Categoría editable ────────────────────────────────────────────────────
-var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','otro'];
+var _catOpts=['nomina','obligacion_patronal','impuesto','cliente','prestamo','otro'];
 function _catSelect(id, current){
   return '<select onchange="_cambiarCategoria(\''+id+'\',this.value)" '+
     'style="font-size:10px;padding:1px 6px;border:0.5px solid var(--border);border-radius:8px;'+

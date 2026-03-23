@@ -332,26 +332,28 @@ async function loadDashboard(){
   var añoAñoAnterior=año-1;
 
   try{
-    // P1-a: ventas YTD from facturas emitidas Ingreso, gastos from facturas recibidas Ingreso
+    // P1-a: ventas YTD from facturas emitidas Ingreso; compras from facturas recibidas Ingreso; gastos from movimientos_v2
     var dashResults=await Promise.all([
       sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',año),
       sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
       sb.from('facturas').select('total,month').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
     ]);
     var ytd=dashResults[0].data||[];
-    var factYTD=dashResults[1].data||[];
-    var gastosFactYTD=dashResults[2].data||[];
+    var factYTD=dashResults[1].data||[];       // ventas (CFDIs emitidos)
+    var comprasFactYTD=dashResults[2].data||[]; // compras (CFDIs recibidos)
 
     var ventasYTD=factYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var comprasYTD=comprasFactYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrYTD=ytd.filter(function(m){return m.tipo==='ingreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
-                +gastosFactYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-    var utilYTD=ventasYTD-gastoYTD;
-    var flujoYTD=cobrYTD-gastoYTD;
+    var gastoYTD=ytd.filter(function(m){return m.tipo==='egreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var utilYTD=ventasYTD-comprasYTD; // accrual: CFDIs emitidos − CFDIs recibidos
+    var flujoYTD=cobrYTD-gastoYTD;   // cash: ingresos − egresos de caja
 
     document.getElementById('db-ventas-ytd').textContent=fmt(ventasYTD);
     document.getElementById('db-util-ytd').textContent=fmt(utilYTD);
     document.getElementById('db-cobr-ytd').textContent=fmt(cobrYTD);
+    var comprasYtdEl=document.getElementById('db-compras-ytd');
+    if(comprasYtdEl){comprasYtdEl.textContent=fmt(comprasYTD);comprasYtdEl.className='mvalue c-amber';}
     var gastoYtdEl=document.getElementById('db-gasto-ytd');
     if(gastoYtdEl){gastoYtdEl.textContent=fmt(gastoYTD);gastoYtdEl.className='mvalue c-amber';}
     var flujoYtdEl=document.getElementById('db-flujo-ytd');
@@ -359,12 +361,13 @@ async function loadDashboard(){
     document.getElementById('db-util-ytd').className='mvalue-hero '+(utilYTD>=0?'c-util-pos':'c-util-neg');
     // P1-d: KPIs del mes en Dashboard
     var ventasMesDB=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var comprasMesDB=comprasFactYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrMesDB=ytd.filter(function(m){return m.tipo==='ingreso'&&m.categoria!=='prestamo'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoMesDB=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
-                  +gastosFactYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-    var utilMesDB=ventasMesDB-gastoMesDB;
+    var gastoMesDB=ytd.filter(function(m){return m.tipo==='egreso'&&m.categoria!=='prestamo'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var utilMesDB=ventasMesDB-comprasMesDB;
     var setMes=function(id,v,cls){var el=document.getElementById(id);if(!el)return;el.textContent=fmt(v);if(cls)el.className='mvalue '+(cls||'');};
     setMes('db-ventas-mes',ventasMesDB,'c-green');
+    setMes('db-compras-mes',comprasMesDB,'c-amber');
     setMes('db-cobr-mes',cobrMesDB,'c-blue');
     setMes('db-gasto-mes',gastoMesDB,'c-amber');
     setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
@@ -375,17 +378,17 @@ async function loadDashboard(){
     var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
 
-    // P1-a: MoM ventas from facturas, cobranza/gastos from movimientos_v2
-    var ventasMesVal=factYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-    var cobrMes=ytd.filter(function(m){return m.tipo==='ingreso'&&m.categoria!=='prestamo'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoMes=ytd.filter(function(m){return m.tipo==='egreso'&&m.month===mesActual;}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0)
-               +gastosFactYTD.filter(function(f){return f.month===mesActual;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-
-    var {data:lastYearData}=await sb.from('movimientos_v2').select('categoria,tipo,monto,month').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior);
-    var ly=lastYearData||[];
-    var ventasLY=ly.filter(function(m){return m.categoria==='venta';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    // MoM: usa mismas fuentes que métricas actuales (facturas para ventas/compras, movimientos para cobr/gasto)
+    var lyResults=await Promise.all([
+      sb.from('movimientos_v2').select('tipo,monto,categoria').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior),
+      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
+      sb.from('facturas').select('total').eq('tipo','recibida').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
+    ]);
+    var ly=lyResults[0].data||[];
+    var ventasLY=(lyResults[1].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var comprasLY=(lyResults[2].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrLY=ly.filter(function(m){return m.tipo==='ingreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
-    var gastoLY=ly.filter(function(m){return m.tipo==='egreso';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var gastoLY=ly.filter(function(m){return m.tipo==='egreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
     function momBadge(actual,anterior,label){
       if(!anterior)return '<span style="color:var(--text-3);">'+label+': '+fmt(actual)+'</span>';
@@ -394,10 +397,12 @@ async function loadDashboard(){
       var arrow=pct>=0?'↑':'↓';
       return '<span style="color:'+color+';">'+arrow+' '+Math.abs(pct)+'% vs '+MONTHS[mismoMesAñoAnterior-1]+' '+añoAñoAnterior+'</span>';
     }
-    document.getElementById('db-ventas-mom').innerHTML=momBadge(ventasMesVal,ventasLY,'Ventas '+MONTHS[mesActual-1]);
-    document.getElementById('db-cobr-mom').innerHTML=momBadge(cobrMes,cobrLY,'Cobr. '+MONTHS[mesActual-1]);
-    document.getElementById('db-gasto-mom').innerHTML=momBadge(gastoMes,gastoLY,'Gasto '+MONTHS[mesActual-1]);
-    document.getElementById('db-util-mom').innerHTML=momBadge(ventasMesVal-gastoMes,ventasLY-gastoLY,'Util. '+MONTHS[mesActual-1]);
+    document.getElementById('db-ventas-mom').innerHTML=momBadge(ventasMesDB,ventasLY,'Ventas '+MONTHS[mesActual-1]);
+    var comprasMomEl=document.getElementById('db-compras-mom');
+    if(comprasMomEl)comprasMomEl.innerHTML=momBadge(comprasMesDB,comprasLY,'Compras '+MONTHS[mesActual-1]);
+    document.getElementById('db-cobr-mom').innerHTML=momBadge(cobrMesDB,cobrLY,'Cobr. '+MONTHS[mesActual-1]);
+    document.getElementById('db-gasto-mom').innerHTML=momBadge(gastoMesDB,gastoLY,'Gasto '+MONTHS[mesActual-1]);
+    document.getElementById('db-util-mom').innerHTML=momBadge(ventasMesDB-comprasMesDB,ventasLY-comprasLY,'Util. '+MONTHS[mesActual-1]);
 
     // Gráfica 12 meses — incluye año anterior si necesario
     var meses12=[]; var labels12=[]; var vData=[]; var cData=[];

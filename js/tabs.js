@@ -50,15 +50,9 @@ function switchTab(tab, btn){
     activeBtn.style.setProperty('--tab-color', mod.color);
   }
 
-  // Mostrar/ocultar selector de período
-  var tb=document.querySelector('.topbar');
-  if(tb){
-    if(mod.showPeriod)tb.classList.remove('hide-period');
-    else tb.classList.add('hide-period');
-  }
-
   // Inicializar módulo
   if(tab==='dashboard')    loadDashboard();
+  if(tab==='finanzas')     {initFlujoSelectors();loadMovements();}
   if(tab==='proyectos')    loadProyectos();
   if(tab==='clientes')     {loadClientes();loadClientesKPIs();}
   if(tab==='proveedores')  {loadProveedores();loadProveedoresKPIs();}

@@ -83,20 +83,29 @@ async function insertEntrega(entrega){
 }
 
 // ── Navigation ───────────────────────────────────────────
-function prevMonth(){if(curMonth===0){curMonth=11;curYear--;}else{curMonth--;}loadMovements();_syncFacturasNav();}
-function nextMonth(){if(curMonth===11){curMonth=0;curYear++;}else{curMonth++;}loadMovements();_syncFacturasNav();}
-function goToday(){var n=new Date();curYear=n.getFullYear();curMonth=n.getMonth();loadMovements();_syncFacturasNav();}
 function handleKey(e){if(e.ctrlKey&&e.key==='Enter')processMovement();}
 
-function _syncFacturasNav(){
-  var factTab=document.getElementById('tab-facturas');
-  if(!factTab||factTab.style.display==='none')return;
-  if(typeof facturasMonthFilter!=='undefined')facturasMonthFilter=curMonth+1;
-  var mSel=document.getElementById('fact-month-filter');
-  if(mSel)mSel.value=String(curMonth+1);
-  var ySel=document.getElementById('fact-year-filter');
-  if(ySel)ySel.value=String(curYear);
-  if(typeof loadFacturas==='function')loadFacturas();
+// Inicializa los selectores de período del tab Flujo
+function initFlujoSelectors(){
+  var ySel=document.getElementById('flujo-year-sel');
+  if(ySel&&!ySel.options.length){
+    var yr=new Date().getFullYear();
+    for(var y=yr-3;y<=yr+1;y++){
+      var o=document.createElement('option');
+      o.value=y;o.textContent=y;
+      if(y===curYear)o.selected=true;
+      ySel.appendChild(o);
+    }
+  } else if(ySel){ySel.value=String(curYear);}
+  var mSel=document.getElementById('flujo-month-sel');
+  if(mSel&&!mSel.options.length){
+    MONTHS.forEach(function(m,i){
+      var o=document.createElement('option');
+      o.value=i;o.textContent=m;
+      if(i===curMonth)o.selected=true;
+      mSel.appendChild(o);
+    });
+  } else if(mSel){mSel.value=String(curMonth);}
 }
 
 

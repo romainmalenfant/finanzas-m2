@@ -1,9 +1,31 @@
 // ── Banco BBVA Module ─────────────────────────────────────────────────────
 // Parser Excel BBVA · Preview · Import · Conciliación
 
-var _bancoPreviewData = [];
-var _bancoData        = [];
-var _concMatches      = [];
+var _bancoPreviewData    = [];
+var _bancoData           = [];
+var _concMatches         = [];
+var _rowsPendingImport   = [];
+
+// ── Helpers de fecha ──────────────────────────────────────────────────────
+function _parseFechaBBVA(v){
+  if(!v) return null;
+  // Ya es Date (cellDates:true)
+  if(v instanceof Date){
+    if(isNaN(v.getTime())) return null;
+    return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  }
+  var s=String(v).trim();
+  // ISO: 2025-03-15
+  var iso=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if(iso) return iso[1]+'-'+iso[2].padStart(2,'0')+'-'+iso[3].padStart(2,'0');
+  // DD/MM/YYYY o D/M/YYYY
+  var dmy=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(dmy) return dmy[3]+'-'+dmy[2].padStart(2,'0')+'-'+dmy[1].padStart(2,'0');
+  // YYYY/MM/DD
+  var ymd=s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if(ymd) return ymd[1]+'-'+ymd[2].padStart(2,'0')+'-'+ymd[3].padStart(2,'0');
+  return null;
+}
 
 // ── Parser ────────────────────────────────────────────────────────────────
 function parseBBVAExcel(buf){
@@ -11,25 +33,32 @@ function parseBBVAExcel(buf){
   var ws   = wb.Sheets[wb.SheetNames[0]];
   var rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
   var movs = [];
-  for(var i=2;i<rows.length;i++){
+
+  // Detectar fila de inicio: primera fila donde fecha es válida Y (cargo>0 O abono>0)
+  var startRow = -1;
+  for(var i=0;i<rows.length;i++){
+    var r0=rows[i];
+    var fechaTmp=_parseFechaBBVA(r0[0]);
+    if(!fechaTmp) continue;
+    var cargoTmp =parseFloat(String(r0[2]||'').replace(/[$,]/g,''))||0;
+    var abonoTmp =parseFloat(String(r0[3]||'').replace(/[$,]/g,''))||0;
+    if(cargoTmp>0||abonoTmp>0){startRow=i;break;}
+  }
+  if(startRow<0) return movs; // sin datos
+
+  for(var i=startRow;i<rows.length;i++){
     var r        = rows[i];
-    var fechaRaw = r[0];  // col B = index 0 (sheet starts at col B)
+    var fecha    = _parseFechaBBVA(r[0]);
     var concepto = String(r[1]||'').trim();
     var cargo    = parseFloat(String(r[2]||'').replace(/[$,]/g,''))||0;
     var abono    = parseFloat(String(r[3]||'').replace(/[$,]/g,''))||0;
     var saldo    = parseFloat(String(r[4]||'').replace(/[$,]/g,''))||0;
-    if(!fechaRaw&&!concepto) continue;
-    var fecha;
-    if(fechaRaw instanceof Date){
-      var d=fechaRaw;
-      fecha=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    } else {
-      var pts=String(fechaRaw).split('/');
-      if(pts.length===3) fecha=pts[2].trim()+'-'+pts[1].trim().padStart(2,'0')+'-'+pts[0].trim().padStart(2,'0');
-    }
     if(!fecha||(!cargo&&!abono)) continue;
     movs.push({fecha:fecha,concepto:concepto,cargo:cargo,abono:abono,saldo:saldo});
   }
+
+  // BBVA exporta más-reciente primero → invertir para orden cronológico
+  movs.reverse();
   return movs;
 }
 
@@ -78,14 +107,12 @@ async function importarBBVAExcel(input){
 async function mostrarPreviewBanco(movs,fileName){
   var totalAbonos = movs.reduce(function(a,m){return a+m.abono;},0);
   var totalCargos = movs.reduce(function(a,m){return a+m.cargo;},0);
-  // Saldo final = último movimiento del día más reciente (BBVA ASC dentro del día)
-  var maxFecha    = movs[0].fecha;
-  var maxFechaGrp = movs.filter(function(m){return m.fecha===maxFecha;});
-  var saldoFinal  = maxFechaGrp[maxFechaGrp.length-1].saldo;
-  // Saldo inicial = antes del primer movimiento del día más antiguo
-  var minFecha    = movs[movs.length-1].fecha;
-  var minFechaGrp = movs.filter(function(m){return m.fecha===minFecha;});
-  var firstMov    = minFechaGrp[0];         // primer txn del día más antiguo
+  // movs está en orden cronológico ascendente (oldest first)
+  // Saldo final = último movimiento (más reciente)
+  var lastMov     = movs[movs.length-1];
+  var saldoFinal  = lastMov.saldo;
+  // Saldo inicial = antes del primer movimiento (más antiguo)
+  var firstMov    = movs[0];
 
   // Continuidad con mes anterior
   var continuityHtml='';
@@ -151,44 +178,111 @@ async function mostrarPreviewBanco(movs,fileName){
 }
 
 // ── Confirmar import ──────────────────────────────────────────────────────
+function _buildBancoRows(movs){
+  return movs.map(function(m,i){
+    var esAbono=m.abono>0;
+    var cat=detectarCategoriaBanco(m.concepto);
+    var monto=esAbono?m.abono:m.cargo;
+    var safeKey=m.concepto.replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
+    return {
+      id:'bbva_'+(esAbono?'a':'c')+'_'+m.fecha.replace(/-/g,'')+'_'+String(monto).replace(/\./g,'')+'_'+safeKey,
+      fecha:m.fecha,
+      descripcion:m.concepto,
+      monto:monto,
+      tipo:esAbono?'ingreso':'egreso',
+      categoria:cat,
+      origen:esAbono?'banco_abono':'banco_cargo',
+      cargo:m.cargo||null,
+      abono:m.abono||null,
+      saldo:m.saldo,
+      conciliado:['nomina','obligacion_patronal','impuesto'].includes(cat),
+      year:parseInt(m.fecha.split('-')[0]),
+      month:parseInt(m.fecha.split('-')[1]),
+      orden:i,
+      usuario:'banco_bbva'
+    };
+  });
+}
+
 async function confirmarImportBanco(){
   var btn=document.getElementById('btn-confirmar-sat');
-  if(btn){btn.disabled=true;btn.textContent='Importando…';}
+  if(btn){btn.disabled=true;btn.textContent='Verificando…';}
   try{
-    var rows=_bancoPreviewData.map(function(m,i){
-      var esAbono=m.abono>0;
-      var cat=detectarCategoriaBanco(m.concepto);
-      var monto=esAbono?m.abono:m.cargo;
-      var safeKey=m.concepto.replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
-      return {
-        id:'bbva_'+(esAbono?'a':'c')+'_'+m.fecha.replace(/-/g,'')+'_'+String(monto).replace(/\./g,'')+'_'+safeKey,
-        fecha:m.fecha,
-        descripcion:m.concepto,
-        monto:monto,
-        tipo:esAbono?'ingreso':'egreso',
-        categoria:cat,
-        origen:esAbono?'banco_abono':'banco_cargo',
-        cargo:m.cargo||null,
-        abono:m.abono||null,
-        saldo:m.saldo,
-        conciliado:['nomina','obligacion_patronal','impuesto'].includes(cat),
-        year:parseInt(m.fecha.split('-')[0]),
-        month:parseInt(m.fecha.split('-')[1]),
-        orden:i,
-        usuario:'banco_bbva'
-      };
-    });
-    var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
-    if(error) throw error;
+    var allRows=_buildBancoRows(_bancoPreviewData);
+    var ids=allRows.map(function(r){return r.id;});
 
-    var cntA=rows.filter(function(r){return r.tipo==='abono';}).length;
-    var cntC=rows.filter(function(r){return r.tipo==='cargo';}).length;
+    // Consultar cuáles IDs ya existen en BD
+    var {data:existing,error:qErr}=await sb.from('movimientos_v2').select('id').in('id',ids);
+    if(qErr) throw qErr;
+
+    var existingSet=new Set((existing||[]).map(function(r){return r.id;}));
+    var newRows=allRows.filter(function(r){return !existingSet.has(r.id);});
+    var dupCount=allRows.length-newRows.length;
+
+    if(dupCount===allRows.length){
+      // Todo duplicado — no importar
+      _mostrarAlertaDuplicados(allRows.length,0);
+      return;
+    }
+    if(dupCount>0){
+      // Algunos duplicados — pedir confirmación
+      _rowsPendingImport=newRows;
+      _mostrarAlertaDuplicados(dupCount,newRows.length);
+      return;
+    }
+    // Sin duplicados — importar directo
+    _rowsPendingImport=newRows;
+    await _ejecutarImportBanco();
+  }catch(e){showError('Error importando: '+e.message);}
+  finally{if(btn){btn.disabled=false;btn.textContent='Importar';}}
+}
+
+function _mostrarAlertaDuplicados(dupCount,newCount){
+  var body=document.getElementById('sat-preview-body');
+  var btn=document.getElementById('btn-confirmar-sat');
+  if(!body) return;
+
+  if(newCount===0){
+    // Todo duplicado
+    body.insertAdjacentHTML('afterbegin',
+      '<div style="background:#fef3c7;color:#92400e;border-radius:8px;padding:12px 16px;margin-bottom:12px;border:1px solid #fcd34d;">'+
+        '<div style="font-weight:700;margin-bottom:4px;">⚠️ Todos los movimientos ya están registrados</div>'+
+        '<div style="font-size:12px;">'+dupCount+' movimiento'+(dupCount!==1?'s':'')+' ya exist'+(dupCount!==1?'en':'e')+' en la base de datos. No se importará nada.</div>'+
+      '</div>');
+    if(btn){btn.textContent='Cerrar';btn.disabled=false;btn.onclick=cerrarSATPreview;}
+  } else {
+    // Algunos duplicados
+    body.insertAdjacentHTML('afterbegin',
+      '<div style="background:#fef3c7;color:#92400e;border-radius:8px;padding:12px 16px;margin-bottom:12px;border:1px solid #fcd34d;">'+
+        '<div style="font-weight:700;margin-bottom:4px;">⚠️ '+dupCount+' movimiento'+(dupCount!==1?'s':'')+' duplicado'+(dupCount!==1?'s':'')+' detectado'+(dupCount!==1?'s':'')+' — se omitirán</div>'+
+        '<div style="font-size:12px;">Se importarán únicamente los <strong>'+newCount+' nuevos</strong>. ¿Continuar?</div>'+
+      '</div>');
+    if(btn){
+      btn.textContent='Importar '+newCount+' nuevos';
+      btn.disabled=false;
+      btn.onclick=function(){btn.disabled=true;btn.textContent='Importando…';_ejecutarImportBanco();};
+    }
+  }
+}
+
+async function _ejecutarImportBanco(){
+  var btn=document.getElementById('btn-confirmar-sat');
+  try{
+    var rows=_rowsPendingImport;
+    if(!rows||!rows.length){cerrarSATPreview();return;}
+    var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:false});
+    if(error) throw error;
+    var cntA=rows.filter(function(r){return r.tipo==='ingreso';}).length;
+    var cntC=rows.filter(function(r){return r.tipo==='egreso';}).length;
     cerrarSATPreview();
     showStatus('✓ '+rows.length+' movimientos BBVA importados ('+cntA+' abonos · '+cntC+' cargos)');
     _bancoPreviewData=[];
+    _rowsPendingImport=[];
     loadBanco();
-  }catch(e){showError('Error importando: '+e.message);}
-  finally{if(btn){btn.disabled=false;btn.textContent='Importar';}}
+  }catch(e){
+    showError('Error importando: '+e.message);
+    if(btn){btn.disabled=false;btn.textContent='Importar';}
+  }
 }
 
 // ── Load & KPIs ───────────────────────────────────────────────────────────
@@ -196,7 +290,22 @@ async function loadBanco(){
   try{
     var yearSel=document.getElementById('banco-year-sel');
     var año=parseInt((yearSel&&yearSel.value)||new Date().getFullYear());
-    var {data,error}=await sb.from('movimientos_v2').select('*').eq('year',año).in('origen',['banco_abono','banco_cargo']).order('fecha',{ascending:false}).order('orden',{ascending:false});
+    // Inicializar selector de mes si aún no tiene opciones
+    var monthSel=document.getElementById('banco-month-sel');
+    if(monthSel&&!monthSel.options.length){
+      var allOpt=document.createElement('option');
+      allOpt.value=0;allOpt.textContent='Todos los meses';
+      monthSel.appendChild(allOpt);
+      (typeof MONTHS!=='undefined'?MONTHS:['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']).forEach(function(m,i){
+        var o=document.createElement('option');
+        o.value=i+1;o.textContent=m;
+        monthSel.appendChild(o);
+      });
+    }
+    var mes=monthSel?parseInt(monthSel.value||0):0;
+    var q=sb.from('movimientos_v2').select('*').eq('year',año).in('origen',['banco_abono','banco_cargo']);
+    if(mes>0)q=q.eq('month',mes);
+    var {data,error}=await q.order('fecha',{ascending:false}).order('orden',{ascending:false});
     if(error) throw error;
     _bancoData=data||[];
     _renderBancoKPIs(_bancoData);

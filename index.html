@@ -155,12 +155,7 @@
     <div class="topbar-left">
       <span class="topbar-brand">Grupo M2</span>
       <span class="topbar-sub">· Maquinado Industrial</span>
-      <div class="period-nav">
-        <button class="mnav-btn" onclick="prevMonth()">‹</button>
-        <div class="month-label" id="month-label">—</div>
-        <button class="mnav-btn" onclick="nextMonth()">›</button>
-        <button class="today-btn" onclick="goToday()">Hoy</button>
-      </div>
+      <span id="month-label" style="display:none;"></span>
     </div>
     <span class="status-msg" id="status-msg" style="font-size:12px;color:#34d399;margin-right:8px;transition:opacity .3s;"></span>
     <div class="topbar-right">
@@ -678,9 +673,10 @@
     <!-- KPIs YTD hero -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="mcard-hero"><div class="mlabel">Ventas YTD</div><div class="mvalue-hero c-green" id="db-ventas-ytd">$0</div><div class="mtrend" id="db-ventas-mom" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div></div>
-      <div class="mcard-hero"><div class="mlabel">Utilidad operativa YTD</div><div class="mvalue-hero c-util-pos" id="db-util-ytd">$0</div><div class="mtrend" id="db-util-mom" style="font-size:11px;color:var(--text-3);margin-top:4px;"></div></div>
+      <div class="mcard-hero"><div class="mlabel">Utilidad bruta YTD</div><div class="mvalue-hero c-util-pos" id="db-util-ytd">$0</div><div class="mtrend" id="db-util-mom" style="font-size:11px;color:var(--text-3);margin-top:4px;">Ventas − Compras</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard"><div class="mlabel">Compras YTD</div><div class="mvalue c-amber" id="db-compras-ytd">$0</div><div class="mtrend" id="db-compras-mom" style="font-size:10px;color:var(--text-3);margin-top:3px;"></div></div>
       <div class="mcard"><div class="mlabel">Cobranza YTD</div><div class="mvalue c-blue" id="db-cobr-ytd">$0</div><div class="mtrend" id="db-cobr-mom" style="font-size:10px;color:var(--text-3);margin-top:3px;"></div></div>
       <div class="mcard"><div class="mlabel">Gastos YTD</div><div class="mvalue c-amber" id="db-gasto-ytd">$0</div><div class="mtrend" id="db-gasto-mom" style="font-size:10px;color:var(--text-3);margin-top:3px;"></div></div>
       <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="db-por-cobrar">$0</div><div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Facturas pendientes</div></div>
@@ -688,10 +684,11 @@
     </div>
 
     <!-- KPIs del mes -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1rem;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1rem;">
       <div class="mcard"><div class="mlabel">Ventas del mes</div><div class="mvalue c-green" id="db-ventas-mes">$0</div></div>
+      <div class="mcard"><div class="mlabel">Compras del mes</div><div class="mvalue c-amber" id="db-compras-mes">$0</div></div>
       <div class="mcard"><div class="mlabel">Cobranza del mes</div><div class="mvalue c-blue" id="db-cobr-mes">$0</div></div>
-      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-red" id="db-gasto-mes">$0</div></div>
+      <div class="mcard"><div class="mlabel">Gastos del mes</div><div class="mvalue c-amber" id="db-gasto-mes">$0</div></div>
       <div class="mcard"><div class="mlabel">Utilidad del mes</div><div class="mvalue c-util-pos" id="db-util-mes">$0</div></div>
     </div>
 
@@ -1012,6 +1009,11 @@
   <!-- Tab Finanzas -->
   <!-- Tab Flujo de Caja (ex-Finanzas) -->
   <div id="tab-finanzas" style="display:none;">
+    <!-- Filtro período -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:1.5rem;">
+      <select id="flujo-year-sel" onchange="curYear=parseInt(this.value);loadMovements();" style="padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;font-size:12px;color:var(--text-1);cursor:pointer;"></select>
+      <select id="flujo-month-sel" onchange="curMonth=parseInt(this.value);loadMovements();" style="padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;font-size:12px;color:var(--text-1);cursor:pointer;"></select>
+    </div>
     <!-- KPIs flujo del mes -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;">
       <div class="mcard"><div class="mlabel">Total ingresos</div><div class="mvalue c-green" id="fin-ingresos">$0</div><div style="font-size:10px;color:var(--text-3);margin-top:3px;">Banco + cobranza manual</div></div>
@@ -1421,9 +1423,12 @@
       </div>
     </div>
 
-    <!-- Conciliar / Año -->
+    <!-- Filtro período / Conciliar -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-      <select id="banco-year-sel" onchange="loadBanco()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-2);cursor:pointer;"></select>
+      <div style="display:flex;gap:8px;">
+        <select id="banco-year-sel" onchange="loadBanco()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-1);cursor:pointer;"></select>
+        <select id="banco-month-sel" onchange="loadBanco()" style="font-size:12px;padding:5px 10px;border:0.5px solid var(--border);border-radius:6px;background:var(--bg-input);font-family:inherit;color:var(--text-1);cursor:pointer;"></select>
+      </div>
       <button class="btn-primary" onclick="conciliarMes()" id="btn-conciliar">⚡ Conciliar</button>
     </div>
 

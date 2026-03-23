@@ -207,13 +207,13 @@ function renderChart(m){
   var ctx=document.getElementById('myChart');
   if(!ctx)return; // canvas not in DOM yet
   ctx.style.background='transparent';
-  var vals=[m.ventas,m.cobr,m.gastos,m.cxc];
-  var bg=['#34d39933','#60a5fa33','#d9770633','#fbbf2433'];
-  var br=['#34d399','#60a5fa','#d97706','#fbbf24'];
+  var vals=[m.ventas,m.cobr,m.gastos];
+  var bg=['#34d39933','#60a5fa33','#d9770633'];
+  var br=['#34d399','#60a5fa','#d97706'];
   if(myChart){myChart.destroy();}
   myChart=new Chart(ctx,{
     type:'bar',
-    data:{labels:['Ventas','Cobranza','Gastos','Ctas x cobrar'],datasets:[{data:vals,backgroundColor:bg,borderColor:br,borderWidth:1.5,borderRadius:4}]},
+    data:{labels:['Ventas','Cobranza','Gastos'],datasets:[{data:vals,backgroundColor:bg,borderColor:br,borderWidth:1.5,borderRadius:4}]},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return fmt(c.parsed.y);}}}},

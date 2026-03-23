@@ -179,8 +179,9 @@ async function loadComplementosPorHacer(){
     var html = '';
     facts.forEach(function(f){
       var pago = movByFact[f.id]||{};
-      var fechaPago = pago.fecha ? new Date(pago.fecha+'T12:00') : new Date(f.fecha+'T12:00');
-      var deadline = new Date(fechaPago.getFullYear(), fechaPago.getMonth()+1, 5);
+      // Use payment date if available; fall back to factura date (less accurate but better than nothing)
+      var refDate = pago.fecha ? new Date(pago.fecha+'T12:00') : new Date(f.fecha+'T12:00');
+      var deadline = new Date(refDate.getFullYear(), refDate.getMonth()+1, 5);
       var dias = Math.floor((deadline - hoy)/864e5);
       var vencido = dias < 0;
       var urgente = !vencido && dias<=3;
@@ -210,13 +211,19 @@ async function loadComplementosPorHacer(){
               // Fechas
               '<div style="font-size:11px;color:var(--text-3);margin-bottom:3px;">'+
                 'Fecha factura: <strong>'+fmtDate(f.fecha)+'</strong>'+
-                ' &nbsp;·&nbsp; Fecha pago: <strong>'+(pago.fecha?fmtDate(pago.fecha):'—')+'</strong>'+
+                ' &nbsp;·&nbsp; Fecha pago: '+
+                (pago.fecha
+                  ? '<strong>'+fmtDate(pago.fecha)+'</strong>'
+                  : '<span style="color:#d97706;">Sin pago registrado en banco</span>')+
               '</div>'+
               // Concepto BBVA
-              (pago.descripcion?
-                '<div style="font-size:11px;color:var(--text-2);">'+
-                  '<span style="color:var(--text-3);">Concepto pago: </span>'+esc(pago.descripcion.slice(0,70))+
-                '</div>':'')+
+              (pago.descripcion
+                ? '<div style="font-size:11px;color:var(--text-2);margin-bottom:3px;">'+
+                    '<span style="color:var(--text-3);">Concepto BBVA: </span>'+esc(pago.descripcion.slice(0,70))+
+                  '</div>'
+                : '<div style="font-size:11px;color:var(--text-3);margin-bottom:3px;">'+
+                    'Concepto BBVA: <em>Concilia este cobro desde la pestaña Banco para vincularlo</em>'+
+                  '</div>')+
             '</div>'+
             // Deadline + monto
             '<div style="text-align:right;min-width:130px;flex-shrink:0;">'+

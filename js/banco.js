@@ -374,7 +374,7 @@ function _renderMovsBanco(movs){
       var cat=m.categoria||'otro';
       var estadoHtml=conc
         ? '<span style="color:#16a34a;font-size:11px;">✓ Conciliado</span>'
-        : (cat==='nomina'||cat==='obligacion_patronal'||cat==='impuesto'
+        : (cat==='nomina'||cat==='obligacion_patronal'||cat==='impuesto'||cat==='prestamo'
             ? '<span style="font-size:10px;color:var(--text-3);">Revisión manual</span>'
             : '<button class="btn-sm" onclick="abrirConciliacion(\''+m.id+'\')" style="padding:1px 8px;font-size:10px;color:#f59e0b;border-color:#f59e0b;">Conciliar</button>');
       return '<tr>'+
@@ -391,8 +391,10 @@ function _renderMovsBanco(movs){
 
 // ── Conciliación masiva ───────────────────────────────────────────────────
 async function conciliarMes(){
+  // Excluir categorías que no se concilian contra facturas (auto-aprobadas o préstamos)
+  var _noConc={nomina:1,obligacion_patronal:1,impuesto:1,prestamo:1};
   var toMatch=_bancoData.filter(function(m){
-    return !m.conciliado&&(m.categoria==='cliente'||m.categoria==='proveedor'||!m.categoria);
+    return !m.conciliado&&!_noConc[m.categoria||''];
   });
   if(!toMatch.length){showStatus('No hay movimientos pendientes de conciliar.');return;}
   showStatus('Buscando matches…',0);

@@ -146,7 +146,7 @@ async function confirmarImportBanco(){
   var btn=document.getElementById('btn-confirmar-sat');
   if(btn){btn.disabled=true;btn.textContent='Importando…';}
   try{
-    var rows=_bancoPreviewData.map(function(m){
+    var rows=_bancoPreviewData.map(function(m,i){
       var esAbono=m.abono>0;
       var cat=detectarCategoriaBanco(m.concepto);
       var monto=esAbono?m.abono:m.cargo;
@@ -159,7 +159,8 @@ async function confirmarImportBanco(){
         conciliado:['nomina','obligacion_patronal','impuesto'].includes(cat),
         tipo:esAbono?'abono':'cargo',
         year:parseInt(m.fecha.split('-')[0]),
-        month:parseInt(m.fecha.split('-')[1])
+        month:parseInt(m.fecha.split('-')[1]),
+        orden:i  // 0 = más reciente (primer renglón del Excel BBVA)
       };
     });
     var {error}=await sb.from('movimientos_banco').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
@@ -179,7 +180,7 @@ async function loadBanco(){
   try{
     var yearSel=document.getElementById('banco-year-sel');
     var año=parseInt((yearSel&&yearSel.value)||new Date().getFullYear());
-    var {data,error}=await sb.from('movimientos_banco').select('*').eq('year',año).order('fecha',{ascending:false});
+    var {data,error}=await sb.from('movimientos_banco').select('*').eq('year',año).order('fecha',{ascending:false}).order('orden',{ascending:true});
     if(error) throw error;
     _bancoData=data||[];
     _renderBancoKPIs(_bancoData);

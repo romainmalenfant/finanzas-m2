@@ -385,6 +385,10 @@ async function guardarFormMovimiento(){
     var resumen=fmt(montoMXN)+(moneda==='USD'?' (USD '+monto+' × '+tc+')':'');
     showStatus('✓ '+CAT_LABELS[tipoMovActual]+' · '+resumen);
     await loadMovements();
+    // Ofrecer conciliación con factura si no ya se vinculó
+    if(tipoMovActual!=='venta' && !facturaVinculadaId){
+      _ofrecerConciliacionManual(mv.id, montoMXN, tipoMovActual==='cobranza');
+    }
   }catch(e){
     showError('Error al guardar: '+e.message);
   }finally{
@@ -402,6 +406,67 @@ async function deleteMovement(id, usuario){
   }
   try{await deleteRow(id);await loadMovements();}
   catch(e){showError('No se pudo eliminar: '+e.message);}
+}
+
+// ── Conciliación rápida post-guardado ────────────────────
+var _concManualMovId = null;
+var _concManualFactId = null;
+
+async function _ofrecerConciliacionManual(movId, monto, esIngreso){
+  _concManualMovId = movId;
+  _concManualFactId = null;
+  try{
+    // Buscar facturas sin conciliar con monto similar (±10%)
+    var tipo = esIngreso ? 'emitida' : 'recibida';
+    var min = Math.round(monto*0.90*100)/100;
+    var max = Math.round(monto*1.10*100)/100;
+    var {data:facts} = await sb.from('facturas')
+      .select('id,receptor_nombre,emisor_nombre,numero_factura,fecha,total,metodo_pago,concepto')
+      .eq('tipo',tipo).eq('conciliado',false).neq('estatus','cancelada')
+      .gte('total',min).lte('total',max)
+      .order('fecha',{ascending:false}).limit(10);
+    if(!facts||!facts.length) return; // sin candidatos, no mostrar
+    var modal = document.getElementById('modal-conc-manual');
+    var titleEl = document.getElementById('conc-manual-title');
+    var descEl = document.getElementById('conc-manual-desc');
+    var listEl = document.getElementById('conc-manual-list');
+    titleEl.textContent = esIngreso ? '¿Conciliar cobranza con factura?' : '¿Conciliar gasto con factura?';
+    descEl.textContent = 'Se registró un '+(esIngreso?'cobro':'pago')+' de '+fmt(monto)+'. Facturas compatibles:';
+    listEl.innerHTML = facts.map(function(f){
+      var nombre = esIngreso ? (f.receptor_nombre||'—') : (f.emisor_nombre||'—');
+      return '<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--bg-input);">'+
+        '<input type="radio" name="conc-manual-fact" value="'+f.id+'" style="margin-top:3px;" onchange="_concManualFactId=\''+f.id+'\'">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(nombre.slice(0,40))+'</div>'+
+          '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+esc(f.numero_factura||'—')+(f.concepto?' · '+esc(f.concepto.slice(0,30)):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;white-space:nowrap;">'+
+          '<div style="font-size:12px;font-weight:600;color:#16a34a;">'+fmt(parseFloat(f.total)||0)+'</div>'+
+          '<div style="font-size:11px;color:var(--text-3);">'+fmtDate(f.fecha)+'</div>'+
+        '</div>'+
+      '</label>';
+    }).join('');
+    modal.style.display = 'flex';
+  }catch(e){console.error('_ofrecerConciliacionManual:',e);}
+}
+
+async function _confirmarConcManual(){
+  if(!_concManualFactId){showError('Selecciona una factura');return;}
+  var btn = document.getElementById('conc-manual-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    await Promise.all([
+      sb.from('movimientos_v2').update({conciliado:true,factura_id:_concManualFactId}).eq('id',_concManualMovId),
+      sb.from('facturas').update({conciliado:true}).eq('id',_concManualFactId)
+    ]);
+    document.getElementById('modal-conc-manual').style.display='none';
+    showStatus('Conciliado correctamente');
+    if(typeof loadFacturas==='function') loadFacturas();
+  }catch(e){
+    showError('Error al conciliar: '+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent='Conciliar';
+  }
 }
 
 // ── Etiqueta helpers ─────────────────────────────────────

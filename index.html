@@ -181,11 +181,13 @@
       <div class="mcard"><div class="mlabel">Emitidas vigentes</div><div class="mvalue c-green" id="fact-k-emitidas">0</div></div>
       <div class="mcard"><div class="mlabel">Recibidas vigentes</div><div class="mvalue c-red" id="fact-k-recibidas">0</div><div class="msub" id="fact-k-recibidas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
       <div class="mcard"><div class="mlabel">Por cobrar</div><div class="mvalue c-amber" id="fact-k-cobrar">$0</div></div>
-      <div class="mcard"><div class="mlabel">Complementos de Pago</div><div class="mvalue" id="fact-k-ppd" style="color:#a78bfa;">0</div></div>
+      <div class="mcard"><div class="mlabel">Complementos pendientes</div><div class="mvalue" id="fact-k-ppd" style="color:#a78bfa;">0</div></div>
       <div class="mcard"><div class="mlabel">Ventas directas $</div><div class="mvalue c-green" id="fact-k-vd-monto">$0</div></div>
     </div>
-    <!-- Semáforo -->
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;" id="fact-semaforo">
+
+    <!-- Semáforo CxC -->
+    <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Cuentas por Cobrar</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1rem;" id="fact-semaforo">
       <div class="mcard" style="border-left:3px solid #16a34a;">
         <div class="mlabel">🟢 0–30 días</div>
         <div class="mvalue c-green" id="fact-s0">$0</div>
@@ -202,6 +204,27 @@
         <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="fact-s2-n">0 facturas</div>
       </div>
     </div>
+
+    <!-- Semáforo CxP -->
+    <div style="font-size:11px;font-weight:600;color:var(--text-3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Cuentas por Pagar</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem;" id="fact-semaforo-cxp">
+      <div class="mcard" style="border-left:3px solid #16a34a;">
+        <div class="mlabel">🟢 0–30 días</div>
+        <div class="mvalue c-green" id="fact-sp0">$0</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="fact-sp0-n">0 facturas</div>
+      </div>
+      <div class="mcard" style="border-left:3px solid #d97706;">
+        <div class="mlabel">🟡 31–60 días</div>
+        <div class="mvalue c-amber" id="fact-sp1">$0</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="fact-sp1-n">0 facturas</div>
+      </div>
+      <div class="mcard" style="border-left:3px solid #dc2626;">
+        <div class="mlabel">🔴 +61 días</div>
+        <div class="mvalue c-red" id="fact-sp2">$0</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px;" id="fact-sp2-n">0 facturas</div>
+      </div>
+    </div>
+
     <!-- Importar SAT -->
     <div class="import-card" style="margin-bottom:1.5rem;">
       <div style="display:flex;align-items:center;gap:12px;">
@@ -215,13 +238,47 @@
       </div>
     </div>
 
-    <!-- Antigüedad de cartera -->
-    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-card-fact">
+    <!-- Antigüedad CxC -->
+    <div class="mvmts-card" style="margin-bottom:1rem;" id="cartera-card-fact">
       <div class="mvmts-hdr">
-        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · facturas sin cobrar</div>
+        <div class="sec-title" style="margin-bottom:0;">Antigüedad de cartera · por cobrar</div>
         <span class="mvmt-count" id="cartera-count-fact">—</span>
       </div>
       <div id="cartera-list-fact"><div class="empty-state">Sin facturas pendientes</div></div>
+    </div>
+
+    <!-- Antigüedad CxP -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;" id="cartera-cxp-card">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Antigüedad de proveedores · por pagar</div>
+        <span class="mvmt-count" id="cartera-cxp-count">—</span>
+      </div>
+      <div id="cartera-cxp-list"><div class="empty-state">Sin facturas pendientes</div></div>
+    </div>
+
+    <!-- Complementos de Pago -->
+    <div class="mvmts-card" style="margin-bottom:1.5rem;">
+      <div class="mvmts-hdr">
+        <div class="sec-title" style="margin-bottom:0;">Complementos de Pago</div>
+      </div>
+      <div style="padding:0 0 1px 0;border-bottom:0.5px solid var(--border);">
+        <div style="padding:10px 1.25rem 8px;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;">
+            Por Hacer
+            <span style="font-size:11px;font-weight:400;color:var(--text-3);"> — facturas emitidas PPD cobradas sin complemento</span>
+            <span id="comp-hacer-count" style="margin-left:8px;font-size:11px;color:#a78bfa;"></span>
+          </div>
+          <div id="comp-hacer-list"><div class="empty-state" style="padding:8px 0;">—</div></div>
+        </div>
+      </div>
+      <div style="padding:10px 1.25rem 8px;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;">
+          Por Recibir
+          <span style="font-size:11px;font-weight:400;color:var(--text-3);"> — facturas recibidas PPD pagadas sin complemento</span>
+          <span id="comp-recibir-count" style="margin-left:8px;font-size:11px;color:#a78bfa;"></span>
+        </div>
+        <div id="comp-recibir-list"><div class="empty-state" style="padding:8px 0;">—</div></div>
+      </div>
     </div>
 
     <!-- Toolbar -->
@@ -232,22 +289,11 @@
       <button class="btn-primary" onclick="abrirNuevaFactura()">+ Nueva factura</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
-      <!-- Tabs de tipo -->
       <div class="view-toggle" id="fact-tipo-toggle" style="gap:6px;">
         <button class="active" onclick="setFacturaTipo('emitidas',this)" style="padding:7px 18px;font-size:13px;">Emitidas</button>
         <button onclick="setFacturaTipo('directas',this)" style="padding:7px 18px;font-size:13px;">Ventas directas</button>
         <button onclick="setFacturaTipo('recibidas',this)" style="padding:7px 18px;font-size:13px;">Recibidas</button>
-        <button onclick="setFacturaTipo('complementos',this)" style="padding:7px 18px;font-size:13px;">Complementos de Pago por hacer</button>
-        <button onclick="setFacturaTipo('cxc',this)" style="padding:7px 18px;font-size:13px;">CxC</button>
-        <button onclick="setFacturaTipo('cxp',this)" style="padding:7px 18px;font-size:13px;">CxP</button>
       </div>
-      <select id="fact-estatus-filter" onchange="filtrarFacturas(document.getElementById('fact-search').value||'')"
-        style="display:none;padding:5px 8px;border:0.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--bg-input);color:var(--text-2);">
-        <option value="">Todas</option>
-        <option value="emitida">Emitidas</option>
-        <option value="pagada">Pagadas / Conciliadas</option>
-        <option value="cancelada">Canceladas</option>
-      </select>
       <select id="fact-year-filter" onchange="facturasYearFilter=parseInt(this.value);loadFacturas();"
         style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
       <select id="fact-month-filter" onchange="facturasMonthFilter=parseInt(this.value);filtrarFacturas(document.getElementById('fact-search').value||'');"
@@ -1627,5 +1673,21 @@
   <script src="js/cotizaciones.js"></script>
   <script src="js/facturas.js"></script>
   <script src="js/banco.js"></script>
+
+  <!-- Modal: Conciliación rápida post-guardado -->
+  <div id="modal-conc-manual" style="display:none;position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card);border-radius:14px;padding:24px 24px 20px;max-width:480px;width:95%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.35);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:600;color:var(--text-1);" id="conc-manual-title">¿Conciliar con factura?</div>
+        <button onclick="document.getElementById('modal-conc-manual').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text-3);">×</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:12px;" id="conc-manual-desc"></div>
+      <div id="conc-manual-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn-sm" onclick="document.getElementById('modal-conc-manual').style.display='none'">Omitir</button>
+        <button class="btn-primary" id="conc-manual-btn" onclick="_confirmarConcManual()" style="font-size:13px;padding:8px 20px;">Conciliar</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

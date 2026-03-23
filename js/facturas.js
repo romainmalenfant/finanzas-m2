@@ -76,6 +76,175 @@ async function loadCarteraFacturas(){
   }catch(e){console.error('Cartera:',e);}
 }
 
+async function loadCarteraCxP(){
+  try{
+    var hoy = new Date();
+    var {data:pendientes} = await sb.from('facturas')
+      .select('id,emisor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado')
+      .eq('tipo','recibida').eq('conciliado',false).neq('estatus','cancelada')
+      .order('fecha',{ascending:true}).limit(200);
+    pendientes = pendientes||[];
+    var el = document.getElementById('cartera-cxp-list');
+    var ct = document.getElementById('cartera-cxp-count');
+    if(!el) return;
+    if(!pendientes.length){
+      if(ct) ct.textContent = 'Sin pendientes';
+      el.innerHTML = '<div class="empty-state">No hay facturas pendientes de pago ✓</div>';
+      return;
+    }
+    var totalPend = pendientes.reduce(function(a,f){
+      return a+((parseFloat(f.total)||0)-(parseFloat(f.monto_pagado)||0));
+    },0);
+    if(ct) ct.textContent = pendientes.length+' pendiente'+(pendientes.length!==1?'s':'')+' · '+fmt(totalPend);
+    var grupos = {vencida:[],semana:[],mes:[],futuro:[]};
+    pendientes.forEach(function(f){
+      var fechaRef = f.fecha_vencimiento
+        ? new Date(f.fecha_vencimiento+'T12:00')
+        : new Date(new Date(f.fecha+'T12:00').getTime()+30*864e5);
+      var dias = Math.floor((fechaRef - hoy)/864e5);
+      var pend = (parseFloat(f.total)||0)-(parseFloat(f.monto_pagado)||0);
+      var item = {f:f, dias:dias, pend:pend};
+      if(dias < 0)        grupos.vencida.push(item);
+      else if(dias <= 7)  grupos.semana.push(item);
+      else if(dias <= 30) grupos.mes.push(item);
+      else                grupos.futuro.push(item);
+    });
+    var bandas = [
+      {key:'vencida', label:'Vencidas',         color:'#991b1b', bg:'#fee2e2'},
+      {key:'semana',  label:'Vencen esta semana',color:'#92400e', bg:'#fef3c7'},
+      {key:'mes',     label:'Vencen este mes',   color:'#854d0e', bg:'#fefce8'},
+      {key:'futuro',  label:'Más de 30 días',    color:'#166534', bg:'#f0fdf4'}
+    ];
+    var html = '<div style="overflow-x:auto;"><table class="sat-table"><thead><tr>'+
+      '<th>Proveedor</th><th>Folio</th><th>Emisión</th><th>Vencimiento</th>'+
+      '<th>Días</th><th style="text-align:right;">Pendiente</th></tr></thead><tbody>';
+    bandas.forEach(function(b){
+      var items = grupos[b.key]; if(!items.length) return;
+      var sub = items.reduce(function(a,i){return a+i.pend;},0);
+      html += '<tr><td colspan="6" style="background:'+b.bg+';color:'+b.color+';font-weight:600;font-size:11px;padding:6px 12px;">'+
+        b.label+' · '+items.length+' factura'+(items.length!==1?'s':'')+' · '+fmt(sub)+'</td></tr>';
+      items.forEach(function(i){
+        var diasLabel = i.dias<0 ? Math.abs(i.dias)+'d vencida' : i.dias===0 ? 'Hoy' : i.dias+'d';
+        var fechaVenc = i.f.fecha_vencimiento ? fmtDate(i.f.fecha_vencimiento) : '—';
+        html += '<tr onclick="verDetalleFactura(\''+i.f.id+'\')" style="cursor:pointer;">'+
+          '<td><div style="font-size:12px;font-weight:500;">'+esc((i.f.emisor_nombre||'—').slice(0,35))+'</div></td>'+
+          '<td class="muted">'+esc(i.f.numero_factura||'—')+'</td>'+
+          '<td class="muted">'+fmtDate(i.f.fecha)+'</td>'+
+          '<td class="muted">'+fechaVenc+'</td>'+
+          '<td class="muted" style="color:'+b.color+';">'+diasLabel+'</td>'+
+          '<td class="monto" style="color:'+b.color+';">'+fmt(i.pend)+'</td>'+
+        '</tr>';
+      });
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+  }catch(e){console.error('CarteraCxP:',e);}
+}
+
+async function loadComplementosPorHacer(){
+  try{
+    var el = document.getElementById('comp-hacer-list');
+    var ct = document.getElementById('comp-hacer-count');
+    if(!el) return;
+    var {data:facts,error} = await sb.from('facturas')
+      .select('id,receptor_nombre,numero_factura,concepto,fecha,total')
+      .eq('tipo','emitida').eq('metodo_pago','PPD').eq('conciliado',true)
+      .or('complemento_ok.is.null,complemento_ok.eq.false')
+      .neq('estatus','cancelada')
+      .order('fecha',{ascending:false}).limit(100);
+    if(error) throw error;
+    facts = facts||[];
+    if(!facts.length){
+      if(ct) ct.textContent = '';
+      el.innerHTML = '<div class="empty-state" style="padding:8px 0;">✓ Sin pendientes</div>';
+      return;
+    }
+    // Get payment dates from movimientos_v2
+    var factIds = facts.map(function(f){return f.id;});
+    var {data:movs} = await sb.from('movimientos_v2')
+      .select('factura_id,fecha').in('factura_id',factIds);
+    var movByFact = {};
+    (movs||[]).forEach(function(m){ if(!movByFact[m.factura_id]) movByFact[m.factura_id]=m.fecha; });
+    var hoy = new Date();
+    if(ct) ct.textContent = facts.length+' pendiente'+(facts.length!==1?'s':'');
+    var html = '';
+    facts.forEach(function(f){
+      var fechaPago = movByFact[f.id] ? new Date(movByFact[f.id]+'T12:00') : new Date(f.fecha+'T12:00');
+      var deadline = new Date(fechaPago.getFullYear(), fechaPago.getMonth()+1, 5);
+      var dias = Math.floor((deadline - hoy)/864e5);
+      var vencido = dias < 0;
+      var deadlineColor = vencido ? '#dc2626' : dias<=3 ? '#d97706' : '#16a34a';
+      var deadlineLabel = vencido ? Math.abs(dias)+'d vencido' : dias===0 ? 'Hoy' : dias+'d';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.receptor_nombre||'—').slice(0,40))+'</div>'+
+          '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+esc(f.numero_factura||'—')+(f.concepto?' · '+esc(f.concepto.slice(0,30)):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;white-space:nowrap;">'+
+          '<div style="font-size:12px;font-weight:600;color:'+deadlineColor+';">Límite: '+fmtDate(deadline.toISOString().split('T')[0])+' ('+deadlineLabel+')</div>'+
+          '<div style="font-size:11px;color:var(--text-3);">Cobrado: '+fmtDate(movByFact[f.id]||f.fecha)+' · '+fmt(parseFloat(f.total)||0)+'</div>'+
+        '</div>'+
+        '<button class="btn-sm" onclick="marcarComplementoOk(\''+f.id+'\')" style="white-space:nowrap;'+(vencido?'border-color:#dc2626;color:#dc2626;':'')+'">Marcar enviado</button>'+
+      '</div>';
+    });
+    el.innerHTML = html;
+  }catch(e){console.error('ComplementosPorHacer:',e);}
+}
+
+async function loadComplementosPorRecibir(){
+  try{
+    var el = document.getElementById('comp-recibir-list');
+    var ct = document.getElementById('comp-recibir-count');
+    if(!el) return;
+    var {data:facts,error} = await sb.from('facturas')
+      .select('id,emisor_nombre,numero_factura,concepto,fecha,total')
+      .eq('tipo','recibida').eq('metodo_pago','PPD').eq('conciliado',true)
+      .or('complemento_ok.is.null,complemento_ok.eq.false')
+      .neq('estatus','cancelada')
+      .order('fecha',{ascending:false}).limit(100);
+    if(error) throw error;
+    facts = facts||[];
+    if(!facts.length){
+      if(ct) ct.textContent = '';
+      el.innerHTML = '<div class="empty-state" style="padding:8px 0;">✓ Sin pendientes</div>';
+      return;
+    }
+    var hoy = new Date();
+    if(ct) ct.textContent = facts.length+' pendiente'+(facts.length!==1?'s':'');
+    var html = '';
+    facts.forEach(function(f){
+      var fechaPago = new Date(f.fecha+'T12:00');
+      var deadline = new Date(fechaPago.getFullYear(), fechaPago.getMonth()+1, 5);
+      var dias = Math.floor((deadline - hoy)/864e5);
+      var vencido = dias < 0;
+      var deadlineColor = vencido ? '#dc2626' : dias<=3 ? '#d97706' : '#16a34a';
+      var deadlineLabel = vencido ? Math.abs(dias)+'d vencido' : dias===0 ? 'Hoy' : dias+'d';
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--border);flex-wrap:wrap;">'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc((f.emisor_nombre||'—').slice(0,40))+'</div>'+
+          '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+esc(f.numero_factura||'—')+(f.concepto?' · '+esc(f.concepto.slice(0,30)):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right;white-space:nowrap;">'+
+          '<div style="font-size:12px;font-weight:600;color:'+deadlineColor+';">Esperado: '+fmtDate(deadline.toISOString().split('T')[0])+' ('+deadlineLabel+')</div>'+
+          '<div style="font-size:11px;color:var(--text-3);">Pagado: '+fmtDate(f.fecha)+' · '+fmt(parseFloat(f.total)||0)+'</div>'+
+        '</div>'+
+        '<button class="btn-sm" onclick="marcarComplementoOk(\''+f.id+'\')" style="white-space:nowrap;">Marcar recibido</button>'+
+      '</div>';
+    });
+    el.innerHTML = html;
+  }catch(e){console.error('ComplementosPorRecibir:',e);}
+}
+
+async function marcarComplementoOk(id){
+  try{
+    var {error}=await sb.from('facturas').update({complemento_ok:true}).eq('id',id);
+    if(error) throw error;
+    showStatus('Complemento marcado');
+    loadComplementosPorHacer();
+    loadComplementosPorRecibir();
+  }catch(e){showError('Error: '+e.message);}
+}
+
 async function loadFacturas(){
   // U2 — skeleton mientras carga
   var listEl=document.getElementById('fact-list');
@@ -114,6 +283,9 @@ async function loadFacturas(){
     renderSemaforo();
     filtrarFacturas(document.getElementById('fact-search')&&document.getElementById('fact-search').value||'');
     loadCarteraFacturas();
+    loadCarteraCxP();
+    loadComplementosPorHacer();
+    loadComplementosPorRecibir();
   }catch(e){
     console.error('loadFacturas:',e);
     document.getElementById('fact-list').innerHTML='<div class="empty-state">Error cargando facturas</div>';
@@ -174,6 +346,27 @@ function renderSemaforo(){
     document.getElementById('fact-s'+i).textContent = fmt(b[i].monto);
     document.getElementById('fact-s'+i+'-n').textContent = b[i].n+' factura'+(b[i].n!==1?'s':'');
   });
+  renderSemaforoCxP();
+}
+
+function renderSemaforoCxP(){
+  var hoy = new Date();
+  var pendientes = allFacturas.filter(function(f){
+    return f.tipo==='recibida' && f.estatus!=='cancelada' && !f.conciliado;
+  });
+  var b = [{monto:0,n:0},{monto:0,n:0},{monto:0,n:0}];
+  pendientes.forEach(function(f){
+    var dias = Math.floor((hoy-new Date(f.fecha||hoy))/(864e5));
+    var idx = dias<=30?0:dias<=60?1:2;
+    b[idx].monto += parseFloat(f.total)||0;
+    b[idx].n++;
+  });
+  ['0','1','2'].forEach(function(i){
+    var el0 = document.getElementById('fact-sp'+i);
+    var el1 = document.getElementById('fact-sp'+i+'-n');
+    if(el0) el0.textContent = fmt(b[i].monto);
+    if(el1) el1.textContent = b[i].n+' factura'+(b[i].n!==1?'s':'');
+  });
 }
 
 // ── Tipo toggle ───────────────────────────────────────────
@@ -181,19 +374,12 @@ function setFacturaTipo(tipo, btn){
   facturasTipo = tipo;
   document.querySelectorAll('#fact-tipo-toggle button').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
-  // Mostrar filtro de estatus solo en emitidas y recibidas
-  var filtroEl = document.getElementById('fact-estatus-filter');
-  if(filtroEl){
-    filtroEl.style.display = (tipo==='emitidas'||tipo==='recibidas'||tipo==='cxc'||tipo==='cxp') ? 'inline-block' : 'none';
-    filtroEl.value = ''; // reset al cambiar tab
-  }
   filtrarFacturas(document.getElementById('fact-search').value||'');
 }
 
 // ── Filter & render ───────────────────────────────────────
 function filtrarFacturas(q){
   var ql = (q||'').toLowerCase();
-  var estatusFiltro = (document.getElementById('fact-estatus-filter')||{}).value||'';
 
   var filtered = allFacturas.filter(function(f){
     // Month filter
@@ -202,25 +388,9 @@ function filtrarFacturas(q){
       if(fm!==facturasMonthFilter)return false;
     }
     // Tab filter
-    if(facturasTipo==='emitidas'){
-      if(f.tipo!=='emitida'||f.sin_factura) return false;
-      // Estatus filter dentro de emitidas
-      if(estatusFiltro==='pagada')    return f.conciliado || f.estatus==='pagada';
-      if(estatusFiltro==='cancelada') return f.estatus==='cancelada';
-      if(estatusFiltro==='emitida')   return !f.conciliado && f.estatus!=='cancelada';
-      return true; // "Todas"
-    }
-    if(facturasTipo==='directas')    return f.tipo==='emitida'&&f.sin_factura;
-    if(facturasTipo==='recibidas'){
-      if(f.tipo!=='recibida') return false;
-      if(estatusFiltro==='pagada')    return f.conciliado || f.estatus==='pagada';
-      if(estatusFiltro==='cancelada') return f.estatus==='cancelada';
-      if(estatusFiltro==='emitida')   return !f.conciliado && f.estatus!=='cancelada';
-      return true;
-    }
-    if(facturasTipo==='complementos') return f.tipo==='emitida'&&f.complemento_requerido&&!f.conciliado;
-    if(facturasTipo==='cxc') return f.tipo==='emitida'&&!f.conciliado&&f.estatus!=='cancelada';
-    if(facturasTipo==='cxp') return f.tipo==='recibida'&&!f.conciliado&&f.estatus!=='cancelada';
+    if(facturasTipo==='emitidas')  return f.tipo==='emitida'&&!f.sin_factura;
+    if(facturasTipo==='directas')  return f.tipo==='emitida'&&f.sin_factura;
+    if(facturasTipo==='recibidas') return f.tipo==='recibida';
     return true;
   }).filter(function(f){
     if(!ql)return true;
@@ -252,17 +422,17 @@ function renderFacturaRow(f, hoy){
     ? (f.receptor_nombre||f.receptor_rfc||'—')
     : (f.emisor_nombre||f.emisor_rfc||'—');
 
-  // Estatus con labels correctos por tipo
+  // Estatus: vigente vs cancelada
   var estBg, estColor, estLabel;
-  if(f.conciliado || f.estatus==='pagada'){
-    estBg='#dbeafe'; estColor='#1d4ed8'; estLabel='Pagada';
-  } else if(f.estatus==='cancelada'){
+  if(f.estatus==='cancelada'){
     estBg='#fee2e2'; estColor='#dc2626'; estLabel='Cancelada';
   } else {
-    // Vigente sin pagar
-    estBg='#dcfce7'; estColor='#16a34a';
-    estLabel = esEmitida ? 'Emitida' : 'Recibida';
+    estBg='#dcfce7'; estColor='#16a34a'; estLabel='Vigente';
   }
+  // Conciliado badge
+  var concBg    = f.conciliado ? '#dbeafe' : '#f1f5f9';
+  var concColor = f.conciliado ? '#1d4ed8' : '#64748b';
+  var concLabel = f.conciliado ? '✓ Conciliado' : 'Pendiente';
 
   var metodoBg    = f.metodo_pago==='PPD' ? '#fef3c7' : '#f1f5f9';
   var metodoColor = f.metodo_pago==='PPD' ? '#d97706' : '#64748b';
@@ -363,13 +533,21 @@ function renderFacturaRow(f, hoy){
   montoCell.textContent = fmt(parseFloat(f.total)||0);
   tr.appendChild(montoCell);
 
-  // Col 8: estatus
+  // Col 8: estatus (vigente/cancelada)
   var estCell = document.createElement('td');
   var estBadge = document.createElement('span');
   estBadge.style.cssText = 'padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+estBg+';color:'+estColor+';';
   estBadge.textContent = estLabel;
   estCell.appendChild(estBadge);
   tr.appendChild(estCell);
+
+  // Col 9: conciliado
+  var concCell = document.createElement('td');
+  var concBadge = document.createElement('span');
+  concBadge.style.cssText = 'padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;background:'+concBg+';color:'+concColor+';';
+  concBadge.textContent = concLabel;
+  concCell.appendChild(concBadge);
+  tr.appendChild(concCell);
 
   return tr;
 }
@@ -445,7 +623,7 @@ function renderFacturasList(list){
     el.appendChild(wrap);
     return;
   }
-  var isRecibida = facturasTipo==='recibidas'||facturasTipo==='complementos'||facturasTipo==='cxp';
+  var isRecibida = facturasTipo==='recibidas';
   var isDirecta  = facturasTipo==='directas';
   var table = document.createElement('table');
   table.className = 'sat-table';
@@ -453,7 +631,7 @@ function renderFacturasList(list){
   var thVenc = isDirecta ? '' : '<th>Vencimiento</th>';
   thead.innerHTML = '<tr><th>'+(isRecibida?'Proveedor':'Cliente')+'</th>'
     + '<th>Concepto</th><th>Folio</th><th>Emisión</th>'+thVenc+'<th>Método</th><th>Proyecto</th>'
-    + '<th style="text-align:right;">Total</th><th>Estatus</th></tr>';
+    + '<th style="text-align:right;">Total</th><th>Estatus</th><th>Conciliado</th></tr>';
   var tbody = document.createElement('tbody');
   var hoy = new Date();
   var frag = document.createDocumentFragment();

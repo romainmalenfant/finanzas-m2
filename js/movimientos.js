@@ -177,8 +177,8 @@ async function processMovement(){
 function computeMetrics(){
   // P1-a: ventas vienen de ventasMes (facturas), el resto de movements (movimientos_v2)
   var v=ventasMes.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-  function sum(cats){return movements.filter(function(m){return cats.includes(m.categoria);}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);}
-  var c=sum(['cobranza']),g=sum(['gasto','compra']),x=sum(['cuenta_por_cobrar']);
+  function sumTipo(tipo){return movements.filter(function(m){return m.tipo===tipo&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);}
+  var c=sumTipo('ingreso'),g=sumTipo('egreso'),x=0;
   return{ventas:v,cobr:c,gastos:g,cxc:x,util:v-g,flujo:c-g};
 }
 

@@ -90,8 +90,9 @@ async function mostrarPreviewBanco(movs,fileName){
   // Continuidad con mes anterior
   var continuityHtml='';
   try{
-    var {data:last}=await sb.from('movimientos_banco').select('saldo,fecha')
-      .order('fecha',{ascending:false}).limit(1).maybeSingle();
+    var {data:last}=await sb.from('movimientos_v2').select('saldo,fecha')
+      .in('origen',['banco_abono','banco_cargo'])
+      .order('fecha',{ascending:false}).order('orden',{ascending:false}).limit(1).maybeSingle();
     if(last&&last.saldo!=null){
       var saldoAntes = firstMov.saldo+firstMov.cargo-firstMov.abono;
       var diff=Math.abs((parseFloat(last.saldo)||0)-saldoAntes);
@@ -161,41 +162,24 @@ async function confirmarImportBanco(){
       var safeKey=m.concepto.replace(/[^a-zA-Z0-9]/g,'').slice(0,10);
       return {
         id:'bbva_'+(esAbono?'a':'c')+'_'+m.fecha.replace(/-/g,'')+'_'+String(monto).replace(/\./g,'')+'_'+safeKey,
-        fecha:m.fecha, descripcion:m.concepto,
-        cargo:m.cargo||null, abono:m.abono||null, saldo:m.saldo,
+        fecha:m.fecha,
+        descripcion:m.concepto,
+        monto:monto,
+        tipo:esAbono?'ingreso':'egreso',
         categoria:cat,
+        origen:esAbono?'banco_abono':'banco_cargo',
+        cargo:m.cargo||null,
+        abono:m.abono||null,
+        saldo:m.saldo,
         conciliado:['nomina','obligacion_patronal','impuesto'].includes(cat),
-        tipo:esAbono?'abono':'cargo',
         year:parseInt(m.fecha.split('-')[0]),
         month:parseInt(m.fecha.split('-')[1]),
-        orden:i  // 0 = más reciente (primer renglón del Excel BBVA)
+        orden:i,
+        usuario:'banco_bbva'
       };
     });
-    var {error}=await sb.from('movimientos_banco').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
+    var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:true});
     if(error) throw error;
-
-    // Sincronizar automáticamente a movimientos_v2 (flujo)
-    var flujoRows=rows.map(function(r){
-      var esAbono=r.tipo==='abono';
-      var catFlujo=esAbono
-        ?(r.categoria==='prestamo'?'prestamo':'cobranza')
-        :(r.categoria==='prestamo'?'prestamo':'gasto');
-      return {
-        id:'bk_'+r.id,
-        fecha:r.fecha,
-        descripcion:r.descripcion,
-        monto:esAbono?(r.abono||0):(r.cargo||0),
-        tipo:esAbono?'ingreso':'egreso',
-        categoria:catFlujo,
-        origen:esAbono?'banco_abono':'banco_cargo',
-        year:r.year,
-        month:r.month,
-        usuario:'banco_bbva',
-        etiqueta:r.categoria!=='otro'?_catLabels[r.categoria]||null:null
-      };
-    });
-    var {error:ef}=await sb.from('movimientos_v2').upsert(flujoRows,{onConflict:'id',ignoreDuplicates:true});
-    if(ef) console.warn('Flujo sync error:',ef.message);
 
     var cntA=rows.filter(function(r){return r.tipo==='abono';}).length;
     var cntC=rows.filter(function(r){return r.tipo==='cargo';}).length;
@@ -212,7 +196,7 @@ async function loadBanco(){
   try{
     var yearSel=document.getElementById('banco-year-sel');
     var año=parseInt((yearSel&&yearSel.value)||new Date().getFullYear());
-    var {data,error}=await sb.from('movimientos_banco').select('*').eq('year',año).order('fecha',{ascending:false}).order('orden',{ascending:false});
+    var {data,error}=await sb.from('movimientos_v2').select('*').eq('year',año).in('origen',['banco_abono','banco_cargo']).order('fecha',{ascending:false}).order('orden',{ascending:false});
     if(error) throw error;
     _bancoData=data||[];
     _renderBancoKPIs(_bancoData);
@@ -252,7 +236,7 @@ function _catSelect(id, current){
 }
 async function _cambiarCategoria(id, cat){
   try{
-    await sb.from('movimientos_banco').update({categoria:cat}).eq('id',id);
+    await sb.from('movimientos_v2').update({categoria:cat}).eq('id',id);
     var mi=_bancoData.findIndex(function(m){return m.id===id;});
     if(mi>=0) _bancoData[mi].categoria=cat;
     _renderMovsBanco(_bancoData);
@@ -380,7 +364,7 @@ async function _confirmarConcMatch(xi){
   if(!factId)return;
   try{
     await sb.from('facturas').update({conciliado:true}).eq('id',factId);
-    await sb.from('movimientos_banco').update({conciliado:true,factura_id:factId}).eq('id',x.mov.id);
+    await sb.from('movimientos_v2').update({conciliado:true,factura_id:factId}).eq('id',x.mov.id);
     // Update in memory
     var mi=_bancoData.findIndex(function(m){return m.id===x.mov.id;});
     if(mi>=0){_bancoData[mi].conciliado=true;_bancoData[mi].factura_id=factId;}

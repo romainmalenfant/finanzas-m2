@@ -447,29 +447,46 @@ function _renderCandidatosConc(xi, list, esAbono, monto){
   }).join('');
 }
 
-function _filtrarFacturasConc(xi, q){
-  var x=_concMatches[xi];if(!x)return;
-  var esAbono=(x.mov.abono||0)>0;
-  var monto=parseFloat(x.mov.abono||x.mov.cargo)||0;
-  var tipoExpected=esAbono?'emitida':'recibida';
+function _renderTarjetasConc(matches){
+  return matches.map(function(x){
+    var xi=_concMatches.indexOf(x);
+    var m=x.mov;
+    var esAbono=(m.abono||0)>0;
+    var monto=parseFloat(m.abono||m.cargo)||0;
+    var tieneMatch=x.candidatos.length>0;
+    var cardBorder=tieneMatch?'border:1px solid #16a34a;':'border:1px solid #f59e0b;';
+    return '<div style="'+cardBorder+'border-radius:8px;padding:10px 12px;margin-bottom:10px;">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
+        '<div><div style="font-size:11px;font-weight:600;">'+esc((m.descripcion||'').slice(0,65))+'</div>'+
+        '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
+        '<div style="font-size:15px;font-weight:700;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(monto)+'</div>'+
+      '</div>'+
+      _renderCandidatosConc(xi,x.candidatos,esAbono,monto)+
+      '<div style="display:flex;gap:8px;margin-top:8px;">'+
+      (tieneMatch?'<button class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="font-size:11px;">✓ Confirmar match</button>':'')+
+      '<button class="btn-sm" onclick="_forzarConciliacion('+xi+')" style="font-size:11px;color:var(--text-3);border-color:var(--border);">Marcar conciliado sin factura</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function _buscarEnConc(q){
   var term=(q||'').toLowerCase().trim();
   var list;
   if(!term){
-    list=x.candidatos;
+    list=_concMatches;
   } else {
     var numTerm=parseFloat(term.replace(/,/g,''));
-    list=_todasFacturasConc.filter(function(f){
-      if(f.tipo!==tipoExpected) return false;
-      var nombre=(f.receptor_nombre||f.emisor_nombre||'').toLowerCase();
-      var total=parseFloat(f.total)||0;
-      return nombre.includes(term)||(isNaN(numTerm)?false:Math.abs(total-numTerm)<=1.0);
+    list=_concMatches.filter(function(x){
+      var desc=(x.mov.descripcion||'').toLowerCase();
+      var monto=parseFloat(x.mov.abono||x.mov.cargo)||0;
+      return desc.includes(term)||(isNaN(numTerm)?false:Math.abs(monto-numTerm)<=10);
     });
   }
-  var el=document.getElementById('conc-candidates-'+xi);
-  if(el) el.innerHTML=_renderCandidatosConc(xi,list,esAbono,monto);
-  // show confirm button only if list has items
-  var btnConf=document.getElementById('conc-btn-confirmar-'+xi);
-  if(btnConf) btnConf.style.display=list.length?'':'none';
+  var el=document.getElementById('conc-cards-body');
+  if(el) el.innerHTML=list.length
+    ? _renderTarjetasConc(list)
+    : '<div style="font-size:12px;color:var(--text-3);padding:12px 0;">Sin movimientos que coincidan.</div>';
 }
 
 function _mostrarModalConciliacion(matches){
@@ -477,33 +494,15 @@ function _mostrarModalConciliacion(matches){
   var conSug=matches.filter(function(x){return x.candidatos.length>0;}).length;
   var sinSug=matches.filter(function(x){return x.candidatos.length===0;}).length;
 
-  var html='<div style="font-size:12px;color:var(--text-3);margin-bottom:12px;">'+
-    '<span style="color:#16a34a;font-weight:600;">'+conSug+' con sugerencia</span>'+
-    ' · <span style="color:#f87171;">'+sinSug+' sin match exacto</span></div>'+
-    matches.map(function(x,xi){
-      var m=x.mov;
-      var esAbono=(m.abono||0)>0;
-      var monto=parseFloat(m.abono||m.cargo)||0;
-      var tieneMatch=x.candidatos.length>0;
-      var cardBorder=tieneMatch?'border:1px solid #16a34a;':'border:1px solid #f59e0b;';
-      return '<div style="'+cardBorder+'border-radius:8px;padding:10px 12px;margin-bottom:10px;">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'+
-          '<div><div style="font-size:11px;font-weight:600;">'+esc((m.descripcion||'').slice(0,65))+'</div>'+
-          '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(m.fecha)+'</div></div>'+
-          '<div style="font-size:15px;font-weight:700;color:'+(esAbono?'#16a34a':'#dc2626')+';">'+fmt(monto)+'</div>'+
-        '</div>'+
-        '<div id="conc-candidates-'+xi+'">'+_renderCandidatosConc(xi,x.candidatos,esAbono,monto)+'</div>'+
-        '<div style="margin-top:8px;">'+
-          '<input type="text" placeholder="Buscar factura por nombre o monto…" '+
-            'oninput="_filtrarFacturasConc('+xi+',this.value)" '+
-            'style="width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text-1);box-sizing:border-box;">'+
-        '</div>'+
-        '<div style="display:flex;gap:8px;margin-top:8px;">'+
-        '<button id="conc-btn-confirmar-'+xi+'" class="btn-sm" onclick="_confirmarConcMatch('+xi+')" style="font-size:11px;'+(tieneMatch?'':'display:none;')+'">✓ Confirmar</button>'+
-        '<button class="btn-sm" onclick="_forzarConciliacion('+xi+')" style="font-size:11px;color:var(--text-3);border-color:var(--border);">Marcar conciliado sin factura</button>'+
-        '</div>'+
-      '</div>';
-    }).join('');
+  var html=
+    '<div style="font-size:12px;color:var(--text-3);margin-bottom:10px;">'+
+      '<span style="color:#16a34a;font-weight:600;">'+conSug+' con sugerencia</span>'+
+      ' · <span style="color:#f87171;">'+sinSug+' sin match exacto</span>'+
+    '</div>'+
+    '<input type="text" id="conc-search" placeholder="Buscar movimiento por descripción o monto…" '+
+      'oninput="_buscarEnConc(this.value)" '+
+      'style="width:100%;font-size:12px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg-2);color:var(--text-1);box-sizing:border-box;margin-bottom:12px;">'+
+    '<div id="conc-cards-body">'+_renderTarjetasConc(matches)+'</div>';
 
   var body=document.getElementById('sat-preview-body');
   var title=document.getElementById('sat-preview-title');

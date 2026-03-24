@@ -454,7 +454,7 @@ function filtrarProyectos(q){
   var ql=(q||'').toLowerCase();
   var año=document.getElementById('proj-year-filter').value;
   var status=document.getElementById('proj-status-filter').value;
-  var filtered=proyectos.filter(function(p){
+  var filtered=(allProyectos||proyectos).filter(function(p){
     if(año&&p.year&&String(p.year)!==String(año))return false;
     if(status){
       var ents=entregasByProyecto[p.id]||[];

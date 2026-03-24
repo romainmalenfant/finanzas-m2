@@ -588,7 +588,8 @@ async function loadProyectos(){
       return (est.lbl||est)===status;
     }):all;
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
-    proyectos=filtered; allProyectos=filtered;
+    allProyectos=all; // siempre la lista completa para que filtrarProyectos pueda re-filtrar
+    proyectos=filtered;
     var vtProj=document.getElementById('vista-proj-count'); if(vtProj) vtProj.textContent=all.length;
     renderProyectos();
     renderEntregasSection(all, entregasByProyecto);

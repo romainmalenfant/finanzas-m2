@@ -554,7 +554,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
     if(linked.length){
       html += linked.map(function(f){
         var nombre = f.tipo==='emitida' ? (f.receptor_nombre||'') : (f.emisor_nombre||'');
-        return '<div class="detail-list-item">'+
+        return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleFactura(\''+f.id+'\')">'+
           '<div>'+
             '<div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.id.slice(0,12))+
               (nombre?' <span style="font-size:10px;color:var(--text-3);">· '+esc(nombre.slice(0,30))+'</span>':'')+

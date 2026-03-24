@@ -630,21 +630,39 @@ var DB = {
 
     buscarRecibidas: async function (q, año) {
       var y = año || new Date().getFullYear();
-      var base = sb.from('facturas')
+      var sel = sb.from('facturas')
         .select('id,emisor_nombre,numero_factura,total,fecha,concepto,efecto_sat')
         .eq('tipo', 'recibida')
         .not('efecto_sat', 'ilike', '%nómin%')
         .eq('year', y)
         .order('fecha', { ascending: false })
         .limit(50);
-      if (q) base = base.or(
+      if (!q) return _dbQArr('DB.facturas.buscarRecibidas', sel);
+      // Búsqueda por texto (proveedor, folio, concepto, UUID)
+      var textQ = sel.or(
         'emisor_nombre.ilike.%' + q + '%' +
         ',numero_factura.ilike.%' + q + '%' +
         ',concepto.ilike.%' + q + '%' +
-        ',id.ilike.%' + q + '%' +
-        ',total::text.ilike.%' + q + '%'
+        ',id.ilike.%' + q + '%'
       );
-      return _dbQArr('DB.facturas.buscarRecibidas', base);
+      var rows = await _dbQArr('DB.facturas.buscarRecibidas', textQ);
+      // Búsqueda por monto — query separada si q parece número
+      var numQ = parseFloat(q.replace(/[$,\s]/g, ''));
+      if (!isNaN(numQ) && numQ > 0) {
+        var amountQ = sb.from('facturas')
+          .select('id,emisor_nombre,numero_factura,total,fecha,concepto,efecto_sat')
+          .eq('tipo', 'recibida')
+          .not('efecto_sat', 'ilike', '%nómin%')
+          .eq('year', y)
+          .gte('total', numQ * 0.995)
+          .lte('total', numQ * 1.005)
+          .order('fecha', { ascending: false })
+          .limit(20);
+        var amountRows = await _dbQArr('DB.facturas.buscarRecibidas:monto', amountQ);
+        var seen = {}; rows.forEach(function(r){ seen[r.id]=true; });
+        amountRows.forEach(function(r){ if(!seen[r.id]){ rows.push(r); } });
+      }
+      return rows;
     },
 
     /** Todas las facturas de un año — para la pestaña Facturas. */

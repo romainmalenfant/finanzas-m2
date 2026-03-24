@@ -8,6 +8,7 @@ function docsInit() {
   var el = document.getElementById('docs-search');
   if (el) el.focus();
   docsCargarHuerfanos();
+  docsBuscar(); // cargar recientes por defecto
 }
 
 // ── Huérfanos ──────────────────────────────────────────────
@@ -80,10 +81,13 @@ async function docsVincularBuscar() {
     var wrap = document.getElementById('docs-vincular-results');
     wrap.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Buscando…</div>';
     try {
-      var res = await sb.from('facturas')
+      var isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q.trim());
+      var qb = sb.from('facturas')
         .select('id,emisor_nombre,receptor_nombre,numero_factura,total,fecha,tipo')
-        .or('emisor_nombre.ilike.%'+q+'%,receptor_nombre.ilike.%'+q+'%,numero_factura.ilike.%'+q+'%')
         .order('fecha', { ascending: false }).limit(10);
+      var res = isUUID
+        ? await qb.eq('id', q.trim().toLowerCase())
+        : await qb.or('emisor_nombre.ilike.%'+q+'%,receptor_nombre.ilike.%'+q+'%,numero_factura.ilike.%'+q+'%,filename_original.ilike.%'+q+'%');
       var rows = res.data || [];
       if (!rows.length) { wrap.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Sin resultados.</div>'; return; }
       wrap.innerHTML = rows.map(function(r) {
@@ -131,11 +135,16 @@ async function docsBuscar() {
 
   q = q.trim();
 
-  // Necesita al menos un criterio para evitar traer todo
+  // Sin criterios: mostrar recientes (límite 50)
   if (!q && !año && !tipo && !archivo) {
-    docsRender([]);
-    document.getElementById('docs-empty').style.display = 'block';
-    document.getElementById('docs-empty').textContent   = 'Busca por empresa, folio, UUID o aplica un filtro.';
+    document.getElementById('docs-empty').style.display  = 'none';
+    document.getElementById('docs-spinner').style.display = 'inline';
+    try {
+      var recentRows = await _docsFetch('', '', '', '');
+      _docsResults = recentRows;
+      docsRender(recentRows);
+    } catch(e) { showError('Error cargando documentos: ' + e.message); }
+    finally { document.getElementById('docs-spinner').style.display = 'none'; }
     return;
   }
 
@@ -172,19 +181,23 @@ async function _docsFetch(q, año, tipo, archivo) {
   }
 
   if (q) {
-    // 1. Búsqueda por texto (solo columnas text — no UUID)
+    // 1. Búsqueda por texto + filename_original
     var textRows = await base().or(
       'emisor_nombre.ilike.%' + q + '%' +
       ',receptor_nombre.ilike.%' + q + '%' +
-      ',numero_factura.ilike.%' + q + '%'
+      ',numero_factura.ilike.%' + q + '%' +
+      ',filename_original.ilike.%' + q + '%'
     );
     merge(textRows.data || []);
 
-    // 2. UUID exact match — solo si luce como UUID completo
-    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q)) {
+    // 2. UUID exact match — completo o parcial desde el inicio
+    if (/^[0-9a-f\-]{8,}$/i.test(q.trim())) {
       try {
-        var uuidRow = await base().eq('id', q.toLowerCase());
-        merge(uuidRow.data || []);
+        var uuidQ = q.trim().toLowerCase();
+        var uuidRes = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuidQ)
+          ? await base().eq('id', uuidQ)
+          : await base().ilike('id::text', uuidQ + '%');
+        merge((uuidRes.data || []));
       } catch(e) { /* silenciar */ }
     }
 

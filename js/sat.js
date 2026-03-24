@@ -627,6 +627,7 @@ async function importarXMLsCFDI(input) {
         } else {
           item.label = '🚫 Cancelación';
           item.folio = acuse.uuid.slice(0, 8) + '…';
+          xmlBaseMap[_xmlBaseName(file)] = item;
         }
         _xmlItems.push(item); continue;
       }
@@ -653,6 +654,7 @@ async function importarXMLsCFDI(input) {
         item.empresa = parsed.receptor_nombre || parsed.emisor_nombre || '';
         item.folio   = (parsed.folio || '') || (parsed.docs_relacionados.length ? parsed.docs_relacionados[0].uuid.slice(0,8)+'…' : '');
         item.total   = null;
+        xmlBaseMap[_xmlBaseName(file)] = item;
       } else {
         var tipoFac = rfcEmp && (parsed.emisor_rfc||'').toUpperCase() === rfcEmp ? 'emitida' : 'recibida';
         item.kind    = 'factura';
@@ -665,6 +667,24 @@ async function importarXMLsCFDI(input) {
       item.error = e.message; item.incluir = false;
     }
     _xmlItems.push(item);
+  }
+
+  // ── Verificar duplicados complementos/cancelaciones en documentos ────────
+  var docItems = _xmlItems.filter(function(it){ return (it.kind === 'complemento' || it.kind === 'cancelacion') && !it.error; });
+  if (docItems.length) {
+    try {
+      var docNombres = docItems.map(function(it){ return it.file.name; });
+      var { data: existDocs } = await sb.from('documentos').select('nombre').in('nombre', docNombres);
+      if (existDocs && existDocs.length) {
+        var existNombresSet = new Set(existDocs.map(function(d){ return d.nombre.toLowerCase(); }));
+        docItems.forEach(function(it){
+          if (existNombresSet.has(it.file.name.toLowerCase())) {
+            it.error   = 'Ya existe en BD';
+            it.incluir = false;
+          }
+        });
+      }
+    } catch(e) { /* continuar */ }
   }
 
   // ── Verificar duplicados en BD (batch) ───────────────────
@@ -919,6 +939,9 @@ async function xmlConfirmarImport() {
         var facCan = await DB.facturas.get(it.acuse.uuid);
         if (facCan) {
           await DB.facturas.save({ id: facCan.id, estatus: 'cancelada', fecha_cancelacion: it.acuse.fecha_cancelacion });
+          try {
+            await DB.documentos.save({ nombre: it.file.name, path: '', tipo: 'cancelacion', factura_id: facCan.id });
+          } catch(e) { /* no bloquear */ }
           okCancelacion++;
         } else {
           errors.push(it.file.name + ': factura no encontrada en BD');

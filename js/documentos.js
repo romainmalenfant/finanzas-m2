@@ -224,14 +224,16 @@ async function _docsFetch(q, año, tipo, archivo) {
     var oRes = await oqb;
     orphans = (oRes.data || []).map(function(d){ return Object.assign({}, d, { _orphan: true }); });
 
-    // Complementos de pago (tienen factura_id pero tipo='complemento')
-    var cqb = sb.from('documentos').select('*').eq('tipo', 'complemento').order('created_at', { ascending: false }).limit(10);
+    // Complementos y cancelaciones (tienen factura_id o tipo especial)
+    var cqb = sb.from('documentos').select('*').in('tipo', ['complemento','cancelacion']).order('created_at', { ascending: false }).limit(20);
     if (q) cqb = cqb.ilike('nombre', '%' + q + '%');
     var cRes = await cqb;
-    var compls = (cRes.data || []).map(function(d){ return Object.assign({}, d, { _complemento: true }); });
-    // Evitar duplicados si ya apareció en orphans
     var seenIds = new Set(orphans.map(function(o){ return o.id; }));
-    compls.forEach(function(c){ if (!seenIds.has(c.id)) orphans.push(c); });
+    (cRes.data || []).forEach(function(d){
+      if (seenIds.has(d.id)) return;
+      orphans.push(Object.assign({}, d, { _complemento: d.tipo === 'complemento', _cancelacion: d.tipo === 'cancelacion' }));
+      seenIds.add(d.id);
+    });
   } catch(e) { /* silenciar */ }
 
   return rows.concat(orphans);
@@ -265,6 +267,20 @@ function docsRender(rows) {
           '<div style="display:flex;gap:6px;flex-shrink:0;">' +
             '<button class="btn-sm" style="font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'pdf\')">Ver PDF</button>' +
             '<button class="btn-sm" style="font-size:11px;" onclick="docsVincularAbrir(\''+r.id+'\',\''+r.path+'\',\''+_docsEsc(r.nombre)+'\')">Vincular</button>' +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    // ── Tarjeta cancelación ───────────────────────────────
+    if (r._cancelacion) {
+      var fecha = r.created_at ? r.created_at.slice(0,10) : '—';
+      html +=
+        '<div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-left:3px solid #f87171;border-radius:8px;padding:12px 16px;">' +
+          '<div style="width:36px;height:44px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🚫</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:500;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_docsEsc(r.nombre)+'</div>' +
+            '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+fecha+' · <span style="color:#f87171;font-weight:600;">Acuse de cancelación</span></div>' +
           '</div>' +
         '</div>';
       return;

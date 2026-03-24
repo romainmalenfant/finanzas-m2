@@ -151,10 +151,9 @@ function docsRender(rows) {
     if (r.pdf_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')">PDF</button>';
 
     var acento = r.tipo === 'emitida' ? '#34d399' : '#f59e0b';
-    var zebra  = rows.indexOf(r) % 2 === 1 ? 'background:var(--bg-card-2,#f7f6f2);' : '';
-    var rowStyle = zebra + 'border-bottom:1px solid var(--border);cursor:default;' + (cancelada ? 'opacity:.55;' : '');
-    html += '<tr style="'+rowStyle+'" onmouseenter="this.style.background=\'var(--bg-card-2,#f0efe9)\'" onmouseleave="this.style.background=\''+(rows.indexOf(r) % 2 === 1 ? 'var(--bg-card-2,#f7f6f2)' : '')+'\'">' +
-      '<td style="padding:8px 8px;border-left:3px solid '+acento+';color:var(--text-1);' + (cancelada ? 'text-decoration:line-through;' : '') + '">'+_docsEsc(empresa)+'</td>' +
+    var rowStyle = 'background:#fff;border-bottom:1px solid var(--border);cursor:default;' + (cancelada ? 'opacity:.55;' : '');
+    html += '<tr style="'+rowStyle+'" onmouseenter="this.style.background=\'#f5f4f0\'" onmouseleave="this.style.background=\'#fff\'">' +
+      '<td style="padding:10px 8px;border-left:3px solid '+acento+';color:var(--text-1);' + (cancelada ? 'text-decoration:line-through;' : '') + '">'+_docsEsc(empresa)+'</td>' +
       '<td style="padding:8px 8px;color:var(--text-2);">'+_docsEsc(folio)+copyBtn+'</td>' +
       '<td style="padding:8px 8px;color:var(--text-3);">'+fecha+'</td>' +
       '<td style="padding:8px 8px;text-align:right;color:var(--text-1);">'+total+'</td>' +

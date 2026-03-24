@@ -1382,13 +1382,28 @@
   <!-- ── Cotizaciones Tab ──────────────────────────────── -->
   <div id="tab-cotizaciones" style="display:none;">
     <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.5rem;">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1rem;">
       <div class="mcard"><div class="mlabel">Total</div><div class="mvalue c-blue" id="cot-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Abiertas</div><div class="mvalue" style="color:#fbbf24;" id="cot-k-abiertas">0</div></div>
       <div class="mcard"><div class="mlabel">Cerradas</div><div class="mvalue c-green" id="cot-k-cerradas">0</div><div class="msub" id="cot-k-cerradas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
       <div class="mcard"><div class="mlabel">Perdidas</div><div class="mvalue c-red" id="cot-k-perdidas">0</div><div class="msub" id="cot-k-perdidas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
       <div class="mcard"><div class="mlabel">Pipeline</div><div class="mvalue" style="color:#a78bfa;" id="cot-k-pipeline">$0</div></div>
       <div class="mcard"><div class="mlabel">Win Rate</div><div class="mvalue c-green" id="cot-k-winrate">—</div></div>
+      <div class="mcard"><div class="mlabel">Días prom. cierre</div><div class="mvalue c-blue" id="cot-k-dias">—</div></div>
+      <div class="mcard"><div class="mlabel">Ticket promedio</div><div class="mvalue c-green" id="cot-k-ticket">—</div></div>
+      <div class="mcard"><div class="mlabel">En riesgo <span style="font-size:10px;font-weight:400;color:var(--text-4);">&gt;30d</span></div><div class="mvalue" id="cot-k-riesgo">0</div></div>
+      <div class="mcard"><div class="mlabel">Mejor cliente</div><div class="mvalue" style="font-size:14px;" id="cot-k-mejor">—</div><div class="msub" id="cot-k-mejor-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;"></div></div>
+    </div>
+    <!-- Insights -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;">
+      <div class="mcard">
+        <div class="mlabel" style="margin-bottom:10px;">🏆 Top conversión por cliente</div>
+        <div id="cot-insight-conv"><div style="font-size:12px;color:var(--text-3);">Cargando...</div></div>
+      </div>
+      <div class="mcard">
+        <div class="mlabel" style="margin-bottom:10px;">⚠️ Cotizan sin cerrar</div>
+        <div id="cot-insight-sin"><div style="font-size:12px;color:var(--text-3);">Cargando...</div></div>
+      </div>
     </div>
     <!-- Filters & actions -->
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">

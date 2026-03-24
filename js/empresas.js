@@ -295,11 +295,17 @@ async function loadClientesKPIs(){
     renderTop5Rows(top5fac, topEl, '#34d399');
     if(!top5fac.length) topEl.textContent='Sin ventas registradas';
 
-    // Top 5 deudores — nombre completo
-    var {data:deudasRaw}=await sb.from('facturas').select('receptor_nombre,total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
-    var deudas=(deudasRaw||[]).map(function(f){return {contraparte:f.receptor_nombre,monto:f.total};});
+    // Top 5 deudores — sin empleados
+    var {data:deudasRaw}=await sb.from('facturas').select('receptor_nombre,receptor_rfc,total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
     var byDeudor={};
-    (deudas||[]).forEach(function(m){var k=(m.contraparte||'Sin nombre').trim();byDeudor[k]=(byDeudor[k]||0)+(parseFloat(m.monto)||0);});
+    (deudasRaw||[]).forEach(function(f){
+      var rfc=(f.receptor_rfc||'').trim().toUpperCase();
+      var k=(f.receptor_nombre||'').trim();
+      if(!k) return;
+      if(rfc&&empRfcs.has(rfc)) return;
+      if(empNoms.has(k.toLowerCase())) return;
+      byDeudor[k]=(byDeudor[k]||0)+(parseFloat(f.total)||0);
+    });
     var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var deudorEl=document.getElementById('cli-k-deudor');
     renderTop5Rows(top5deu, deudorEl, '#fbbf24');

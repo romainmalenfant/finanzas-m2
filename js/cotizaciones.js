@@ -101,6 +101,83 @@ function renderCotizacionesKPIs(){
   // FEAT-02: win rate
   var elWR = document.getElementById('cot-k-winrate');
   if(elWR) elWR.textContent = winRate !== null ? winRate+'%' : '—';
+
+  // FEAT-D1: Días promedio de cierre
+  var cotCerradas = cotizaciones.filter(function(c){return c.estatus==='cerrada'&&c.fecha_cierre&&(c.created_at||c.fecha);});
+  var diasProm = cotCerradas.length ? Math.round(cotCerradas.reduce(function(a,c){
+    return a+Math.max(0,(new Date(c.fecha_cierre)-new Date(c.created_at||c.fecha))/864e5);
+  },0)/cotCerradas.length) : null;
+  el('cot-k-dias', diasProm!==null ? diasProm+'d' : '—');
+
+  // FEAT-D2: Ticket promedio cerradas
+  var ticketProm = cerradas>0 ? totalCerradas/cerradas : null;
+  el('cot-k-ticket', ticketProm!==null ? fmt(ticketProm) : '—');
+
+  // FEAT-D3: En riesgo (abiertas > 30 días)
+  var hoy=new Date();
+  var enRiesgo=cotizaciones.filter(function(c){
+    if(c.estatus!=='borrador'&&c.estatus!=='enviada'&&c.estatus!=='en_negociacion') return false;
+    return (hoy-new Date(c.created_at||c.fecha||''))/864e5>30;
+  }).length;
+  var elRiesgo=document.getElementById('cot-k-riesgo');
+  if(elRiesgo){ elRiesgo.textContent=enRiesgo||'0'; elRiesgo.style.color=enRiesgo>0?'#f87171':'#16a34a'; }
+
+  // FEAT-D4: Mejor cliente (monto cerrado)
+  var byClienteMonto={};
+  cotizaciones.filter(function(c){return c.estatus==='cerrada';}).forEach(function(c){
+    var k=(c.cliente_nombre||'Sin cliente').trim();
+    byClienteMonto[k]=(byClienteMonto[k]||0)+(parseFloat(c.total)||0);
+  });
+  var mejorCliente=Object.entries(byClienteMonto).sort(function(a,b){return b[1]-a[1];})[0]||null;
+  var elMejor=document.getElementById('cot-k-mejor');
+  var elMejorSub=document.getElementById('cot-k-mejor-monto');
+  if(elMejor) elMejor.textContent=mejorCliente?mejorCliente[0].split(' ')[0]:'—';
+  if(elMejorSub) elMejorSub.textContent=mejorCliente?fmt(mejorCliente[1]):'';
+
+  // Paneles de insights
+  renderInsightsCotizaciones();
+}
+
+function renderInsightsCotizaciones(){
+  // ── Top conversión por cliente ─────────────────────────
+  var byCliente={};
+  cotizaciones.forEach(function(c){
+    var k=(c.cliente_nombre||'Sin cliente').trim();
+    if(!byCliente[k]) byCliente[k]={total:0,cerradas:0};
+    byCliente[k].total++;
+    if(c.estatus==='cerrada') byCliente[k].cerradas++;
+  });
+  var topConv=Object.entries(byCliente)
+    .filter(function(e){return e[1].total>=2;})
+    .map(function(e){return {nombre:e[0],cerradas:e[1].cerradas,total:e[1].total,pct:Math.round(e[1].cerradas/e[1].total*100)};})
+    .sort(function(a,b){return b.pct-a.pct||b.cerradas-a.cerradas;}).slice(0,5);
+  var elConv=document.getElementById('cot-insight-conv');
+  if(elConv){
+    elConv.innerHTML=topConv.length?topConv.map(function(r){
+      var bar=Math.round(r.pct);
+      var color=bar>=60?'#16a34a':bar>=30?'#d97706':'#f87171';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--border);">'+
+        '<div style="flex:1;font-size:12px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.nombre)+'</div>'+
+        '<div style="font-size:11px;color:var(--text-3);white-space:nowrap;">'+r.cerradas+'/'+r.total+'</div>'+
+        '<div style="width:50px;text-align:right;font-size:12px;font-weight:700;color:'+color+';">'+r.pct+'%</div>'+
+      '</div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Sin datos suficientes</div>';
+  }
+
+  // ── Cotizan pero nunca cierran ─────────────────────────
+  var sinCerrar=Object.entries(byCliente)
+    .filter(function(e){return e[1].cerradas===0&&e[1].total>=2;})
+    .map(function(e){return {nombre:e[0],total:e[1].total};})
+    .sort(function(a,b){return b.total-a.total;}).slice(0,5);
+  var elSin=document.getElementById('cot-insight-sin');
+  if(elSin){
+    elSin.innerHTML=sinCerrar.length?sinCerrar.map(function(r){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--border);">'+
+        '<div style="flex:1;font-size:12px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.nombre)+'</div>'+
+        '<div style="font-size:11px;color:#f87171;font-weight:600;">'+r.total+' cot · 0 ✓</div>'+
+      '</div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text-3);padding:8px 0;">✓ Todos han cerrado al menos una</div>';
+  }
 }
 
 function filtrarCotizaciones(q){

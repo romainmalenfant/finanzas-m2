@@ -94,6 +94,7 @@ var APP_MODULES=[
   {id:'contactos',label:'Contactos',icon:'👤',color:'#8B0000',showPeriod:false},
   {id:'empleados',label:'Empleados',icon:'👥',color:'#6B6B6B',showPeriod:false},
   {id:'sat',label:'Banco',icon:'🏦',color:'#B0B0B0',showPeriod:false},
-  {id:'facturas',label:'Facturas',icon:'🧾',color:'#E8192C',showPeriod:false}
+  {id:'facturas',label:'Facturas',icon:'🧾',color:'#E8192C',showPeriod:false},
+  {id:'documentos',label:'Documentos',icon:'📁',color:'#6B6B6B',showPeriod:false}
 ];
 var APP_MODULES_MAP=Object.fromEntries(APP_MODULES.map(function(m){return[m.id,m];}));

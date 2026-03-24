@@ -560,8 +560,9 @@ function abrirNuevaCotizacion(){
   if(!clientes.length) loadClientes();
 }
 
-function editarCotizacion(id){
+async function editarCotizacion(id){
   var c = cotizaciones.find(function(x){return x.id===id;});
+  if(!c) c = await DB.cotizaciones.get(id);
   if(!c) return;
   cotEditId = id;
   document.getElementById('cot-id-edit').value = id;

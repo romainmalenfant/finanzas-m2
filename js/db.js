@@ -400,6 +400,23 @@ var DB = {
       return res.count || 0;
     },
 
+    /** Todas las versiones de una cotización (por base id o propio id). */
+    versionesByBase: async function (baseId) {
+      return _dbQArr('DB.cotizaciones.versionesByBase',
+        sb.from('cotizaciones')
+          .select('id,numero,version,total,estatus,pdf_path,fecha,cotizacion_base_id,cliente_nombre')
+          .or('id.eq.' + baseId + ',cotizacion_base_id.eq.' + baseId)
+          .order('version', { ascending: true })
+      );
+    },
+
+    /** Guarda el pdf_path generado. */
+    savePdfPath: async function (id, pdfPath) {
+      return _dbQ('DB.cotizaciones.savePdfPath',
+        sb.from('cotizaciones').update({ pdf_path: pdfPath }).eq('id', id).select().single()
+      );
+    },
+
     /** Vincula contacto a cotización. */
     linkContact: async function (id, contactoId) {
       return _dbQArr('DB.cotizaciones.linkContact',

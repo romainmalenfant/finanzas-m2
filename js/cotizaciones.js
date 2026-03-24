@@ -44,6 +44,18 @@ var cotYearFilter = new Date().getFullYear();
 var cotHistorialOpen = false;
 var cotItemsTemp = []; // items in current form
 var cotEditId = null;
+var cotVersionFlag = false; // true = crear nueva versión al guardar
+
+var COT_CONDICIONES = [
+  { id: 1, texto: 'Precios expresados en MXN, más IVA' },
+  { id: 2, texto: 'Vigencia según los días indicados en el documento' },
+  { id: 3, texto: 'Forma de pago: 50% de anticipo, 50% contra entrega' },
+  { id: 4, texto: 'Tiempo de entrega sujeto a confirmación de agenda de producción' },
+  { id: 5, texto: 'Los precios no incluyen flete ni maniobras de entrega' },
+  { id: 6, texto: 'Se requiere plano técnico o muestra física para iniciar producción' },
+  { id: 7, texto: 'Cambios en especificaciones o material pueden afectar precio y tiempo de entrega' },
+];
+var COT_CONDICIONES_DEFAULT = [1, 2, 3];
 
 // ── Load & Render ─────────────────────────────────────────
 async function loadCotizaciones(){
@@ -531,6 +543,28 @@ function renderHistorialCotizaciones(wrap, list){
   wrap.appendChild(section);
 }
 
+function renderCondicionesCot(selectedIds) {
+  var list = document.getElementById('cot-condiciones-list');
+  if (!list) return;
+  var sel = selectedIds || COT_CONDICIONES_DEFAULT;
+  list.innerHTML = COT_CONDICIONES.map(function (c) {
+    var checked = sel.indexOf(c.id) !== -1;
+    return '<label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;padding:5px 8px;border-radius:6px;background:var(--bg-card-2);border:0.5px solid var(--border);">' +
+      '<input type="checkbox" data-cond-id="' + c.id + '" ' + (checked ? 'checked' : '') + ' style="margin-top:2px;accent-color:#E8192C;flex-shrink:0;">' +
+      '<span style="font-size:11px;color:var(--text-2);line-height:1.4;">' + c.texto + '</span>' +
+      '</label>';
+  }).join('');
+}
+
+function getCondicionesSeleccionadas() {
+  var checks = document.querySelectorAll('#cot-condiciones-list input[type=checkbox]');
+  var selected = [];
+  checks.forEach(function (ch) {
+    if (ch.checked) selected.push(parseInt(ch.getAttribute('data-cond-id')));
+  });
+  return selected;
+}
+
 function abrirNuevaCotizacion(){
   cotEditId = null;
   cotItemsTemp = [];
@@ -553,6 +587,10 @@ function abrirNuevaCotizacion(){
   if(_cd) { _cd.innerHTML = ''; _cd.style.display = 'none'; }
   renderCotItemsForm();
   recalcCotTotal();
+  renderCondicionesCot(COT_CONDICIONES_DEFAULT);
+  var btnNV = document.getElementById('btn-nueva-version-cot');
+  if (btnNV) btnNV.style.display = 'none';
+  cotVersionFlag = false;
   // BUG-04: z-index explícito para superar el detail panel (z-index:500)
   var _cotM = document.getElementById('cot-modal');
   _cotM.style.zIndex = '700';
@@ -623,6 +661,15 @@ async function editarCotizacion(id){
     renderCotItemsForm();
     recalcCotTotal();
   });
+  var vNum = c.version || 1;
+  var btnNV = document.getElementById('btn-nueva-version-cot');
+  if (btnNV) {
+    btnNV.style.display = 'block';
+    btnNV.textContent = '+ Nueva v' + (vNum + 1);
+  }
+  cotVersionFlag = false;
+  var condSel = (c.condiciones && Array.isArray(c.condiciones)) ? c.condiciones : COT_CONDICIONES_DEFAULT;
+  renderCondicionesCot(condSel);
   // BUG-04: z-index explícito para superar el detail panel (z-index:500)
   var _cotM2 = document.getElementById('cot-modal');
   _cotM2.style.zIndex = '700';
@@ -645,6 +692,9 @@ function cerrarCotModal(){
   if(ph) ph.value = '';
   if(pd) { pd.innerHTML=''; pd.style.display='none'; }
 
+  cotVersionFlag = false;
+  var btnNVClose = document.getElementById('btn-nueva-version-cot');
+  if (btnNVClose) btnNVClose.style.display = 'none';
   document.getElementById('cot-modal').style.display = 'none';
 }
 
@@ -923,6 +973,7 @@ async function guardarCotizacion(){
     btn.disabled=true; btn.textContent='Guardando...';
 
     var cotData = {
+      condiciones: getCondicionesSeleccionadas(),
       titulo:      tituloVal||null,
       cliente_id:  clienteId,
       contacto_id: contactoId,
@@ -940,7 +991,17 @@ async function guardarCotizacion(){
     };
 
     var savedCot;
-    if(cotEditId){
+    if(cotEditId && cotVersionFlag) {
+      // Create new version
+      var cBase = cotizaciones.find(function(x){return x.id===cotEditId;}) || (await DB.cotizaciones.get(cotEditId));
+      var baseId = cBase.cotizacion_base_id || cBase.id;
+      cotData.cotizacion_base_id = baseId;
+      cotData.version = (cBase.version || 1) + 1;
+      cotData.numero = cBase.numero;
+      cotData.estatus = 'borrador';
+      savedCot = await DB.cotizaciones.save(cotData);
+      cotVersionFlag = false;
+    } else if(cotEditId) {
       cotData.id = cotEditId;
       savedCot = await DB.cotizaciones.save(cotData);
     } else {
@@ -974,6 +1035,7 @@ async function guardarCotizacion(){
     console.error('guardarCotizacion:',e);
     showError('Error: '+e.message);
   }finally{
+    cotVersionFlag = false;
     var btn=document.getElementById('btn-save-cot');
     if(btn){btn.disabled=false;btn.textContent='Guardar';}
   }
@@ -982,18 +1044,94 @@ async function guardarCotizacion(){
 // ── Cambiar estatus ───────────────────────────────────────
 async function cambiarEstatusCot(id, estatus){
   try{
-    var extra = {};
-    if(estatus==='cerrada'||estatus==='perdida') extra.fecha_cierre = new Date().toISOString().split('T')[0];
-    await DB.cotizaciones.updateEstatus(id, estatus, extra);
-    if(estatus==='cerrada'){
-      await convertirACotizacionCerrada(id);
+    if(estatus === 'cerrada'){
+      // Check for multiple versions
+      var cot = (allCotizaciones||[]).find(function(c){return c.id===id;});
+      if(!cot) cot = await DB.cotizaciones.get(id);
+      var baseId = cot.cotizacion_base_id || cot.id;
+      var versiones = await DB.cotizaciones.versionesByBase(baseId);
+      if(versiones && versiones.length > 1){
+        mostrarPickerVersiones(versiones, id);
+        return;
+      }
+      await _cerrarCotizacion(id);
     } else {
+      var extra = {};
+      if(estatus==='perdida') extra.fecha_cierre = new Date().toISOString().split('T')[0];
+      await DB.cotizaciones.updateEstatus(id, estatus, extra);
       await loadCotizaciones();
       if(cotView==='kanban') renderKanban();
       cerrarDetail();
       showStatus('✓ Cotización actualizada');
     }
   }catch(e){showError('Error: '+e.message);}
+}
+
+async function _cerrarCotizacion(id){
+  try{
+    var extra = { fecha_cierre: new Date().toISOString().split('T')[0] };
+    await DB.cotizaciones.updateEstatus(id, 'cerrada', extra);
+    await convertirACotizacionCerrada(id);
+  }catch(e){showError('Error: '+e.message);}
+}
+
+var _versionPickerSelectedId = null;
+
+function mostrarPickerVersiones(versiones, currentId){
+  var sorted = versiones.slice().sort(function(a,b){ return (b.version||1)-(a.version||1); });
+  var last4 = sorted.slice(0,4);
+  var fmt2 = function(n){ return n!=null ? '$'+parseFloat(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'; };
+  var fmtEst = function(e){ return {borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Cerrada',perdida:'Perdida'}[e]||e; };
+
+  var existing = document.getElementById('version-picker-overlay');
+  if(existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'version-picker-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML =
+    '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:14px;width:100%;max-width:440px;padding:24px;box-shadow:0 8px 40px var(--shadow);">'+
+      '<div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">¿Qué versión se aprobó?</div>'+
+      '<div style="font-size:12px;color:var(--text-3);margin-bottom:18px;">'+(last4[0]&&last4[0].numero||'')+' · Elige la versión ganadora</div>'+
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">'+
+        last4.map(function(v,i){
+          var isLatest = i===0;
+          return '<div onclick="versionPickerSelect(\''+v.id+'\')" id="vpick-'+v.id+'" style="padding:12px 14px;border-radius:8px;border:1.5px solid '+(isLatest?'#E8192C':'var(--border)')+';cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:'+(isLatest?'rgba(232,25,44,.07)':'var(--bg-card-2)')+';transition:all .15s;">'+
+            '<div>'+
+              '<span style="font-size:13px;font-weight:700;color:'+(isLatest?'#E8192C':'var(--text-1)')+';">v'+(v.version||1)+'</span>'+
+              (isLatest ? '<span style="font-size:10px;color:#E8192C;margin-left:6px;">más reciente</span>' : '')+
+              '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+(v.fecha||'')+(v.estatus?' · '+fmtEst(v.estatus):'')+'</div>'+
+            '</div>'+
+            '<span style="font-size:13px;font-weight:700;color:var(--text-1);">'+fmt2(v.total)+'</span>'+
+          '</div>';
+        }).join('')+
+      '</div>'+
+      '<div style="display:flex;gap:10px;justify-content:flex-end;">'+
+        '<button onclick="document.getElementById(\'version-picker-overlay\').remove()" style="padding:8px 18px;border:.5px solid var(--border);border-radius:8px;background:none;color:var(--text-2);cursor:pointer;font-size:13px;">Cancelar</button>'+
+        '<button id="btn-vpick-ok" onclick="versionPickerConfirm()" style="padding:8px 22px;border-radius:8px;background:#E8192C;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Aprobar versión</button>'+
+      '</div>'+
+    '</div>';
+  document.body.appendChild(overlay);
+  // default: latest
+  _versionPickerSelectedId = last4[0] && last4[0].id;
+  versionPickerSelect(_versionPickerSelectedId);
+}
+
+function versionPickerSelect(id){
+  _versionPickerSelectedId = id;
+  document.querySelectorAll('[id^="vpick-"]').forEach(function(el){
+    var vid = el.id.replace('vpick-','');
+    var sel = vid === id;
+    el.style.borderColor = sel ? '#E8192C' : 'var(--border)';
+    el.style.background   = sel ? 'rgba(232,25,44,.07)' : 'var(--bg-card-2)';
+  });
+}
+
+async function versionPickerConfirm(){
+  if(!_versionPickerSelectedId) return;
+  var overlay = document.getElementById('version-picker-overlay');
+  if(overlay) overlay.remove();
+  await _cerrarCotizacion(_versionPickerSelectedId);
 }
 
 var _perdidaId = null;
@@ -1438,20 +1576,26 @@ var EMPRESA_CONFIG = {
 
 // ── PDF ───────────────────────────────────────────────────
 async function generarPDFCotizacion(id){
-  var c = cotizaciones.find(function(x){return x.id===id;});
-  if(!c){showError('Cotización no encontrada');return;}
+  var c = await DB.cotizaciones.get(id);
+  if(!c){ showError('Cotización no encontrada'); return; }
+
+  // If already generated, open from storage
+  if(c.pdf_path){
+    try{
+      var url = await DB.storage.signedUrl(c.pdf_path);
+      window.open(url,'_blank');
+      return;
+    }catch(e){ /* fall through to regenerate */ }
+  }
 
   var items = await DB.cotizacionItems.byCotizacion(id);
   items = items||[];
 
-  // Get contacto vinculado a esta cotización
   var contactoNombre = '';
   if(c.contacto_id){
     try{
       var ctPdf = await DB.contactos.get(c.contacto_id);
-      if(ctPdf){
-        contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' · '+ctPdf.cargo:'');
-      }
+      if(ctPdf) contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' · '+ctPdf.cargo:'');
     }catch(e){}
   }
 
@@ -1460,201 +1604,221 @@ async function generarPDFCotizacion(id){
     var pw = doc.internal.pageSize.getWidth();  // 279
     var ph = doc.internal.pageSize.getHeight(); // 216
 
-    // ── Paleta Grupo M2 (manual de identidad) ────────────
     var C = {
       white:   [255,255,255],
-      bgPage:  [252,252,252],     // blanco casi puro
-      accent:  [232,25,44],       // rojo M2 #E8192C
-      accentL: [254,226,226],     // rojo pastel muy suave
-      accentD: [139,0,0],         // rojo oscuro/vino #8B0000
-      gray1:   [245,245,245],     // gris muy claro
-      gray2:   [176,176,176],     // gris medio #B0B0B0
-      gray3:   [107,107,107],     // gris oscuro #6B6B6B
-      text:    [51,51,51],        // carbon #333333
-      carbon:  [28,28,28],        // casi negro para header
-      silver:  [200,200,200],     // plateado metálico
+      bgPage:  [248,248,250],
+      red:     [232,25,44],
+      carbon:  [17,24,39],       // #111827 dark header/footer
+      dark2:   [30,41,59],       // #1e293b table header
+      gray1:   [241,245,249],    // alternating row
+      gray2:   [148,163,184],    // secondary text
+      gray3:   [71,85,105],      // tertiary
+      text:    [15,23,42],       // main text
     };
 
-    // Fondo blanco / muy suave
+    var fmtDateFull = function(d){ if(!d) return '—'; try{ var dt=new Date(d+'T12:00'); return dt.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}); }catch(e){return d;} };
+
+    // ── Background ────────────────────────────────────────
     doc.setFillColor(...C.bgPage);
     doc.rect(0,0,pw,ph,'F');
 
-    // ── Header: franja de acento izquierda + datos empresa ─
-    doc.setFillColor(...C.accent);
-    doc.rect(0,0,8,ph,'F'); // barra lateral azul
+    // ── HEADER: dark full-width bar ───────────────────────
+    var headerH = 38;
+    doc.setFillColor(...C.carbon);
+    doc.rect(0,0,pw,headerH,'F');
 
-    // Bloque header
-    doc.setFillColor(...C.accentL);
-    doc.roundedRect(12, 8, pw-22, 30, 3, 3, 'F');
+    // Logo on the left — red box with MK2 logo
+    var logoEl = document.getElementById('pdf-logo');
+    if(logoEl && logoEl.complete && logoEl.naturalWidth > 0){
+      // Red background box
+      doc.setFillColor(...C.red);
+      doc.rect(0,0,headerH,headerH,'F'); // square, same height as header
+      try{
+        doc.addImage(logoEl,'JPEG',2,2,headerH-4,headerH-4);
+      }catch(e){}
+    } else {
+      // Fallback: red box with text
+      doc.setFillColor(...C.red);
+      doc.rect(0,0,headerH,headerH,'F');
+      doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(...C.white);
+      doc.text('MK2',headerH/2,headerH/2+2,{align:'center'});
+    }
 
-    // Logo
-    try{
-      var imgEl = document.querySelector('.sidebar-logo img');
-      if(imgEl && imgEl.src) doc.addImage(imgEl.src,'PNG',16,10,20,20);
-    }catch(e){}
+    // Company name + slogan (right of logo)
+    var logoRight = headerH + 8;
+    doc.setFontSize(16); doc.setFont('helvetica','bold'); doc.setTextColor(...C.white);
+    doc.text(EMPRESA_CONFIG.nombre, logoRight, 15);
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2);
+    doc.text(EMPRESA_CONFIG.slogan || '', logoRight, 22);
+    doc.text((EMPRESA_CONFIG.web||'') + '  ·  ' + (EMPRESA_CONFIG.tel||''), logoRight, 29);
 
-    // Nombre y slogan
-    doc.setTextColor(...C.accentD);
-    doc.setFontSize(17); doc.setFont('helvetica','bold');
-    doc.text(EMPRESA_CONFIG.nombre, 40, 20);
-    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-    doc.setTextColor(...C.gray3);
-    doc.text(EMPRESA_CONFIG.slogan, 40, 27);
-    doc.text(EMPRESA_CONFIG.web+' · '+EMPRESA_CONFIG.tel, 40, 33);
+    // Quote number (right side of header)
+    var vLabel = (c.version && c.version > 1) ? ' v' + c.version : '';
+    doc.setFontSize(22); doc.setFont('helvetica','bold'); doc.setTextColor(...C.red);
+    doc.text((c.numero||'COTIZACIÓN')+vLabel, pw-12, 18, {align:'right'});
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2);
+    doc.text('Fecha: ' + fmtDateFull(c.fecha), pw-12, 26, {align:'right'});
+    doc.text('Vigencia: ' + (c.vigencia_dias||15) + ' días hábiles', pw-12, 33, {align:'right'});
 
-    // Número cotización (derecha del header)
-    doc.setFontSize(20); doc.setFont('helvetica','bold');
-    doc.setTextColor(...C.accent);
-    doc.text(c.numero||'COTIZACIÓN', pw-14, 20, {align:'right'});
-    doc.setFontSize(8); doc.setFont('helvetica','normal');
-    doc.setTextColor(...C.gray3);
-    doc.text('Fecha: '+fmtDateFull(c.fecha), pw-14, 27, {align:'right'});
-    doc.text('Vigencia: '+(c.vigencia_dias||15)+' días', pw-14, 33, {align:'right'});
+    var y = headerH + 10;
 
-    var y = 46;
+    // ── Thin red accent line below header ─────────────────
+    doc.setFillColor(...C.red);
+    doc.rect(0,headerH,pw,1.5,'F');
 
-    // ── Cliente ───────────────────────────────────────────
-    doc.setFillColor(...C.gray1);
-    doc.roundedRect(12, y, 120, contactoNombre?20:14, 2, 2, 'F');
-    doc.setFontSize(7); doc.setFont('helvetica','bold');
-    doc.setTextColor(...C.accent);
-    doc.text('DIRIGIDO A', 16, y+5);
-    doc.setFontSize(11); doc.setFont('helvetica','bold');
-    doc.setTextColor(...C.text);
-    doc.text(c.cliente_nombre||'', 16, y+11);
+    // ── CLIENT BLOCK ──────────────────────────────────────
+    doc.setFillColor(...C.white);
+    doc.roundedRect(12, y, contactoNombre ? 120 : 140, contactoNombre ? 22 : 16, 2,2,'F');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.red);
+    doc.text('DIRIGIDO A', 18, y+6);
+    doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...C.text);
+    doc.text(c.cliente_nombre||'—', 18, y+13);
     if(contactoNombre){
-      doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-      doc.setTextColor(...C.gray3);
-      doc.text('Atn. '+contactoNombre, 16, y+17);
-    }
-
-    // ── Título / objeto general ──────────────────────────
-    if(c.titulo){
-      var tituloY = contactoNombre ? y+22 : y+16;
-      doc.setFontSize(9); doc.setFont('helvetica','bolditalic');
-      doc.setTextColor(...C.accentD);
-      doc.text(c.titulo, 16, tituloY);
-      y += 8;
-    }
-
-    // ── Notas (si existen, al lado del cliente) ───────────
-    if(c.notas){
-      doc.setFillColor(...C.gray1);
-      doc.roundedRect(136, y, pw-148, contactoNombre?20:14, 2, 2, 'F');
-      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.accent);
-      doc.text('NOTAS', 140, y+5);
       doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
-      var notasInline = doc.splitTextToSize(c.notas, pw-160);
-      doc.text(notasInline.slice(0,2), 140, y+11);
+      doc.text(contactoNombre, 18, y+20);
     }
 
-    // ── Items table ───────────────────────────────────────
-    y = contactoNombre ? 72 : 66;
+    // Title block (center/right of client)
+    if(c.titulo){
+      doc.setFillColor(...C.white);
+      doc.roundedRect(136, y, pw-148, contactoNombre?22:16, 2,2,'F');
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.red);
+      doc.text('PROYECTO / REFERENCIA', 142, y+6);
+      doc.setFontSize(9); doc.setFont('helvetica','bolditalic'); doc.setTextColor(...C.text);
+      var tituloLines = doc.splitTextToSize(c.titulo, pw-160);
+      doc.text(tituloLines.slice(0,2), 142, y+13);
+    } else if(c.notas){
+      doc.setFillColor(...C.white);
+      doc.roundedRect(136, y, pw-148, contactoNombre?22:16, 2,2,'F');
+      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.gray3);
+      doc.text('NOTAS', 142, y+6);
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
+      var notasLines = doc.splitTextToSize(c.notas, pw-160);
+      doc.text(notasLines.slice(0,2), 142, y+11);
+    }
 
+    y = headerH + (contactoNombre ? 40 : 34);
+
+    // ── ITEMS TABLE ───────────────────────────────────────
     var tableData = items.map(function(item){
+      var tipoLabel = item.tipo==='maquinado'?'Maquinado':item.tipo==='servicio'?'Servicio':'Producto';
+      var desc = (item.descripcion||'');
+      if(item.material) desc += '\n' + item.material;
+      if(item.notas)    desc += '\n' + item.notas;
       return [
-        {content:(item.descripcion||'')+(item.material?' · '+item.material:'')+(item.notas?' · '+item.notas:''), styles:{fontSize:8.5, textColor:C.text}},
-        item.tipo==='maquinado'?'Maquinado':item.tipo==='servicio'?'Servicio':'Producto',
-        (item.cantidad||0)+' '+(item.unidad||'pza'),
-        fmt(item.precio_unitario||0),
-        {content:fmt(item.subtotal||0), styles:{fontStyle:'bold', textColor:C.accentD}}
+        {content: desc, styles:{fontSize:8.5, textColor:C.text, cellPadding:{top:4,bottom:4,left:4,right:4}}},
+        {content: tipoLabel, styles:{fontSize:8, textColor:C.gray2, halign:'center'}},
+        {content: (item.cantidad||0)+' '+(item.unidad||'pza'), styles:{halign:'center', textColor:C.gray3}},
+        {content: fmt(item.precio_unitario||0), styles:{halign:'right', textColor:C.gray3}},
+        {content: fmt(item.subtotal||0), styles:{halign:'right', fontStyle:'bold', textColor:C.text}},
       ];
     });
 
     doc.autoTable({
-      head:[['Descripción','Tipo','Cant.','P. Unitario','Subtotal']],
+      head:[[ 'Descripción', 'Tipo', 'Cant.', 'P. Unitario', 'Subtotal' ]],
       body: tableData,
       startY: y,
-      margin:{left:12, right:12},
-      styles:{fontSize:8.5, cellPadding:3.5, lineColor:C.gray1, lineWidth:0.3, textColor:C.text},
-      headStyles:{fillColor:C.accent, textColor:C.white, fontStyle:'bold', fontSize:8},
-      alternateRowStyles:{fillColor:C.gray1},
-      bodyStyles:{fillColor:C.white},
+      margin:{ left:12, right:12 },
+      styles:{ fontSize:8.5, cellPadding:3.5, lineColor:[220,226,234], lineWidth:0.3, textColor:C.text },
+      headStyles:{ fillColor:C.dark2, textColor:C.white, fontStyle:'bold', fontSize:8, cellPadding:5 },
+      alternateRowStyles:{ fillColor:C.gray1 },
+      bodyStyles:{ fillColor:C.white },
       columnStyles:{
-        0:{cellWidth:'auto'},
-        1:{cellWidth:26, halign:'center'},
-        2:{cellWidth:24, halign:'center'},
-        3:{cellWidth:30, halign:'right'},
-        4:{cellWidth:33, halign:'right'}
+        0:{ cellWidth:'auto' },
+        1:{ cellWidth:26, halign:'center' },
+        2:{ cellWidth:24, halign:'center' },
+        3:{ cellWidth:30, halign:'right' },
+        4:{ cellWidth:33, halign:'right' },
       }
     });
 
-    var finalY = doc.lastAutoTable.finalY + 6;
+    var finalY = doc.lastAutoTable.finalY + 8;
 
-    // ── Totals ────────────────────────────────────────────
+    // ── TOTALS ────────────────────────────────────────────
     var tx = pw - 14;
-    doc.setFontSize(8.5); doc.setFont('helvetica','normal');
-    doc.setTextColor(...C.gray3);
-    doc.text('Subtotal:', tx-38, finalY);
-    doc.setTextColor(...C.text); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
-    finalY += 5.5;
-    doc.setTextColor(...C.gray3); doc.text('IVA (16%):', tx-38, finalY);
-    doc.setTextColor(...C.text); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
+    doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
+    doc.text('Subtotal:', tx-40, finalY); doc.setTextColor(...C.text); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
     finalY += 6;
-    doc.setFillColor(...C.accentL);
-    // Calcular ancho exacto del contenido TOTAL: + monto
-    var totalLabel = 'TOTAL:';
-    var totalMonto = fmt(c.total||0);
-    doc.setFontSize(10); doc.setFont('helvetica','bold');
-    var labelW = doc.getTextWidth(totalLabel);
-    var montoW = doc.getTextWidth(totalMonto);
-    var rectW = labelW + montoW + 14; // padding 7px cada lado
-    var rectX = tx - montoW - labelW - 14;
-    doc.roundedRect(rectX, finalY-5, rectW, 11, 2, 2, 'F');
-    doc.setTextColor(...C.accentD);
-    doc.text(totalLabel, rectX+7, finalY+3);
-    doc.text(totalMonto, tx, finalY+3, {align:'right'});
+    doc.setTextColor(...C.gray3); doc.text('IVA (16%):', tx-40, finalY); doc.setTextColor(...C.text); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
+    finalY += 7;
 
-    // ── Condiciones de pago (si existen) ─────────────────
-    if(c.condiciones_pago){
-      finalY += 12;
-      doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.accent);
-      doc.text('CONDICIONES DE PAGO:', 12, finalY);
-      doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3); doc.setFontSize(8);
-      doc.text(c.condiciones_pago, 12, finalY+5);
-      finalY += 5;
+    // Total box — dark background
+    var totalLabel = 'TOTAL'; var totalMonto = fmt(c.total||0);
+    doc.setFontSize(10); doc.setFont('helvetica','bold');
+    var labelW = doc.getTextWidth(totalLabel+':  ');
+    var montoW = doc.getTextWidth(totalMonto);
+    var rectW = labelW + montoW + 16;
+    var rectX = tx - montoW - labelW - 10;
+    doc.setFillColor(...C.carbon);
+    doc.roundedRect(rectX, finalY-6, rectW, 12, 2, 2, 'F');
+    doc.setTextColor(...C.gray2); doc.text(totalLabel+':', rectX+8, finalY+2);
+    doc.setTextColor(...C.red); doc.text(totalMonto, tx, finalY+2, {align:'right'});
+
+    // ── CONDITIONS ────────────────────────────────────────
+    var condIds = Array.isArray(c.condiciones) ? c.condiciones : [];
+    if(condIds.length){
+      finalY += 18;
+      var condTexts = COT_CONDICIONES.filter(function(cc){ return condIds.indexOf(cc.id)!==-1; }).map(function(cc){ return cc.texto; });
+      if(condTexts.length){
+        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.gray3);
+        doc.text('CONDICIONES', 12, finalY);
+        finalY += 5;
+        doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2); doc.setFontSize(7);
+        condTexts.forEach(function(ct, i){
+          doc.text('• ' + ct, 12, finalY + (i * 5));
+        });
+      }
     }
 
-    // ── Firma ─────────────────────────────────────────────
+    // ── Signature ─────────────────────────────────────────
+    var firmaY = Math.min(finalY + (condIds.length ? condIds.length*5+8 : 18), ph - 38);
     var firmaX = pw - 80;
-    var firmaY = Math.min(finalY + 14, ph - 50);
-    doc.setDrawColor(...C.gray2);
-    doc.setLineWidth(0.4);
+    doc.setDrawColor(...C.gray2); doc.setLineWidth(0.4);
     doc.line(firmaX, firmaY, firmaX+60, firmaY);
     doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...C.text);
     doc.text(EMPRESA_CONFIG.firma_nombre, firmaX+30, firmaY+5, {align:'center'});
     doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3); doc.setFontSize(7.5);
     doc.text(EMPRESA_CONFIG.firma_cargo, firmaX+30, firmaY+10, {align:'center'});
 
-    // ── Footer ────────────────────────────────────────────
+    // ── FOOTER: dark bar ──────────────────────────────────
     var footerH = 22;
     var footerY = ph - footerH;
-    doc.setFillColor(...C.accentL);
+    doc.setFillColor(...C.carbon);
     doc.rect(0, footerY, pw, footerH, 'F');
-    doc.setFillColor(...C.accent);
-    doc.rect(0, footerY, 8, footerH, 'F');
+    // Red left accent in footer
+    doc.setFillColor(...C.red);
+    doc.rect(0, footerY, 5, footerH, 'F');
 
-    // Addresses (left col)
-    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2);
     EMPRESA_CONFIG.direcciones.forEach(function(dir, i){
-      doc.text(dir, 12, footerY+6+(i*5));
+      doc.text(dir, 10, footerY+6+(i*5));
     });
 
-    // Contact info (center)
-    doc.setTextColor(...C.accentD);
-    doc.setFontSize(7.5); doc.setFont('helvetica','bold');
-    doc.text(EMPRESA_CONFIG.web, pw/2, footerY+6, {align:'center'});
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...C.gray3);
-    doc.text(EMPRESA_CONFIG.tel+'   |   '+EMPRESA_CONFIG.email, pw/2, footerY+11, {align:'center'});
-    doc.text(EMPRESA_CONFIG.banco, pw/2, footerY+16, {align:'center'});
+    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...C.white);
+    doc.text(EMPRESA_CONFIG.web||'', pw/2, footerY+7, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...C.gray2);
+    doc.text((EMPRESA_CONFIG.tel||'') + '   |   ' + (EMPRESA_CONFIG.email||''), pw/2, footerY+12, {align:'center'});
+    if(EMPRESA_CONFIG.banco) doc.text(EMPRESA_CONFIG.banco, pw/2, footerY+17, {align:'center'});
 
-    // Legal (right col)
-    doc.setFontSize(6); doc.setTextColor(...C.gray2);
-    var legalLines = doc.splitTextToSize(EMPRESA_CONFIG.legal, 70);
-    doc.text(legalLines, pw-14, footerY+5, {align:'right'});
+    doc.setFontSize(6); doc.setTextColor(...C.gray3);
+    if(EMPRESA_CONFIG.legal){
+      var legalLines = doc.splitTextToSize(EMPRESA_CONFIG.legal, 70);
+      doc.text(legalLines, pw-8, footerY+6, {align:'right'});
+    }
 
-    doc.save((c.numero||'cotizacion')+'.pdf');
-    showStatus('✓ PDF generado');
+    // ── Save to storage ───────────────────────────────────
+    try{
+      var pdfBlob = doc.output('blob');
+      var pdfPath = 'cotizaciones/' + id + '.pdf';
+      await sb.storage.from('facturas').upload(pdfPath, pdfBlob, { upsert:true, contentType:'application/pdf' });
+      await DB.cotizaciones.savePdfPath(id, pdfPath);
+      var local = cotizaciones.find(function(x){return x.id===id;});
+      if(local) local.pdf_path = pdfPath;
+    }catch(storageErr){ console.warn('No se pudo guardar PDF en storage:', storageErr); }
+
+    var fileName = (c.numero||'cotizacion') + (c.version && c.version > 1 ? '-v'+c.version : '') + '.pdf';
+    doc.save(fileName);
+    showStatus('✓ PDF generado y guardado');
   }catch(e){
     console.error('PDF error:',e);
     showError('Error generando PDF: '+e.message);

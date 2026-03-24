@@ -1169,26 +1169,29 @@
 
       <!-- Panel: Entregas -->
       <div id="panel-vista-entregas" style="display:none;padding:0 1.25rem 1.25rem;">
-        <div style="border-top:.5px solid var(--border);padding-top:12px;">
+        <div style="border-top:.5px solid var(--border);padding-top:16px;display:flex;flex-direction:column;gap:16px;">
+
           <!-- Últimas entregas -->
-          <div style="margin-bottom:1.25rem;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <div class="sec-title" style="margin-bottom:0;">Últimas entregas</div>
-              <span style="font-size:11px;color:var(--text-3);" id="entregas-ultimas-count"></span>
+          <div style="background:var(--bg-card-2);border-radius:12px;border:.5px solid var(--border);padding:14px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+              <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.07em;">⏱ Últimas entregas</div>
+              <span style="font-size:11px;color:var(--text-3);background:var(--bg-card);border:.5px solid var(--border);border-radius:5px;padding:1px 8px;" id="entregas-ultimas-count"></span>
             </div>
             <div id="entregas-ultimas-list"><div class="empty-state" style="font-size:12px;">Sin entregas registradas</div></div>
           </div>
+
           <!-- Abiertos / Cerrados en grid -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-            <div>
-              <div class="sec-title" style="margin-bottom:8px;">Entregas · proyectos abiertos</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div style="background:var(--bg-card-2);border-radius:12px;border:.5px solid var(--border);padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">🔵 Proyectos abiertos</div>
               <div id="entregas-abiertos-list"><div class="empty-state" style="font-size:12px;">—</div></div>
             </div>
-            <div>
-              <div class="sec-title" style="margin-bottom:8px;">Entregas · proyectos cerrados</div>
+            <div style="background:var(--bg-card-2);border-radius:12px;border:.5px solid var(--border);padding:14px 16px;">
+              <div style="font-size:11px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">✅ Proyectos cerrados</div>
               <div id="entregas-cerrados-list"><div class="empty-state" style="font-size:12px;">—</div></div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

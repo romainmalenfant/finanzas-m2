@@ -360,7 +360,11 @@ function abrirEntrega(id){
     // Poblar el select con proyectos abiertos
     var dd=document.getElementById('entrega-proj-sel');
     dd.innerHTML='<option value="">— Selecciona un proyecto —</option>';
-    (proyectos||[]).filter(function(p){ return p.estatus!=='completado'; }).forEach(function(p){
+    (proyectos||[]).filter(function(p){
+      var ents=entregasByProyecto[p.id]||[];
+      var entregadas=ents.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
+      return estadoProyecto(p,entregadas).lbl!=='Completado';
+    }).forEach(function(p){
       var opt=document.createElement('option');
       opt.value=p.id;
       opt.textContent=p.nombre_pedido+(p.nombre_cliente?' · '+p.nombre_cliente:'');

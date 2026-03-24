@@ -171,7 +171,7 @@ async function _docsFetch(q, año, tipo, archivo) {
     if (tipo)    qb = qb.eq('tipo', tipo);
     if (archivo === 'xml') qb = qb.not('xml_path', 'is', null);
     if (archivo === 'pdf') qb = qb.not('pdf_path', 'is', null);
-    return qb.order('fecha', { ascending: false }).limit(50);
+    return qb.order('fecha', { ascending: false }).limit(10);
   }
 
   var rows = [];

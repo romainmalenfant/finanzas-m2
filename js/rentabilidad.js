@@ -296,7 +296,7 @@ function _buildExpand(p){
       '</button>'+
       '<div id="rent-asig-body-'+p.id+'" style="display:none;padding:0 14px 14px;">'+
         '<div style="position:relative;">'+
-          '<input type="text" id="rent-fact-search-'+p.id+'" placeholder="Buscar por proveedor o folio..." autocomplete="off"'+
+          '<input type="text" id="rent-fact-search-'+p.id+'" placeholder="Buscar por proveedor, folio, UUID o monto..." autocomplete="off"'+
             ' oninput="rentBuscarFactura(\''+p.id+'\',this.value)"'+
             ' style="width:100%;padding:6px 10px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;box-sizing:border-box;">'+
           '<div id="rent-fact-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:650;max-height:180px;overflow-y:auto;margin-top:3px;box-shadow:0 4px 20px var(--shadow);"></div>'+

@@ -623,7 +623,13 @@ var DB = {
         .eq('year', y)
         .order('fecha', { ascending: false })
         .limit(50);
-      if (q) base = base.or('emisor_nombre.ilike.%' + q + '%,numero_factura.ilike.%' + q + '%,concepto.ilike.%' + q + '%');
+      if (q) base = base.or(
+        'emisor_nombre.ilike.%' + q + '%' +
+        ',numero_factura.ilike.%' + q + '%' +
+        ',concepto.ilike.%' + q + '%' +
+        ',id.ilike.%' + q + '%' +
+        ',total::text.ilike.%' + q + '%'
+      );
       return _dbQArr('DB.facturas.buscarRecibidas', base);
     },
 

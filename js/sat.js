@@ -710,7 +710,8 @@ async function importarXMLsCFDI(input) {
   var unmatchedPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.matchedXml && !it.error; });
   if (unmatchedPDFs.length) {
     try {
-      var xmlNames = unmatchedPDFs.map(function(it){ return _xmlBaseName(it.file) + '.xml'; });
+      // Preservar case original para el query (PostgreSQL .in() es case-sensitive)
+      var xmlNames = unmatchedPDFs.map(function(it){ return it.file.name.replace(/\.pdf$/i, '.xml'); });
       var { data: candidatos } = await sb.from('facturas')
         .select('id, uuid_sat, filename_original, year, emisor_nombre, receptor_nombre, numero_factura, total, fecha')
         .in('filename_original', xmlNames);
@@ -718,7 +719,7 @@ async function importarXMLsCFDI(input) {
         var facByFilename = {};
         candidatos.forEach(function(f){ if (f.filename_original) facByFilename[f.filename_original.toLowerCase()] = f; });
         unmatchedPDFs.forEach(function(pdfIt) {
-          var xmlName = (_xmlBaseName(pdfIt.file) + '.xml').toLowerCase();
+          var xmlName = pdfIt.file.name.replace(/\.pdf$/i, '.xml').toLowerCase();
           var fac = facByFilename[xmlName];
           if (fac) {
             pdfIt.dbFactura   = fac;

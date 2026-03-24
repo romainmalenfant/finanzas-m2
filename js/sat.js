@@ -782,7 +782,7 @@ async function importarXMLsCFDI(input) {
     try {
       var docXmlNames = stillUnmatched.map(function(it){ return it.file.name.replace(/\.pdf$/i, '.xml'); });
       var { data: docCandidatos } = await sb.from('documentos')
-        .select('id, nombre, path, tipo, factura_id')
+        .select('id, nombre, path, tipo, factura_id, pdf_path')
         .in('nombre', docXmlNames)
         .in('tipo', ['complemento', 'cancelacion']);
       if (docCandidatos && docCandidatos.length) {
@@ -792,8 +792,13 @@ async function importarXMLsCFDI(input) {
           var xmlNombre = pdfIt.file.name.replace(/\.pdf$/i, '.xml').toLowerCase();
           var doc = docByNombre[xmlNombre];
           if (doc) {
-            pdfIt.dbDoc      = doc;
-            pdfIt.advertencia = null;
+            if (doc.pdf_path) {
+              pdfIt.error   = 'El ' + (doc.tipo === 'cancelacion' ? 'acuse de cancelación' : 'complemento') + ' ya tiene PDF vinculado';
+              pdfIt.incluir = false;
+            } else {
+              pdfIt.dbDoc       = doc;
+              pdfIt.advertencia = null;
+            }
           }
         });
       }

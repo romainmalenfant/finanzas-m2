@@ -1276,7 +1276,7 @@ var DB = {
       if (!ids || !ids.length) return [];
       return _dbQArr('DB.asignaciones.byProyectos',
         sb.from('factura_asignaciones')
-          .select('id,proyecto_id,monto,porcentaje,factura_id,categoria')
+          .select('id,proyecto_id,monto,porcentaje,factura_id')
           .in('proyecto_id', ids)
       );
     },

@@ -1123,6 +1123,7 @@
       <input type="text" id="proj-search" placeholder="Buscar por cliente, pedido o tipo de pieza..."
         oninput="filtrarProyectos(this.value)"
         style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+      <button class="btn-sm" onclick="abrirEntrega()" style="padding:8px 14px;">+ Nueva entrega</button>
       <button class="btn-primary" onclick="abrirNuevoProyecto()">+ Nuevo proyecto</button>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
@@ -1623,8 +1624,14 @@
         <button class="modal-close" onclick="cerrarEntrega()">×</button>
       </div>
       <div class="modal-body">
-        <div style="font-size:13px;color:#73726c;margin-bottom:14px;" id="entrega-info"></div>
         <input type="hidden" id="entrega-proj-id">
+        <div class="form-group" id="entrega-proj-selector" style="margin-bottom:14px;">
+          <label>Proyecto</label>
+          <select id="entrega-proj-sel" onchange="seleccionarProyectoEntrega(this.value)" style="width:100%;padding:8px 10px;border:0.5px solid var(--border);border-radius:8px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:13px;">
+            <option value="">— Selecciona un proyecto —</option>
+          </select>
+        </div>
+        <div style="font-size:13px;color:#73726c;margin-bottom:14px;" id="entrega-info"></div>
         <div class="form-row">
           <div class="form-group">
             <label>Fecha de entrega</label>

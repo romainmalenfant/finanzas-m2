@@ -330,19 +330,57 @@ async function eliminarProyecto(id){
 
 // ── Entrega de piezas ────────────────────────────────────
 function abrirEntrega(id){
-  var p=proyectos.find(function(x){return x.id===id;});
-  if(!p)return;
-  var entregas=entregasByProyecto[p.id]||[];
-  var yaEntregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
-  var faltantes=Math.max(0,(p.total_piezas||0)-yaEntregadas);
-  document.getElementById('entrega-proj-id').value=id;
-  document.getElementById('entrega-info').textContent=p.nombre_cliente+' · '+p.nombre_pedido+' · Faltan '+faltantes+' pieza'+(faltantes!==1?'s':'');
+  // Limpiar campos
   document.getElementById('entrega-cantidad').value='';
   document.getElementById('entrega-factura').value='';
   document.getElementById('entrega-monto').value='';
   document.getElementById('entrega-notas').value='';
   document.getElementById('entrega-fecha').value=new Date().toISOString().split('T')[0];
+
+  var sel=document.getElementById('entrega-proj-selector');
+  var info=document.getElementById('entrega-info');
+
+  if(id){
+    // Viene desde una tarjeta — ocultar selector, mostrar info
+    var p=proyectos.find(function(x){return x.id===id;});
+    if(!p)return;
+    document.getElementById('entrega-proj-id').value=id;
+    var entregas=entregasByProyecto[p.id]||[];
+    var yaEntregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
+    var faltantes=Math.max(0,(p.total_piezas||0)-yaEntregadas);
+    info.textContent=p.nombre_cliente+' · '+p.nombre_pedido+' · Faltan '+faltantes+' pieza'+(faltantes!==1?'s':'');
+    sel.style.display='none';
+    info.style.display='block';
+  } else {
+    // Viene del botón global — mostrar selector de proyecto
+    document.getElementById('entrega-proj-id').value='';
+    info.textContent='';
+    info.style.display='none';
+    sel.style.display='block';
+    // Poblar el select con proyectos abiertos
+    var dd=document.getElementById('entrega-proj-sel');
+    dd.innerHTML='<option value="">— Selecciona un proyecto —</option>';
+    (proyectos||[]).filter(function(p){ return p.estatus!=='completado'; }).forEach(function(p){
+      var opt=document.createElement('option');
+      opt.value=p.id;
+      opt.textContent=p.nombre_pedido+(p.nombre_cliente?' · '+p.nombre_cliente:'');
+      dd.appendChild(opt);
+    });
+  }
   document.getElementById('entrega-modal').style.display='flex';
+}
+
+function seleccionarProyectoEntrega(id){
+  if(!id){ document.getElementById('entrega-info').textContent=''; return; }
+  var p=proyectos.find(function(x){return x.id===id;});
+  if(!p)return;
+  document.getElementById('entrega-proj-id').value=id;
+  var entregas=entregasByProyecto[p.id]||[];
+  var yaEntregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
+  var faltantes=Math.max(0,(p.total_piezas||0)-yaEntregadas);
+  var info=document.getElementById('entrega-info');
+  info.textContent='Faltan '+faltantes+' pieza'+(faltantes!==1?'s')+' de '+p.total_piezas+' totales';
+  info.style.display='block';
 }
 
 function cerrarEntrega(){document.getElementById('entrega-modal').style.display='none';}

@@ -2,6 +2,7 @@
 const SUPABASE_URL = 'https://iycqlbvywwogcfftciil.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml5Y3FsYnZ5d3dvZ2NmZnRjaWlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MzA2MTUsImV4cCI6MjA4OTAwNjYxNX0.-LTSOW9GJlNl2aJJsSZdhz8cS8c9u-UXM1cxP0Kndos';
 const TABLE = 'movimientos_v2';
+const RFC_EMPRESA = 'CDN230419BN4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── M2State — Única fuente de verdad ────────────────────

@@ -551,18 +551,28 @@ async function importarXMLsCFDI(input) {
 
       if (!parsed.uuid) { errors.push(file.name + ': sin UUID'); continue; }
 
+      // Candado RFC: el emisor o receptor debe ser Grupo M2
+      var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
+      if (rfcEmp) {
+        var emisorRfc  = (parsed.emisor_rfc  || '').toUpperCase();
+        var receptorRfc= (parsed.receptor_rfc|| '').toUpperCase();
+        if (emisorRfc !== rfcEmp && receptorRfc !== rfcEmp) {
+          errors.push(file.name + ': RFC no corresponde a esta empresa');
+          continue;
+        }
+      }
+
       var año = parsed.fecha ? parseInt(parsed.fecha.split('-')[0]) : new Date().getFullYear();
 
       // Buscar factura existente por UUID
       var existing = await DB.facturas.get(parsed.uuid);
 
-      // Determinar tipo: si el RFC emisor es de la empresa → emitida, si no → recibida
-      // (se puede mejorar consultando RFC propio, por ahora usamos lo que existe en BD)
+      // Determinar tipo por RFC: si el emisor es Grupo M2 → emitida; si el receptor es Grupo M2 → recibida
       var tipo = existing ? existing.tipo : null;
-      if (!tipo) {
-        // Si no existe aún, necesitamos saberlo — dejamos pendiente para el upsert
-        tipo = 'recibida'; // default conservador
+      if (!tipo && rfcEmp) {
+        tipo = (parsed.emisor_rfc || '').toUpperCase() === rfcEmp ? 'emitida' : 'recibida';
       }
+      if (!tipo) tipo = 'recibida'; // fallback conservador
 
       // Path en storage: año/uuid_tipo.xml
       var path = año + '/' + parsed.uuid + '.xml';

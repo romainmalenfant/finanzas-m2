@@ -263,10 +263,21 @@ async function loadProveedoresKPIs(){
     document.getElementById('prov-k-pendientes') && (document.getElementById('prov-k-pendientes').textContent=(cxp||[]).length);
 
     var añoStart=año+'-01-01', añoEnd=(año+1)+'-01-01';
+    var empRfcsProv=new Set((allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();}));
+    var empNomsProv=new Set((allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();}));
     var {data:ytdCompras}=await sb.from('facturas')
-      .select('emisor_nombre,total').eq('tipo','recibida').gte('fecha',añoStart).lt('fecha',añoEnd);
+      .select('emisor_nombre,emisor_rfc,total,efecto_sat')
+      .eq('tipo','recibida').not('efecto_sat','ilike','%nómin%')
+      .gte('fecha',añoStart).lt('fecha',añoEnd);
     var byProv={};
-    (ytdCompras||[]).forEach(function(f){var k=(f.emisor_nombre||'Sin nombre').trim();byProv[k]=(byProv[k]||0)+(parseFloat(f.total)||0);});
+    (ytdCompras||[]).forEach(function(f){
+      var rfc=(f.emisor_rfc||'').trim().toUpperCase();
+      var k=(f.emisor_nombre||'').trim();
+      if(!k) return;
+      if(rfc&&empRfcsProv.has(rfc)) return;
+      if(empNomsProv.has(k.toLowerCase())) return;
+      byProv[k]=(byProv[k]||0)+(parseFloat(f.total)||0);
+    });
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
     var topEl=document.getElementById('prov-k-top');
     renderTop5Proveedores(top5, topEl);

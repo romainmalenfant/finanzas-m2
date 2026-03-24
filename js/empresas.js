@@ -265,15 +265,21 @@ async function loadClientesKPIs(){
     var hace90=new Date(); hace90.setDate(hace90.getDate()-90);
     var f90=hace90.toISOString().split('T')[0];
 
-    // Activos en últimos 90 días — facturas emitidas como fuente más confiable
+    // Activos en últimos 90 días — facturas emitidas, sin empleados
+    var empRfcs=new Set((allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();}));
+    var empNoms=new Set((allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();}));
     var {data:activos}=await sb.from('facturas')
       .select('cliente_id,receptor_rfc,receptor_nombre')
       .eq('tipo','emitida').gte('fecha',f90);
     var activosSet=new Set();
     (activos||[]).forEach(function(f){
+      var rfc=(f.receptor_rfc||'').trim().toUpperCase();
+      var nom=(f.receptor_nombre||'').trim().toLowerCase();
+      if(rfc&&empRfcs.has(rfc)) return;
+      if(nom&&empNoms.has(nom)) return;
       if(f.cliente_id) activosSet.add('id:'+f.cliente_id);
-      else if(f.receptor_rfc) activosSet.add('rfc:'+f.receptor_rfc);
-      else if(f.receptor_nombre) activosSet.add('nom:'+f.receptor_nombre.trim().toLowerCase());
+      else if(rfc) activosSet.add('rfc:'+rfc);
+      else if(nom) activosSet.add('nom:'+nom);
     });
     document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 

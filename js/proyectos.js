@@ -579,15 +579,12 @@ async function loadProyectos(){
   var año=document.getElementById('proj-year-filter').value;
   var status=document.getElementById('proj-status-filter').value;
   try{
-    var q=sb.from('proyectos').select('*').order('fecha_entrega',{ascending:true});
-    var {data,error}=await q;
-    if(error)throw error;
-    // Apply year filter client-side (null-year projects show under current year)
-    var all=(data||[]).filter(function(p){
+    var data=await DB.proyectos.list();
+    var all=data.filter(function(p){
       if(!año)return true;
       return !p.year||String(p.year)===String(año);
     });
-    var {data:entregas}=await sb.from('entregas').select('*').in('proyecto_id',all.map(function(p){return p.id;}));
+    var entregas=await DB.entregas.byProyectos(all.map(function(p){return p.id;}));
     entregasByProyecto={};
     (entregas||[]).forEach(function(e){if(!entregasByProyecto[e.proyecto_id])entregasByProyecto[e.proyecto_id]=[];entregasByProyecto[e.proyecto_id].push(e);});
 

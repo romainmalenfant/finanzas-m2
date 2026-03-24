@@ -40,24 +40,8 @@ function applyProvSort(arr){
   });
 }
 // ── Proveedores DB & UI ──────────────────────────────────
-async function loadProveedores(){
-  try{
-    var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true}).limit(500);
-    if(error)throw error;
-    proveedores=data||[];
-    renderProveedores();
-  }catch(e){console.error('Proveedores error:',e);}
-}
-
-async function upsertProveedor(p){
-  var {error}=await sb.from('proveedores').upsert([p]);
-  if(error)throw error;
-}
-
-async function deleteProveedor(id){
-  var {error}=await sb.from('proveedores').update({activo:false}).eq('id',id);
-  if(error)throw error;
-}
+async function upsertProveedor(p){ await DB.proveedores.save(p); }
+async function deleteProveedor(id){ await DB.proveedores.softDelete(id); }
 
 var tipoLabels={general:'General',nomina:'Nómina',servicios:'Servicios',material:'Material',financiero:'Financiero'};
 var condLabels2={inmediato:'Pago inmediato','15':'Crédito 15d','30':'Crédito 30d','60':'Crédito 60d','90':'Crédito 90d'};
@@ -256,26 +240,18 @@ async function eliminarProveedor(id){
 async function loadProveedoresKPIs(){
   try{
     var año=new Date().getFullYear();
-    var {data:cxpRaw}=await sb.from('facturas').select('emisor_nombre,total').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente');
-    var cxp=(cxpRaw||[]).map(function(f){return {contraparte:f.emisor_nombre,monto:f.total};});
-    var totalCXP=(cxp||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var cxpRaw=await DB.facturas.pendientesPago(año);
+    var totalCXP=cxpRaw.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     document.getElementById('prov-k-cxp').textContent=fmt(totalCXP);
-    document.getElementById('prov-k-pendientes') && (document.getElementById('prov-k-pendientes').textContent=(cxp||[]).length);
+    document.getElementById('prov-k-pendientes') && (document.getElementById('prov-k-pendientes').textContent=cxpRaw.length);
 
-    var añoStart=año+'-01-01', añoEnd=(año+1)+'-01-01';
-    var empRfcsProv=new Set((allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();}));
-    var empNomsProv=new Set((allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();}));
-    var {data:ytdCompras}=await sb.from('facturas')
-      .select('emisor_nombre,emisor_rfc,total,efecto_sat')
-      .eq('tipo','recibida').not('efecto_sat','ilike','%nómin%')
-      .gte('fecha',añoStart).lt('fecha',añoEnd);
+    var empRfcs=(allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();});
+    var empNoms=(allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();});
+    var ytdCompras=await DB.facturas.ytdRecibidas(año, empRfcs, empNoms);
     var byProv={};
-    (ytdCompras||[]).forEach(function(f){
-      var rfc=(f.emisor_rfc||'').trim().toUpperCase();
+    ytdCompras.forEach(function(f){
       var k=(f.emisor_nombre||'').trim();
       if(!k) return;
-      if(rfc&&empRfcsProv.has(rfc)) return;
-      if(empNomsProv.has(k.toLowerCase())) return;
       byProv[k]=(byProv[k]||0)+(parseFloat(f.total)||0);
     });
     var top5=Object.entries(byProv).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
@@ -318,11 +294,8 @@ function renderProveedoresList(list){
 
 async function loadProveedores(forceRefresh){
   try{
-    proveedores=await fetchWithCache('proveedores',async function(){
-      var {data,error}=await sb.from('proveedores').select('*').order('nombre',{ascending:true}).limit(500);
-      if(error)throw error;
-      return data||[];
-    },forceRefresh);
+    if(forceRefresh) DB._bust('proveedores:');
+    proveedores=await DB.proveedores.list();
     allProveedores=proveedores;
     var kt=document.getElementById('prov-k-total'); if(kt)kt.textContent=proveedores.length;
     renderProveedoresList(proveedores);

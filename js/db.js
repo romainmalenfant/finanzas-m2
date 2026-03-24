@@ -244,12 +244,19 @@ var DB = {
   proyectos: {
 
     list: async function (año) {
-      var y = año || new Date().getFullYear();
-      return _dbCached('proyectos:list:' + y, async function () {
-        return _dbQArr('DB.proyectos.list',
-          sb.from('proyectos').select('*').eq('year', y).order('fecha_entrega')
-        );
+      var key = año ? 'proyectos:list:' + año : 'proyectos:list:all';
+      return _dbCached(key, async function () {
+        var q = sb.from('proyectos').select('*').order('fecha_entrega', {ascending:true});
+        if (año) q = q.eq('year', año);
+        return _dbQArr('DB.proyectos.list', q);
       });
+    },
+
+    softDelete: async function (id) {
+      _dbBust('proyectos:');
+      return _dbQArr('DB.proyectos.softDelete',
+        sb.from('proyectos').update({ activo: false }).eq('id', id)
+      );
     },
 
     get: async function (id) {
@@ -306,6 +313,12 @@ var DB = {
         sb.from('entregas').delete().eq('proyecto_id', proyId)
       );
     },
+
+    softDeleteByProyecto: async function (proyId) {
+      return _dbQArr('DB.entregas.softDeleteByProyecto',
+        sb.from('entregas').update({ activo: false }).eq('proyecto_id', proyId)
+      );
+    },
   },
 
   // ── cotizaciones ───────────────────────────────────────────────────────
@@ -313,14 +326,12 @@ var DB = {
   cotizaciones: {
 
     list: async function (año) {
-      var y = año || new Date().getFullYear();
-      return _dbQArr('DB.cotizaciones.list',
-        sb.from('cotizaciones')
-          .select('*')
-          .eq('year', y)
-          .order('created_at', { ascending: false })
-          .limit(500)
-      );
+      var q = sb.from('cotizaciones')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (año) q = q.eq('year', año);
+      return _dbQArr('DB.cotizaciones.list', q);
     },
 
     get: async function (id) {
@@ -357,6 +368,22 @@ var DB = {
           .select('id,numero,estatus,total,fecha,nombre_cliente,numero_requisicion,fecha_cierre')
           .eq('proyecto_id', proyId)
           .order('fecha', { ascending: false })
+      );
+    },
+
+    /** Genera número de folio: retorna el count de COT con ese prefijo. */
+    countPeriodo: async function (prefix) {
+      var res = await sb.from('cotizaciones')
+        .select('*', { count: 'exact', head: true })
+        .ilike('numero', prefix + '%');
+      if (res.error) throw new Error('[DB.cotizaciones.countPeriodo] ' + res.error.message);
+      return res.count || 0;
+    },
+
+    /** Vincula contacto a cotización. */
+    linkContact: async function (id, contactoId) {
+      return _dbQArr('DB.cotizaciones.linkContact',
+        sb.from('cotizaciones').update({ contacto_id: contactoId }).eq('id', id)
       );
     },
   },

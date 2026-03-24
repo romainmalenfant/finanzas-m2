@@ -48,12 +48,8 @@ var cotEditId = null;
 // ── Load & Render ─────────────────────────────────────────
 async function loadCotizaciones(){
   try{
-    var {data,error} = await sb.from('cotizaciones')
-      .select('*')
-      .order('created_at',{ascending:false})
-      .limit(500);
-    if(error)throw error;
-    cotizaciones = data||[]; allCotizaciones = cotizaciones;
+    cotizaciones = await DB.cotizaciones.list();
+    allCotizaciones = cotizaciones;
     // Init year filter
     var yearSel = document.getElementById('cot-year-filter');
     if(yearSel && yearSel.options.length===0){
@@ -621,8 +617,8 @@ function editarCotizacion(id){
     if(document.getElementById('cot-usuario-search')) document.getElementById('cot-usuario-search').value='';
   }
   // Load items
-  sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden').then(function(res){
-    cotItemsTemp = res.data||[];
+  DB.cotizacionItems.byCotizacion(id).then(function(items){
+    cotItemsTemp = items||[];
     renderCotItemsForm();
     recalcCotTotal();
   });
@@ -944,23 +940,15 @@ async function guardarCotizacion(){
 
     var savedCot;
     if(cotEditId){
-      var {data,error} = await sb.from('cotizaciones').update(cotData).eq('id',cotEditId).select().single();
-      if(error)throw error;
-      savedCot = data;
+      cotData.id = cotEditId;
+      savedCot = await DB.cotizaciones.save(cotData);
     } else {
-      // Generate numero: COT-YYYY-XXX
-      var {count} = await sb.from('cotizaciones').select('*',{count:'exact',head:true}).ilike('numero','COT-'+año+'-%');
-      var num = 'COT-'+año+'-'+String((count||0)+1).padStart(3,'0');
-      cotData.numero = num;
-      var {data,error} = await sb.from('cotizaciones').insert([cotData]).select().single();
-      if(error)throw error;
-      savedCot = data;
+      var count = await DB.cotizaciones.countPeriodo('COT-'+año+'-');
+      cotData.numero = 'COT-'+año+'-'+String(count+1).padStart(3,'0');
+      savedCot = await DB.cotizaciones.save(cotData);
     }
 
     // Upsert items
-    if(cotEditId){
-      await sb.from('cotizacion_items').delete().eq('cotizacion_id',cotEditId);
-    }
     var items = cotItemsTemp.map(function(item,idx){
       return {
         cotizacion_id: savedCot.id,
@@ -975,8 +963,7 @@ async function guardarCotizacion(){
         orden: idx
       };
     });
-    var {error:ie} = await sb.from('cotizacion_items').insert(items);
-    if(ie)throw ie;
+    await DB.cotizacionItems.replace(cotEditId||savedCot.id, items);
 
     cerrarCotModal();
     await loadCotizaciones();
@@ -994,10 +981,9 @@ async function guardarCotizacion(){
 // ── Cambiar estatus ───────────────────────────────────────
 async function cambiarEstatusCot(id, estatus){
   try{
-    var updateObj = {estatus:estatus};
-    if(estatus==='cerrada'||estatus==='perdida') updateObj.fecha_cierre = new Date().toISOString().split('T')[0];
-    var {error} = await sb.from('cotizaciones').update(updateObj).eq('id',id);
-    if(error)throw error;
+    var extra = {};
+    if(estatus==='cerrada'||estatus==='perdida') extra.fecha_cierre = new Date().toISOString().split('T')[0];
+    await DB.cotizaciones.updateEstatus(id, estatus, extra);
     if(estatus==='cerrada'){
       await convertirACotizacionCerrada(id);
     } else {
@@ -1012,7 +998,7 @@ async function cambiarEstatusCot(id, estatus){
 async function marcarPerdida(id){
   var motivo = prompt('Motivo de pérdida (opcional):') || '';
   try{
-    await sb.from('cotizaciones').update({estatus:'perdida', motivo_perdida:motivo, fecha_cierre:new Date().toISOString().split('T')[0]}).eq('id',id);
+    await DB.cotizaciones.updateEstatus(id,'perdida',{motivo_perdida:motivo,fecha_cierre:new Date().toISOString().split('T')[0]});
     loadCotizaciones();
     cerrarDetail();
     showStatus('Cotización marcada como perdida');
@@ -1022,12 +1008,10 @@ async function marcarPerdida(id){
 // ── Cerrar cotización → crear proyecto ───────────────────
 async function convertirACotizacionCerrada(cotId){
   var cot = cotizaciones.find(function(c){return c.id===cotId;}) ||
-    (await sb.from('cotizaciones').select('*').eq('id',cotId).single()).data;
+    await DB.cotizaciones.get(cotId);
   if(!cot) return;
 
-  // Load items
-  var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',cotId).order('orden');
-  items = items||[];
+  var items = await DB.cotizacionItems.byCotizacion(cotId);
 
   // Classify items
   var maquinados = items.filter(function(i){return i.tipo==='maquinado';});
@@ -1106,11 +1090,10 @@ async function confirmarConversion(){
       activo: true
     };
 
-    var {data:proj,error:pe} = await sb.from('proyectos').insert([proyData]).select().single();
-    if(pe)throw pe;
+    var proj = await DB.proyectos.save(proyData);
 
     // Link cotizacion to proyecto
-    await sb.from('cotizaciones').update({proyecto_id:proj.id, estatus:'cerrada'}).eq('id',cotId);
+    await DB.cotizaciones.linkProyecto(cotId, proj.id);
 
     document.getElementById('conv-modal').style.display='none';
     cerrarDetail();
@@ -1131,7 +1114,7 @@ async function confirmarConversion(){
 // ── Detalle cotización ────────────────────────────────────
 async function verDetalleCotizacion(id){
   // Siempre re-fetch para tener fecha_cierre y numero_requisicion actualizados
-  var {data:cFresh} = await sb.from('cotizaciones').select('*').eq('id',id).single();
+  var cFresh = await DB.cotizaciones.get(id);
   var c = cFresh || cotizaciones.find(function(x){return x.id===id;});
   if(!c) return;
 
@@ -1145,8 +1128,7 @@ async function verDetalleCotizacion(id){
   );
 
   try{
-    var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden');
-    items = items||[];
+    var items = await DB.cotizacionItems.byCotizacion(id);
 
     var acciones = '';
     if(c.estatus==='borrador'||c.estatus==='enviada'||c.estatus==='en_negociacion'){
@@ -1223,7 +1205,7 @@ async function verDetalleCotizacion(id){
     // Contacto vinculado a esta cotización específicamente
     var contactoHTML = '';
     if(c.contacto_id){
-      var {data:cotCont}=await sb.from('contactos').select('*').eq('id',c.contacto_id).maybeSingle();
+      var cotCont=await DB.contactos.get(c.contacto_id);
       if(cotCont){
         var ctNombre=(cotCont.nombre||'')+(cotCont.apellido?' '+cotCont.apellido:'');
         contactoHTML=
@@ -1257,7 +1239,7 @@ async function verDetalleCotizacion(id){
 
     // Usuario del cliente vinculado
     if(c.usuario_cliente_id){
-      var {data:cotUsu}=await sb.from('contactos').select('*').eq('id',c.usuario_cliente_id).maybeSingle();
+      var cotUsu=await DB.contactos.get(c.usuario_cliente_id);
       if(cotUsu){
         var usuNombre=(cotUsu.nombre||'')+(cotUsu.apellido?' '+cotUsu.apellido:'');
         body+=
@@ -1360,7 +1342,7 @@ function vincularContactoCot(cotId, clienteId){
 
 async function seleccionarContactoCot(cotId, contactoId, nombre){
   try{
-    await sb.from('cotizaciones').update({ contacto_id: contactoId }).eq('id', cotId);
+    await DB.cotizaciones.linkContact(cotId, contactoId);
     showStatus('✓ Contacto vinculado: ' + nombre);
     verDetalleCotizacion(cotId);
   }catch(e){ showError('Error: ' + e.message); }
@@ -1390,14 +1372,14 @@ async function generarPDFCotizacion(id){
   var c = cotizaciones.find(function(x){return x.id===id;});
   if(!c){showError('Cotización no encontrada');return;}
 
-  var {data:items} = await sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden');
+  var items = await DB.cotizacionItems.byCotizacion(id);
   items = items||[];
 
   // Get contacto vinculado a esta cotización
   var contactoNombre = '';
   if(c.contacto_id){
     try{
-      var {data:ctPdf} = await sb.from('contactos').select('nombre,apellido,cargo').eq('id',c.contacto_id).maybeSingle();
+      var ctPdf = await DB.contactos.get(c.contacto_id);
       if(ctPdf){
         contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' · '+ctPdf.cargo:'');
       }
@@ -1639,7 +1621,7 @@ async function kanbanMoveCard(e, cotId, fromEstatus, toEstatus){
     return;
   }
   try{
-    await sb.from('cotizaciones').update({estatus:toEstatus}).eq('id',cotId);
+    await DB.cotizaciones.updateEstatus(cotId, toEstatus);
     showStatus('✓ Movida a '+EST_LABELS[toEstatus]);
     await loadCotizaciones();
     if(cotView==='kanban') renderKanban();
@@ -1735,7 +1717,7 @@ async function kanbanDrop(e, newEstatus){
     return;
   }
   try{
-    await sb.from('cotizaciones').update({estatus:newEstatus}).eq('id',cot.id);
+    await DB.cotizaciones.updateEstatus(cot.id, newEstatus);
     showStatus('✓ Movida a '+EST_LABELS[newEstatus]);
     // Reload from DB to ensure sync
     await loadCotizaciones();

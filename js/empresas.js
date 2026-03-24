@@ -40,42 +40,14 @@ function applyClientesSort(arr){
   });
 }
 // ── Clientes DB ──────────────────────────────────────────
-async function loadClientes(){
-  try{
-    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true}).limit(500);
-    if(error)throw error;
-    clientes=data||[];
-    renderClientes();
-  }catch(e){console.error('Clientes error:',e);}
-}
-
-async function upsertCliente(c){
-  var {error}=await sb.from('clientes').upsert([c]);
-  if(error)throw error;
-}
-
-async function deleteCliente(id){
-  var {error}=await sb.from('clientes').update({activo:false}).eq('id',id);
-  if(error)throw error;
-}
-
-
-
-async function upsertProyecto(proj){
-  var {error}=await sb.from('proyectos').upsert([proj]);
-  if(error)throw error;
-}
-
+async function upsertCliente(c){ await DB.clientes.save(c); }
+async function deleteCliente(id){ await DB.clientes.softDelete(id); }
+async function upsertProyecto(proj){ await DB.proyectos.save(proj); }
 async function deleteProyecto(id){
-  var {error}=await sb.from('proyectos').update({activo:false}).eq('id',id);
-  if(error)throw error;
-  await sb.from('entregas').update({activo:false}).eq('proyecto_id',id);
+  await DB.proyectos.softDelete(id);
+  await DB.entregas.softDeleteByProyecto(id);
 }
-
-async function insertEntrega(entrega){
-  var {error}=await sb.from('entregas').insert([entrega]);
-  if(error)throw error;
-}
+async function insertEntrega(entrega){ await DB.entregas.insert(entrega); }
 
 // ── Clientes UI ──────────────────────────────────────────
 var clienteModalFromForm=false;
@@ -265,21 +237,14 @@ async function loadClientesKPIs(){
     var hace90=new Date(); hace90.setDate(hace90.getDate()-90);
     var f90=hace90.toISOString().split('T')[0];
 
-    // Activos en últimos 90 días — facturas emitidas, sin empleados
-    var empRfcs=new Set((allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();}));
-    var empNoms=new Set((allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();}));
-    var {data:activos}=await sb.from('facturas')
-      .select('cliente_id,receptor_rfc,receptor_nombre')
-      .eq('tipo','emitida').gte('fecha',f90);
+    var empRfcs=(allEmpleados||[]).map(function(e){return (e.rfc||'').trim().toUpperCase();});
+    var empNoms=(allEmpleados||[]).map(function(e){return (e.nombre||'').trim().toLowerCase();});
+    var activos=await DB.facturas.activasClientes(90, empRfcs);
     var activosSet=new Set();
-    (activos||[]).forEach(function(f){
-      var rfc=(f.receptor_rfc||'').trim().toUpperCase();
-      var nom=(f.receptor_nombre||'').trim().toLowerCase();
-      if(rfc&&empRfcs.has(rfc)) return;
-      if(nom&&empNoms.has(nom)) return;
+    activos.forEach(function(f){
       if(f.cliente_id) activosSet.add('id:'+f.cliente_id);
-      else if(rfc) activosSet.add('rfc:'+rfc);
-      else if(nom) activosSet.add('nom:'+nom);
+      else if(f.receptor_rfc) activosSet.add('rfc:'+f.receptor_rfc.toUpperCase());
+      else if(f.receptor_nombre) activosSet.add('nom:'+f.receptor_nombre.trim().toLowerCase());
     });
     document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 
@@ -296,14 +261,11 @@ async function loadClientesKPIs(){
     if(!top5fac.length) topEl.textContent='Sin ventas registradas';
 
     // Top 5 deudores — sin empleados
-    var {data:deudasRaw}=await sb.from('facturas').select('receptor_nombre,receptor_rfc,total').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
+    var deudasRaw=await DB.facturas.mayoresDeudores(empRfcs, empNoms);
     var byDeudor={};
-    (deudasRaw||[]).forEach(function(f){
-      var rfc=(f.receptor_rfc||'').trim().toUpperCase();
+    deudasRaw.forEach(function(f){
       var k=(f.receptor_nombre||'').trim();
       if(!k) return;
-      if(rfc&&empRfcs.has(rfc)) return;
-      if(empNoms.has(k.toLowerCase())) return;
       byDeudor[k]=(byDeudor[k]||0)+(parseFloat(f.total)||0);
     });
     var top5deu=Object.entries(byDeudor).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
@@ -345,14 +307,10 @@ function renderClientesList(list){
   el.appendChild(frag);
 }
 
-// Override loadClientes to also store allClientes
 async function loadClientes(forceRefresh){
   try{
-    clientes=await fetchWithCache('clientes',async function(){
-      var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true}).limit(500);
-      if(error)throw error;
-      return data||[];
-    },forceRefresh);
+    if(forceRefresh) DB._bust('clientes:');
+    clientes=await DB.clientes.list();
     allClientes=clientes;
     var kt=document.getElementById('cli-k-total'); if(kt)kt.textContent=clientes.length;
     renderClientesList(clientes);

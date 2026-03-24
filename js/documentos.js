@@ -25,12 +25,15 @@ async function docsCargarHuerfanos() {
   } catch(e) { console.warn('huerfanos:', e.message); }
 }
 
-function docsToggleHuerfanos() {
+async function docsToggleHuerfanos() {
   var panel = document.getElementById('docs-huerfanos-panel');
   if (!panel) return;
   var visible = panel.style.display !== 'none';
   panel.style.display = visible ? 'none' : 'block';
-  if (!visible) docsRenderHuerfanos();
+  if (!visible) {
+    await docsCargarHuerfanos();
+    docsRenderHuerfanos();
+  }
 }
 
 function docsRenderHuerfanos() {

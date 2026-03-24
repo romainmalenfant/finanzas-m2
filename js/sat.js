@@ -985,4 +985,5 @@ async function xmlConfirmarImport() {
   }
   if (errors.length) showError(errors.slice(0,3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length-3) + ' más)' : ''));
   if (clientesNuevos || proveedoresNuevos) { loadClientes(); }
+  if (typeof docsCargarHuerfanos === 'function') { docsCargarHuerfanos(); }
 }

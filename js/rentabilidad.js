@@ -82,7 +82,9 @@ function renderRentList(projs){
       '>'+
         '<span style="font-size:14px;color:var(--text-3);transition:transform .2s;'+(isOpen?'transform:rotate(90deg)':'')+'">▶</span>'+
         '<div>'+
-          '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(p.nombre_pedido)+'</div>'+
+          '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(p.nombre_pedido)+
+            (p.cerrado?'<span style="margin-left:7px;font-size:9px;font-weight:700;color:#6b7280;background:var(--bg-hover);border-radius:4px;padding:1px 6px;text-transform:uppercase;letter-spacing:.05em;vertical-align:middle;">Cerrado</span>':'')+
+          '</div>'+
           '<div style="font-size:11px;color:var(--text-3);">'+esc(p.nombre_cliente||'')+'</div>'+
         '</div>'+
         '<div style="font-size:12px;color:var(--text-2);text-align:right;">'+fmt(ingresos)+'</div>'+
@@ -227,12 +229,17 @@ function _buildExpand(p){
   var lunesFmt=lunes.toISOString().split('T')[0];
 
   return '<div style="padding:16px;border-bottom:.5px solid var(--border);background:var(--bg-card-2);">'+
-    // Mini KPIs
-    '<div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;">'+
-      _miniKpi('Ingresos',fmt(ingresos),'var(--text-1)')+
-      _miniKpi('Costos',fmt(costos),'#dc2626')+
-      _miniKpi('Margen',fmt(margen),mc)+
-      _miniKpi('% Margen',(pct!==null?pct+'%':'—'),mc)+
+    // Mini KPIs + botón cerrar/reabrir
+    '<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:14px;flex-wrap:wrap;">'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;flex:1;">'+
+        _miniKpi('Ingresos',fmt(ingresos),'var(--text-1)')+
+        _miniKpi('Costos',fmt(costos),'#dc2626')+
+        _miniKpi('Margen',fmt(margen),mc)+
+        _miniKpi('% Margen',(pct!==null?pct+'%':'—'),mc)+
+      '</div>'+
+      (p.cerrado
+        ? '<button onclick="rentReabrirProyecto(\''+p.id+'\')" style="font-size:11px;padding:5px 12px;background:none;border:.5px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text-2);white-space:nowrap;flex-shrink:0;">↩ Reabrir proyecto</button>'
+        : '<button onclick="rentCerrarProyecto(\''+p.id+'\')" style="font-size:11px;padding:5px 12px;background:none;border:.5px solid var(--border);border-radius:6px;cursor:pointer;color:#6b7280;white-space:nowrap;flex-shrink:0;">✓ Cerrar proyecto</button>')+
     '</div>'+
     // Historial
     '<div style="margin-bottom:14px;">'+
@@ -240,70 +247,73 @@ function _buildExpand(p){
       historialHTML+
       asigHTML+
     '</div>'+
-    // Form inline — colapsado por defecto
-    '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;overflow:hidden;" id="rent-inline-form-'+p.id+'">'+
-      '<button onclick="rentToggleForm(\''+p.id+'\')"'+
-        ' style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;'+
-        'cursor:pointer;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;text-align:left;">'+
-        '<span id="rent-form-icon-'+p.id+'" style="font-size:16px;line-height:1;transition:transform .15s;display:inline-block;">+</span>'+
-        'Registrar costos'+
-      '</button>'+
-      '<div id="rent-form-body-'+p.id+'" style="display:none;padding:0 14px 14px;">'+
-        '<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">'+
-          '<div class="form-group" style="margin:0;flex:0 0 140px;">'+
-            '<label style="font-size:10px;">Semana</label>'+
-            '<input type="date" id="ri-semana-'+p.id+'" value="'+lunesFmt+'" style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
+    // Formularios — solo si el proyecto está abierto
+    (!p.cerrado ?
+      // Form inline — colapsado por defecto
+      '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;overflow:hidden;" id="rent-inline-form-'+p.id+'">'+
+        '<button onclick="rentToggleForm(\''+p.id+'\')"'+
+          ' style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;'+
+          'cursor:pointer;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;text-align:left;">'+
+          '<span id="rent-form-icon-'+p.id+'" style="font-size:16px;line-height:1;transition:transform .15s;display:inline-block;">+</span>'+
+          'Registrar costos'+
+        '</button>'+
+        '<div id="rent-form-body-'+p.id+'" style="display:none;padding:0 14px 14px;">'+
+          '<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;">'+
+            '<div class="form-group" style="margin:0;flex:0 0 140px;">'+
+              '<label style="font-size:10px;">Semana</label>'+
+              '<input type="date" id="ri-semana-'+p.id+'" value="'+lunesFmt+'" style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
+            '</div>'+
+            '<div class="form-group" style="margin:0;flex:1 1 150px;">'+
+              '<label style="font-size:10px;">Categoría</label>'+
+              '<select id="ri-cat-'+p.id+'" onchange="rentActSubcat(\''+p.id+'\')" style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
+                '<option value="mano_obra">Mano de obra</option>'+
+                '<option value="materiales">Materiales</option>'+
+                '<option value="maquinaria">Maquinaria y equipo</option>'+
+                '<option value="herramientas">Herramientas</option>'+
+                '<option value="seguridad">Equipo de seguridad</option>'+
+                '<option value="servicios">Servicios</option>'+
+                '<option value="otro">Otro</option>'+
+              '</select>'+
+            '</div>'+
+            '<div class="form-group" style="margin:0;flex:1 1 160px;position:relative;">'+
+              '<label style="font-size:10px;">Subcategoría <span style="font-weight:400;color:var(--text-4);">(opcional)</span></label>'+
+              '<input type="text" id="ri-subcat-'+p.id+'" placeholder="Ej: Operador CNC..." autocomplete="off"'+
+                ' oninput="rentFiltSubcat(\''+p.id+'\',this.value)" onfocus="rentMostrarSubcat(\''+p.id+'\')"'+
+                ' style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
+              '<div id="ri-subcat-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:600;max-height:140px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px var(--shadow);"></div>'+
+            '</div>'+
           '</div>'+
-          '<div class="form-group" style="margin:0;flex:1 1 150px;">'+
-            '<label style="font-size:10px;">Categoría</label>'+
-            '<select id="ri-cat-'+p.id+'" onchange="rentActSubcat(\''+p.id+'\')" style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
-              '<option value="mano_obra">Mano de obra</option>'+
-              '<option value="materiales">Materiales</option>'+
-              '<option value="maquinaria">Maquinaria y equipo</option>'+
-              '<option value="herramientas">Herramientas</option>'+
-              '<option value="seguridad">Equipo de seguridad</option>'+
-              '<option value="servicios">Servicios</option>'+
-              '<option value="otro">Otro</option>'+
-            '</select>'+
+          // Líneas
+          '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;'+
+            'display:grid;grid-template-columns:2fr 70px 80px 90px 80px 28px;gap:6px;padding:0 2px;margin-bottom:4px;">'+
+            '<span>Concepto</span><span>Cant.</span><span>Unidad</span><span>Precio/u</span><span style="text-align:right;">Total</span><span></span>'+
           '</div>'+
-          '<div class="form-group" style="margin:0;flex:1 1 160px;position:relative;">'+
-            '<label style="font-size:10px;">Subcategoría <span style="font-weight:400;color:var(--text-4);">(opcional)</span></label>'+
-            '<input type="text" id="ri-subcat-'+p.id+'" placeholder="Ej: Operador CNC..." autocomplete="off"'+
-              ' oninput="rentFiltSubcat(\''+p.id+'\',this.value)" onfocus="rentMostrarSubcat(\''+p.id+'\')"'+
-              ' style="font-size:12px;padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);width:100%;">'+
-            '<div id="ri-subcat-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:600;max-height:140px;overflow-y:auto;margin-top:2px;box-shadow:0 4px 16px var(--shadow);"></div>'+
+          '<div id="ri-lineas-'+p.id+'"></div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:.5px solid var(--border);">'+
+            '<span style="font-size:13px;font-weight:600;color:var(--text-1);">Total: <span id="ri-total-'+p.id+'" style="color:#16a34a;">$0</span></span>'+
+            '<button class="btn-primary" onclick="rentGuardar(\''+p.id+'\')" style="font-size:12px;padding:7px 18px;">Guardar</button>'+
           '</div>'+
-        '</div>'+
-        // Líneas
-        '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;'+
-          'display:grid;grid-template-columns:2fr 70px 80px 90px 80px 28px;gap:6px;padding:0 2px;margin-bottom:4px;">'+
-          '<span>Concepto</span><span>Cant.</span><span>Unidad</span><span>Precio/u</span><span style="text-align:right;">Total</span><span></span>'+
-        '</div>'+
-        '<div id="ri-lineas-'+p.id+'"></div>'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:.5px solid var(--border);">'+
-          '<span style="font-size:13px;font-weight:600;color:var(--text-1);">Total: <span id="ri-total-'+p.id+'" style="color:#16a34a;">$0</span></span>'+
-          '<button class="btn-primary" onclick="rentGuardar(\''+p.id+'\')" style="font-size:12px;padding:7px 18px;">Guardar</button>'+
         '</div>'+
       '</div>'+
-    '</div>'+
-    // Sección: Asignar factura recibida — colapsada por defecto
-    '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;">'+
-      '<button onclick="rentToggleAsignar(\''+p.id+'\')"'+
-        ' style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;'+
-        'cursor:pointer;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;text-align:left;">'+
-        '<span id="rent-asig-icon-'+p.id+'" style="font-size:16px;line-height:1;transition:transform .15s;display:inline-block;">+</span>'+
-        '🧾 Asignar factura recibida'+
-      '</button>'+
-      '<div id="rent-asig-body-'+p.id+'" style="display:none;padding:0 14px 14px;">'+
-        '<div style="position:relative;">'+
-          '<input type="text" id="rent-fact-search-'+p.id+'" placeholder="Buscar por proveedor, folio, UUID o monto..." autocomplete="off"'+
-            ' oninput="rentBuscarFactura(\''+p.id+'\',this.value)"'+
-            ' style="width:100%;padding:6px 10px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;box-sizing:border-box;">'+
-          '<div id="rent-fact-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:650;max-height:180px;overflow-y:auto;margin-top:3px;box-shadow:0 4px 20px var(--shadow);"></div>'+
+      // Sección: Asignar factura recibida — colapsada por defecto
+      '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;">'+
+        '<button onclick="rentToggleAsignar(\''+p.id+'\')"'+
+          ' style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;'+
+          'cursor:pointer;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;text-align:left;">'+
+          '<span id="rent-asig-icon-'+p.id+'" style="font-size:16px;line-height:1;transition:transform .15s;display:inline-block;">+</span>'+
+          '🧾 Asignar factura recibida'+
+        '</button>'+
+        '<div id="rent-asig-body-'+p.id+'" style="display:none;padding:0 14px 14px;">'+
+          '<div style="position:relative;">'+
+            '<input type="text" id="rent-fact-search-'+p.id+'" placeholder="Buscar por proveedor, folio, UUID o monto..." autocomplete="off"'+
+              ' oninput="rentBuscarFactura(\''+p.id+'\',this.value)"'+
+              ' style="width:100%;padding:6px 10px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;box-sizing:border-box;">'+
+            '<div id="rent-fact-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:650;max-height:180px;overflow-y:auto;margin-top:3px;box-shadow:0 4px 20px var(--shadow);"></div>'+
+          '</div>'+
+          '<div id="rent-fact-info-'+p.id+'" style="display:none;margin-top:10px;"></div>'+
         '</div>'+
-        '<div id="rent-fact-info-'+p.id+'" style="display:none;margin-top:10px;"></div>'+
-      '</div>'+
-    '</div>'+
+      '</div>'
+    : '') +
   '</div>';
 }
 
@@ -618,6 +628,27 @@ function rentToggleForm(projId){
   body.style.display = opening ? 'block' : 'none';
   if(icon){ icon.textContent = opening ? '−' : '+'; icon.style.transform = opening ? 'rotate(0deg)' : ''; }
   if(opening) _initRentExpand(projId);
+}
+
+async function rentCerrarProyecto(id){
+  if(!confirm('¿Cerrar este proyecto? Ya no podrás agregar costos hasta reabrirlo.')) return;
+  try{
+    await DB.proyectos.cerrar(id);
+    var p=(allProyectos||[]).find(function(x){return x.id===id;});
+    if(p) p.cerrado=true;
+    filtrarRentabilidad(document.getElementById('rent-search').value||'');
+    showStatus('Proyecto cerrado');
+  }catch(e){ showError('Error: '+e.message); }
+}
+
+async function rentReabrirProyecto(id){
+  try{
+    await DB.proyectos.reabrir(id);
+    var p=(allProyectos||[]).find(function(x){return x.id===id;});
+    if(p) p.cerrado=false;
+    filtrarRentabilidad(document.getElementById('rent-search').value||'');
+    showStatus('Proyecto reabierto');
+  }catch(e){ showError('Error: '+e.message); }
 }
 
 function rentToggleAsignar(projId){

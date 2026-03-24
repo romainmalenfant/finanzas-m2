@@ -265,6 +265,20 @@ var DB = {
       );
     },
 
+    cerrar: async function (id) {
+      _dbBust('proyectos:');
+      return _dbQ('DB.proyectos.cerrar',
+        sb.from('proyectos').update({ cerrado: true }).eq('id', id).select().single()
+      );
+    },
+
+    reabrir: async function (id) {
+      _dbBust('proyectos:');
+      return _dbQ('DB.proyectos.reabrir',
+        sb.from('proyectos').update({ cerrado: false }).eq('id', id).select().single()
+      );
+    },
+
     get: async function (id) {
       return _dbQ('DB.proyectos.get',
         sb.from('proyectos').select('*').eq('id', id).maybeSingle()

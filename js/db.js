@@ -189,6 +189,12 @@ var DB = {
         sb.from('clientes').upsert(rows, { onConflict: 'rfc' }).select()
       );
     },
+
+    byNombre: async function (nombre) {
+      return _dbQ('DB.clientes.byNombre',
+        sb.from('clientes').select('*').ilike('nombre', '%' + nombre + '%').limit(1).maybeSingle()
+      );
+    },
   },
 
   // ── proveedores ────────────────────────────────────────────────────────
@@ -385,6 +391,15 @@ var DB = {
       return _dbQArr('DB.cotizaciones.linkContact',
         sb.from('cotizaciones').update({ contacto_id: contactoId }).eq('id', id)
       );
+    },
+
+    /** Cotizaciones de un cliente — busca por cliente_id o por nombre ilike. */
+    byCliente: async function (clienteId, nombre) {
+      var cols = 'id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre,usuario_cliente_id';
+      var q = sb.from('cotizaciones').select(cols).order('fecha', { ascending: false }).limit(10);
+      if (clienteId) q = q.eq('cliente_id', clienteId);
+      else if (nombre) q = q.ilike('cliente_nombre', '%' + nombre + '%');
+      return _dbQArr('DB.cotizaciones.byCliente', q);
     },
   },
 
@@ -612,6 +627,179 @@ var DB = {
       return _dbQArr('DB.facturas.buscarRecibidas', base);
     },
 
+    /** Todas las facturas de un año — para la pestaña Facturas. */
+    loadAll: async function (year) {
+      var y = year || new Date().getFullYear();
+      return _dbQArr('DB.facturas.loadAll',
+        sb.from('facturas').select('*').eq('year', y).order('fecha', { ascending: false })
+      );
+    },
+
+    /** Cartera emitida pendiente (con efecto_sat Ingreso o null). */
+    cartera: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.cartera',
+        sb.from('facturas')
+          .select('id,receptor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado,efecto_sat')
+          .eq('tipo', 'emitida')
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
+          .order('fecha', { ascending: true })
+          .limit(200)
+      );
+    },
+
+    /** Cartera recibida pendiente (cxp). */
+    carteraCxP: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.carteraCxP',
+        sb.from('facturas')
+          .select('id,emisor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado')
+          .eq('tipo', 'recibida')
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .order('fecha', { ascending: true })
+          .limit(200)
+      );
+    },
+
+    /** Complementos de pago por emitir (PPD conciliadas sin complemento). */
+    complementosPorHacer: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.complementosPorHacer',
+        sb.from('facturas')
+          .select('id,receptor_nombre,receptor_rfc,numero_factura,uuid_sat,concepto,fecha,total')
+          .eq('tipo', 'emitida').eq('metodo_pago', 'PPD').eq('conciliado', true)
+          .or('complemento_ok.is.null,complemento_ok.eq.false')
+          .neq('estatus', 'cancelada').eq('year', y)
+          .order('fecha', { ascending: false }).limit(100)
+      );
+    },
+
+    /** Complementos de pago por recibir (PPD recibidas sin complemento). */
+    complementosPorRecibir: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.complementosPorRecibir',
+        sb.from('facturas')
+          .select('id,emisor_nombre,numero_factura,concepto,fecha,total')
+          .eq('tipo', 'recibida').eq('metodo_pago', 'PPD').eq('conciliado', true)
+          .or('complemento_ok.is.null,complemento_ok.eq.false')
+          .neq('estatus', 'cancelada').eq('year', y)
+          .order('fecha', { ascending: false }).limit(100)
+      );
+    },
+
+    /** CxC de una empresa: busca por cliente_id Y rfc, deduplica. */
+    cxcByCliente: async function (clienteId, rfc) {
+      var cols = 'id,total,fecha,concepto,numero_factura,cliente_id,receptor_rfc';
+      var r1 = clienteId
+        ? await _dbQArr('DB.facturas.cxcByCliente:id',
+            sb.from('facturas').select(cols).eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('cliente_id', clienteId))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.facturas.cxcByCliente:rfc',
+            sb.from('facturas').select(cols).eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('receptor_rfc', rfc))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function(f){ if(seen[f.id])return false; return(seen[f.id]=true); });
+    },
+
+    /** CxP de un proveedor: busca por proveedor_id Y rfc, deduplica. */
+    cxpByProveedor: async function (provId, rfc) {
+      var cols = 'id,total,fecha,concepto,numero_factura,proveedor_id,emisor_rfc';
+      var r1 = provId
+        ? await _dbQArr('DB.facturas.cxpByProveedor:id',
+            sb.from('facturas').select(cols).eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('proveedor_id', String(provId)))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.facturas.cxpByProveedor:rfc',
+            sb.from('facturas').select(cols).eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('emisor_rfc', rfc))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function(f){ if(seen[f.id])return false; return(seen[f.id]=true); });
+    },
+
+    /** Ventas YTD de un cliente: busca por id Y rfc, suma totales. */
+    ytdByCliente: async function (clienteId, rfc, año) {
+      var y = año || new Date().getFullYear();
+      var cols = 'total,cliente_id,receptor_rfc';
+      var r1 = clienteId
+        ? await _dbQArr('DB.facturas.ytdByCliente:id',
+            sb.from('facturas').select(cols).eq('tipo','emitida').eq('year',y).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('cliente_id', clienteId))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.facturas.ytdByCliente:rfc',
+            sb.from('facturas').select(cols).eq('tipo','emitida').eq('year',y).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('receptor_rfc', rfc))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function(f){ if(seen[f.cliente_id+'_'+f.receptor_rfc])return false; return(seen[f.cliente_id+'_'+f.receptor_rfc]=true); });
+    },
+
+    /** Compras YTD de un proveedor: busca por id Y rfc, suma totales. */
+    ytdByProveedor: async function (provId, rfc, año) {
+      var y = año || new Date().getFullYear();
+      var cols = 'total,proveedor_id,emisor_rfc';
+      var r1 = provId
+        ? await _dbQArr('DB.facturas.ytdByProveedor:id',
+            sb.from('facturas').select(cols).eq('tipo','recibida').eq('year',y).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('proveedor_id', String(provId)))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.facturas.ytdByProveedor:rfc',
+            sb.from('facturas').select(cols).eq('tipo','recibida').eq('year',y).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('emisor_rfc', rfc))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function(f){ if(seen[f.proveedor_id+'_'+f.emisor_rfc])return false; return(seen[f.proveedor_id+'_'+f.emisor_rfc]=true); });
+    },
+
+    /** Facturas vinculadas a un proyecto. */
+    porProyecto: async function (proyId) {
+      return _dbQArr('DB.facturas.porProyecto',
+        sb.from('facturas')
+          .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre,emisor_nombre,proyecto_id')
+          .eq('proyecto_id', proyId)
+          .order('fecha', { ascending: false })
+          .limit(50)
+      );
+    },
+
+    /** Facturas emitidas de un cliente sin proyecto asignado (para vincular). */
+    porClienteSinProyecto: async function (clienteId) {
+      return _dbQArr('DB.facturas.porClienteSinProyecto',
+        sb.from('facturas')
+          .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre')
+          .eq('cliente_id', clienteId)
+          .eq('tipo', 'emitida')
+          .is('proyecto_id', null)
+          .order('fecha', { ascending: false })
+          .limit(30)
+      );
+    },
+
+    /** CxC para dashboard: todas las emitidas pendientes (Ingreso). */
+    cxcDashboard: async function () {
+      return _dbQArr('DB.facturas.cxcDashboard',
+        sb.from('facturas')
+          .select('receptor_nombre,total,fecha')
+          .eq('tipo', 'emitida')
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** CxP para dashboard: todas las recibidas pendientes (Ingreso). */
+    cxpDashboard: async function () {
+      return _dbQArr('DB.facturas.cxpDashboard',
+        sb.from('facturas')
+          .select('emisor_nombre,total,fecha')
+          .eq('tipo', 'recibida')
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .eq('efecto_sat', 'Ingreso')
+      );
+    },
+
     mayoresDeudores: async function (empRFCs, empNombres) {
       var empRFCSet = {};
       var empNomSet = {};
@@ -629,6 +817,78 @@ var DB = {
         var nom = (f.receptor_nombre || '').toLowerCase();
         return !empRFCSet[rfc] && !empNomSet[nom];
       });
+    },
+
+    /** Todas emitidas Ingreso del año — para dashboard (total,month,year). */
+    emitidas_ytd: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.emitidas_ytd',
+        sb.from('facturas').select('total,month,year')
+          .eq('tipo', 'emitida').eq('year', y).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** Todas recibidas Ingreso del año — para dashboard (total,month). */
+    recibidas_ytd: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.recibidas_ytd',
+        sb.from('facturas').select('total,month')
+          .eq('tipo', 'recibida').eq('year', y).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** Emitidas Ingreso de un mes específico (para MoM). */
+    emitidas_mes: async function (año, mes) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.emitidas_mes',
+        sb.from('facturas').select('total')
+          .eq('tipo', 'emitida').eq('year', y).eq('month', mes).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** Recibidas Ingreso de un mes específico (para MoM). */
+    recibidas_mes: async function (año, mes) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.recibidas_mes',
+        sb.from('facturas').select('total')
+          .eq('tipo', 'recibida').eq('year', y).eq('month', mes).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** Todas emitidas Ingreso pendientes de cobro (sin filtro de año). */
+    porCobrarAll: async function () {
+      return _dbQArr('DB.facturas.porCobrarAll',
+        sb.from('facturas').select('total')
+          .eq('tipo', 'emitida').eq('conciliado', false).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+      );
+    },
+
+    /** CxC para contexto IA — más columnas que cxcDashboard. */
+    cxcContext: async function () {
+      return _dbQArr('DB.facturas.cxcContext',
+        sb.from('facturas')
+          .select('receptor_nombre,receptor_rfc,total,fecha,numero_factura,concepto')
+          .eq('tipo', 'emitida').eq('conciliado', false).neq('estatus', 'cancelada')
+          .order('fecha', { ascending: false }).limit(20)
+      );
+    },
+
+    /** CxP para contexto IA — más columnas que cxpDashboard. */
+    cxpContext: async function () {
+      return _dbQArr('DB.facturas.cxpContext',
+        sb.from('facturas')
+          .select('emisor_nombre,emisor_rfc,total,fecha,numero_factura,concepto')
+          .eq('tipo', 'recibida').eq('conciliado', false).neq('estatus', 'cancelada').eq('efecto_sat', 'Ingreso')
+          .order('fecha', { ascending: false }).limit(20)
+      );
+    },
+
+    /** Ventas directas (sin_factura=true) del año. */
+    vtaDirectas: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.vtaDirectas',
+        sb.from('facturas').select('total').eq('tipo', 'emitida').eq('sin_factura', true).eq('year', y)
+      );
     },
   },
 
@@ -714,6 +974,66 @@ var DB = {
       return _dbQArr('DB.movimientos.upsertBanco',
         sb.from('movimientos_v2').upsert(rows, { onConflict: 'id' }).select()
       );
+    },
+
+    /** Movimientos vinculados a un conjunto de facturas (para complementos). */
+    byFacturas: async function (ids) {
+      if (!ids || !ids.length) return [];
+      return _dbQArr('DB.movimientos.byFacturas',
+        sb.from('movimientos_v2').select('factura_id,fecha,descripcion').in('factura_id', ids)
+      );
+    },
+
+    /** Todos los movimientos del año — summary para dashboard (categoria,tipo,monto,month,year). */
+    ytdSummary: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.movimientos.ytdSummary',
+        sb.from('movimientos_v2').select('categoria,tipo,monto,month,year').eq('year', y)
+      );
+    },
+
+    /** Todos los movimientos del año — full cols para contexto IA. */
+    ytdFull: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.movimientos.ytdFull',
+        sb.from('movimientos_v2')
+          .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
+          .eq('year', y).order('fecha', { ascending: false }).limit(2000)
+      );
+    },
+
+    /** Movimientos de un mes y año específico (para comparativa MoM). */
+    delMes: async function (año, mes) {
+      return _dbQArr('DB.movimientos.delMes',
+        sb.from('movimientos_v2').select('tipo,monto,categoria').eq('year', año).eq('month', mes)
+      );
+    },
+
+    /** Últimos N movimientos sin filtro de año. */
+    recientes: async function (n) {
+      return _dbQArr('DB.movimientos.recientes',
+        sb.from('movimientos_v2').select('*').order('fecha', { ascending: false }).limit(n || 8)
+      );
+    },
+
+    /** Movimientos de un cliente por cliente_id exacto (+ por rfc_contraparte si hay RFC). */
+    porClienteId: async function (clienteId, rfc, año) {
+      var y = año || new Date().getFullYear();
+      var cols = 'categoria,tipo,monto,fecha,descripcion,contraparte';
+      var r1 = clienteId
+        ? await _dbQArr('DB.movimientos.porClienteId:id',
+            sb.from('movimientos_v2').select(cols).eq('year', y).eq('cliente_id', clienteId).order('fecha', { ascending: false }).limit(20))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.movimientos.porClienteId:rfc',
+            sb.from('movimientos_v2').select(cols).eq('year', y).eq('rfc_contraparte', rfc).order('fecha', { ascending: false }).limit(20))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function (m) {
+        var k = (m.fecha || '') + '_' + (m.monto || '') + '_' + (m.descripcion || '');
+        if (seen[k]) return false;
+        return (seen[k] = true);
+      });
     },
   },
 

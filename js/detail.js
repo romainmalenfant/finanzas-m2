@@ -90,43 +90,23 @@ async function verDetalleEmpresa(id){
   var c=clientes.find(function(x){return String(x.id)===String(id);});
   if(!c){
     // Try fetching directly
-    var {data:cd}=await sb.from('clientes').select('*').eq('id',id).maybeSingle();
-    if(!cd)return;
-    c=cd;
+    c=await DB.clientes.get(id);
+    if(!c)return;
   }
   var ini=(c.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
   abrirDetail(c.nombre,c.rfc||'',ini,'<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarCliente(id);});
   try{
     var año=new Date().getFullYear(); var hoy=new Date();
     // Run queries sequentially to avoid or() issues
-    var {data:mv1}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte').eq('year',año).eq('cliente_id',id).order('fecha',{ascending:false}).limit(20);
-    var mv2data=[];
-    if(c.rfc){
-      var {data:mv2}=await sb.from('movimientos_v2').select('categoria,tipo,monto,fecha,descripcion,contraparte').eq('year',año).eq('rfc_contraparte',c.rfc).order('fecha',{ascending:false}).limit(20);
-      mv2data=mv2||[];
-    }
-    var seen={}; var mvmts=[];
-    (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'')+(m.descripcion||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
+    var mvmts = await DB.movimientos.porClienteId(id, c.rfc, año);
 
-    var {data:cx1raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('cliente_id',id);
-    var cx1=(cx1raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
-    var cx2data=[];
-    if(c.rfc){
-      var {data:cx2raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente').eq('receptor_rfc',c.rfc);
-      cx2data=(cx2raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
-    }
-    var seenC={}; var cxcFacturas=[];
-    (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxcFacturas.push(m);}}); 
+    var cxcRaw = await DB.facturas.cxcByCliente(id, c.rfc);
+    var cxcFacturas = cxcRaw.map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
 
-    var {data:projs}=await sb.from('proyectos').select('*').ilike('nombre_cliente','%'+c.nombre+'%').eq('year',año);
-    var {data:conts}=await sb.from('contactos').select('*').eq('cliente_id',id).order('nombre');
+    var projs = await DB.proyectos.byCliente(c.nombre, año);
+    var conts = await DB.contactos.byCliente(id);
 
-    // Ventas YTD: suma de facturas emitidas Ingreso vigentes del año para este cliente
-    var {data:ventasYTDraw}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('cliente_id',id);
-    var ventasYTDrfc=[];
-    if(c.rfc){var {data:vr}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('receptor_rfc',c.rfc);ventasYTDrfc=vr||[];}
-    var seenV={}; var ventasRows=[];
-    (ventasYTDraw||[]).concat(ventasYTDrfc).forEach(function(f){var k=JSON.stringify(f);if(!seenV[k]){seenV[k]=true;ventasRows.push(f);}});
+    var ventasRows = await DB.facturas.ytdByCliente(id, c.rfc, año);
     var ventas=ventasRows.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cxcTotal=cxcFacturas.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var condLabels={'inmediato':'Pago inmediato','15':'15 días','30':'30 días','45':'45 días','60':'60 días','90':'90 días'};
@@ -199,39 +179,19 @@ async function verDetalleProveedor(id){
   if(!proveedores.length) await loadProveedores();
   var p=proveedores.find(function(x){return String(x.id)===String(id);});
   if(!p){
-    var {data:pd}=await sb.from('proveedores').select('*').eq('id',id).maybeSingle();
-    if(!pd)return;
-    p=pd;
+    p=await DB.proveedores.get(id);
+    if(!p)return;
   }
   var ini=(p.nombre||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
   abrirDetail(p.nombre,p.rfc||'',ini,'<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',function(){cerrarDetail();editarProveedor(id);});
   try{
     var año=new Date().getFullYear(); var hoy=new Date();
-    var {data:mv1}=await sb.from('movimientos_v2').select('tipo,monto,fecha,descripcion').eq('year',año).ilike('contraparte','%'+p.nombre+'%').order('fecha',{ascending:false}).limit(20);
-    var mv2data=[];
-    if(p.rfc){
-      var {data:mv2}=await sb.from('movimientos_v2').select('tipo,monto,fecha,descripcion').eq('year',año).eq('rfc_contraparte',p.rfc).order('fecha',{ascending:false}).limit(20);
-      mv2data=mv2||[];
-    }
-    var seen={}; var mvmts=[];
-    (mv1||[]).concat(mv2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seen[k]){seen[k]=true;mvmts.push(m);}});
+    var mvmts = await DB.movimientos.porCliente(p.nombre, p.rfc, año);
 
-    var {data:cx1raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('proveedor_id',String(id));
-    var cx1=(cx1raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
-    var cx2data=[];
-    if(p.rfc){
-      var {data:cx2raw}=await sb.from('facturas').select('id,total,fecha,concepto,numero_factura').eq('tipo','recibida').eq('conciliado',false).eq('estatus','vigente').eq('emisor_rfc',p.rfc);
-      cx2data=(cx2raw||[]).map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
-    }
-    var seenC={}; var cxp=[];
-    (cx1||[]).concat(cx2data).forEach(function(m){if(!m||!m.monto)return;var k=(m.fecha||'')+(m.monto||'');if(!seenC[k]){seenC[k]=true;cxp.push(m);}});
+    var cxpRaw = await DB.facturas.cxpByProveedor(id, p.rfc);
+    var cxp = cxpRaw.map(function(f){return {id:f.id,monto:f.total,fecha:f.fecha,descripcion:f.concepto,numero_factura:f.numero_factura};});
 
-    // Compras YTD: suma de facturas recibidas Ingreso del año para este proveedor
-    var {data:comprasYTDraw}=await sb.from('facturas').select('total').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('proveedor_id',String(id));
-    var comprasYTDrfc=[];
-    if(p.rfc){var {data:cr}=await sb.from('facturas').select('total').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso').eq('emisor_rfc',p.rfc);comprasYTDrfc=cr||[];}
-    var seenC2={}; var comprasRows=[];
-    (comprasYTDraw||[]).concat(comprasYTDrfc).forEach(function(f){var k=JSON.stringify(f);if(!seenC2[k]){seenC2[k]=true;comprasRows.push(f);}});
+    var comprasRows = await DB.facturas.ytdByProveedor(id, p.rfc, año);
     var totalCompras=comprasRows.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cxpTotal=cxp.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
@@ -272,7 +232,7 @@ async function verDetalleProveedor(id){
             '<span style="font-weight:600;color:#f87171;">'+fmt(parseFloat(m.monto)||0)+'</span></div>';
         }).join('')+'</div>':'');
     // Contactos del proveedor
-    var {data:contsP}=await sb.from('contactos').select('*').eq('proveedor_id',String(id)).order('nombre');
+    var contsP=await DB.contactos.byProveedor(id);
     body+=
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Contactos</div>'+
@@ -298,9 +258,8 @@ async function verDetalleContacto(id){
   _pushDetail();
   var c=contactos.find(function(x){return x.id===id;});
   if(!c){
-    var {data}=await sb.from('contactos').select('*,clientes(nombre),proveedores(nombre)').eq('id',id).maybeSingle();
-    if(!data)return;
-    c=data;
+    c=await DB.contactos.get(id);
+    if(!c)return;
   }
   var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
   var ini=nombre.trim().split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase()||'?';
@@ -392,18 +351,15 @@ async function verDetalleProyecto(id){
     var empresa = (p.cliente_id ? clientes.find(function(c){return c.id===p.cliente_id;}) : null) ||
                   clientes.find(function(c){return c.nombre===p.nombre_cliente;});
     if(!empresa && p.nombre_cliente){
-      var {data:empData}=await sb.from('clientes').select('*').ilike('nombre','%'+p.nombre_cliente+'%').limit(1).maybeSingle();
-      if(empData) empresa=empData;
+      empresa=await DB.clientes.byNombre(p.nombre_cliente);
     }
     var contactoClave=null;
     if(p.contacto_id){
-      var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).maybeSingle();
-      contactoClave=ct;
+      contactoClave=await DB.contactos.get(p.contacto_id);
     }
     var usuarioCliente=null;
     if(p.usuario_cliente_id){
-      var {data:uct}=await sb.from('contactos').select('*').eq('id',p.usuario_cliente_id).maybeSingle();
-      usuarioCliente=uct;
+      usuarioCliente=await DB.contactos.get(p.usuario_cliente_id);
     }
 
     var body=
@@ -480,13 +436,7 @@ async function verDetalleProyecto(id){
           : '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin entregas registradas</div>')+
       '</div>';
     // F3: Cotizaciones vinculadas a este proyecto/cliente
-    var cotFilter = p.cliente_id
-      ? {col:'cliente_id', val:p.cliente_id}
-      : {col:'nombre_cliente_ilike', val:p.nombre_cliente};
-    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre,usuario_cliente_id').order('fecha',{ascending:false}).limit(10);
-    if(p.cliente_id) cotQuery=cotQuery.eq('cliente_id',p.cliente_id);
-    else cotQuery=cotQuery.ilike('cliente_nombre','%'+(p.nombre_cliente||'')+'%');
-    var {data:cots}=await cotQuery;
+    var cots=await DB.cotizaciones.byCliente(p.cliente_id, p.nombre_cliente);
     var EST_COLORS_LOCAL={borrador:'#64748b',enviada:'#60a5fa',en_negociacion:'#a78bfa',cerrada:'#34d399',perdida:'#f87171'};
     var EST_LABELS_LOCAL={borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Cerrada ✓',perdida:'Perdida'};
     body+=
@@ -524,24 +474,12 @@ async function verDetalleProyecto(id){
 async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
   try{
     // Consultar tabla facturas (vinculadas por proyecto_id)
-    var {data:linked} = await sb.from('facturas')
-      .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre,emisor_nombre')
-      .eq('proyecto_id', proyId)
-      .order('fecha', {ascending:false})
-      .limit(50);
-    linked = linked||[];
+    var linked = await DB.facturas.porProyecto(proyId);
 
     // Facturas del cliente sin proyecto (para permitir vincular)
     var unlinked = [];
     if(clienteId){
-      var {data:byClient} = await sb.from('facturas')
-        .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre,emisor_nombre')
-        .eq('cliente_id', clienteId)
-        .eq('tipo','emitida')
-        .is('proyecto_id', null)
-        .order('fecha', {ascending:false})
-        .limit(30);
-      unlinked = byClient||[];
+      unlinked = await DB.facturas.porClienteSinProyecto(clienteId);
     }
 
     var totalFacturado = linked.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -601,7 +539,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
 
 async function vincularFacturaProyecto(facturaId, proyId){
   try{
-    await sb.from('facturas').update({proyecto_id: proyId}).eq('id', facturaId);
+    await DB.facturas.linkProyecto(facturaId, proyId);
     showStatus('✓ Factura vinculada al proyecto');
     verDetalleProyecto(proyId);
   }catch(e){showError('Error: '+e.message);}
@@ -609,7 +547,7 @@ async function vincularFacturaProyecto(facturaId, proyId){
 
 async function desvincularFacturaProyecto(facturaId, proyId){
   try{
-    await sb.from('facturas').update({proyecto_id: null}).eq('id', facturaId);
+    await DB.facturas.linkProyecto(facturaId, null);
     showStatus('Factura desvinculada');
     verDetalleProyecto(proyId);
   }catch(e){showError('Error: '+e.message);}

@@ -57,10 +57,7 @@ async function responderConsulta(){
     if(cachedYTD){
       mvmts=cachedYTD;
     }else{
-      var {data:allMvmts}=await sb.from('movimientos_v2')
-        .select('categoria,tipo,monto,fecha,month,contraparte,rfc_contraparte,descripcion,origen,conciliado,etiqueta,numero_factura,moneda')
-        .eq('year',año).order('fecha',{ascending:false}).limit(2000);
-      mvmts=allMvmts||[];
+      mvmts=await DB.movimientos.ytdFull(año);
       cacheSet('ytd_'+año,mvmts);
     }
     _ytdMvmts=mvmts;
@@ -121,16 +118,13 @@ async function responderConsulta(){
       .map(function(d){return d[0]+': $'+Math.round(d[1]).toLocaleString('es-MX');}).join('\n');
 
     // CxC — facturas sin cobrar con antigüedad
-    var {data:cxcRows}=await sb.from('facturas')
-      .select('receptor_nombre,receptor_rfc,total,fecha,numero_factura,concepto')
-      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada')
-      .order('fecha',{ascending:true});
+    var cxcRows=await DB.facturas.cxcContext();
     _cxcRows=(cxcRows||[]).map(function(m){return {contraparte:m.receptor_nombre,rfc_contraparte:m.receptor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
     updateBadges();
     var cxcTotal=_cxcRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var hoy=new Date();
     // Also add ventas directas count to context
-    var {data:vtaDirectas}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('sin_factura',true).eq('year',año);
+    var vtaDirectas=await DB.facturas.vtaDirectas(año);
     var vtaDirectasTotal=(vtaDirectas||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
 
     var cxcDetalle=_cxcRows.map(function(m){
@@ -142,10 +136,7 @@ async function responderConsulta(){
     }).join('\n');
 
     // CxP — facturas sin pagar con antigüedad
-    var {data:cxpRows}=await sb.from('facturas')
-      .select('emisor_nombre,emisor_rfc,total,fecha,numero_factura,concepto')
-      .eq('tipo','recibida').eq('conciliado',false).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
-      .order('fecha',{ascending:true});
+    var cxpRows=await DB.facturas.cxpContext();
     _cxpRows=(cxpRows||[]).map(function(m){return {contraparte:m.emisor_nombre,rfc_contraparte:m.emisor_rfc,monto:m.total,fecha:m.fecha,numero_factura:m.numero_factura};});
     updateBadges();
     var cxpTotal=_cxpRows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
@@ -158,7 +149,7 @@ async function responderConsulta(){
     }).join('\n');
 
     // Proyectos del año
-    var {data:projRows}=await sb.from('proyectos').select('*').eq('year',año).order('fecha_entrega',{ascending:true});
+    var projRows=await DB.proyectos.list(año);
     var proyectosDetalle=(projRows||[]).map(function(p){
       return p.nombre_cliente+' | '+p.nombre_pedido+
         ' | piezas:'+p.total_piezas+
@@ -245,11 +236,8 @@ async function responderConsulta(){
 // ── CxC y CxP Dashboard ──────────────────────────────────
 async function loadCxC(){
   try{
-    var {data}=await sb.from('facturas')
-      .select('receptor_nombre,total,fecha')
-      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada').eq('efecto_sat','Ingreso');
-    if(data)data=data.map(function(f){return {contraparte:f.receptor_nombre,monto:f.total,fecha:f.fecha};});
-    var rows=data||[];
+    var rawCxc=await DB.facturas.cxcDashboard();
+    var rows=rawCxc.map(function(f){return {contraparte:f.receptor_nombre,monto:f.total,fecha:f.fecha};});
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxc-total').textContent=fmt(total);
     document.getElementById('cxc-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
@@ -283,11 +271,8 @@ async function loadCxC(){
 
 async function loadCxP(){
   try{
-    var {data}=await sb.from('facturas')
-      .select('emisor_nombre,total,fecha')
-      .eq('tipo','recibida').eq('conciliado',false).neq('estatus','cancelada').eq('efecto_sat','Ingreso');
-    if(data)data=data.map(function(f){return {contraparte:f.emisor_nombre,monto:f.total,fecha:f.fecha};});
-    var rows=data||[];
+    var rawCxp=await DB.facturas.cxpDashboard();
+    var rows=rawCxp.map(function(f){return {contraparte:f.emisor_nombre,monto:f.total,fecha:f.fecha};});
     var total=rows.reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     document.getElementById('cxp-total').textContent=fmt(total);
     document.getElementById('cxp-num-facturas').textContent=rows.length+' factura'+(rows.length!==1?'s':'');
@@ -334,13 +319,13 @@ async function loadDashboard(){
   try{
     // P1-a: ventas YTD from facturas emitidas Ingreso; compras from facturas recibidas Ingreso; gastos from movimientos_v2
     var dashResults=await Promise.all([
-      sb.from('movimientos_v2').select('categoria,tipo,monto,month,year').eq('year',año),
-      sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
-      sb.from('facturas').select('total,month').eq('tipo','recibida').eq('year',año).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
+      DB.movimientos.ytdSummary(año),
+      DB.facturas.emitidas_ytd(año),
+      DB.facturas.recibidas_ytd(año)
     ]);
-    var ytd=dashResults[0].data||[];
-    var factYTD=dashResults[1].data||[];       // ventas (CFDIs emitidos)
-    var comprasFactYTD=dashResults[2].data||[]; // compras (CFDIs recibidos)
+    var ytd=dashResults[0];
+    var factYTD=dashResults[1];        // ventas (CFDIs emitidos)
+    var comprasFactYTD=dashResults[2]; // compras (CFDIs recibidos)
 
     var ventasYTD=factYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var comprasYTD=comprasFactYTD.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -373,20 +358,19 @@ async function loadDashboard(){
     setMes('db-util-mes',utilMesDB,utilMesDB>=0?'c-util-pos':'c-util-neg');
 
     // Por cobrar — solo Ingreso (excluye complementos de pago y notas de crédito)
-    var {data:pending}=await sb.from('facturas').select('total').eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada').eq('efecto_sat','Ingreso');
-    if(pending)pending=pending.map(function(f){return {monto:f.total};});
-    var porCobrar=(pending||[]).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
+    var pending=await DB.facturas.porCobrarAll();
+    var porCobrar=(pending||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     document.getElementById('db-por-cobrar').textContent=fmt(porCobrar);
 
     // MoM: usa mismas fuentes que métricas actuales (facturas para ventas/compras, movimientos para cobr/gasto)
     var lyResults=await Promise.all([
-      sb.from('movimientos_v2').select('tipo,monto,categoria').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior),
-      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior).neq('estatus','cancelada').eq('efecto_sat','Ingreso'),
-      sb.from('facturas').select('total').eq('tipo','recibida').eq('year',añoAñoAnterior).eq('month',mismoMesAñoAnterior).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
+      DB.movimientos.delMes(añoAñoAnterior, mismoMesAñoAnterior),
+      DB.facturas.emitidas_mes(añoAñoAnterior, mismoMesAñoAnterior),
+      DB.facturas.recibidas_mes(añoAñoAnterior, mismoMesAñoAnterior)
     ]);
-    var ly=lyResults[0].data||[];
-    var ventasLY=(lyResults[1].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
-    var comprasLY=(lyResults[2].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var ly=lyResults[0];
+    var ventasLY=(lyResults[1]||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var comprasLY=(lyResults[2]||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobrLY=ly.filter(function(m){return m.tipo==='ingreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var gastoLY=ly.filter(function(m){return m.tipo==='egreso'&&m.categoria!=='prestamo';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
 
@@ -416,11 +400,11 @@ async function loadDashboard(){
     var allVentasFactData=factYTD.slice();
     if(needsPrevYear){
       var prevResults=await Promise.all([
-        sb.from('movimientos_v2').select('categoria,monto,month,year').eq('year',año-1),
-        sb.from('facturas').select('total,month,year').eq('tipo','emitida').eq('year',año-1).neq('estatus','cancelada').eq('efecto_sat','Ingreso')
+        DB.movimientos.ytdSummary(año-1),
+        DB.facturas.emitidas_ytd(año-1)
       ]);
-      allCobrData=allCobrData.concat(prevResults[0].data||[]);
-      allVentasFactData=allVentasFactData.concat(prevResults[1].data||[]);
+      allCobrData=allCobrData.concat(prevResults[0]||[]);
+      allVentasFactData=allVentasFactData.concat(prevResults[1]||[]);
     }
     meses12.forEach(function(mo){
       var ventasMo=allVentasFactData.filter(function(f){return f.year===mo.y&&f.month===mo.m;}).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
@@ -454,7 +438,7 @@ async function loadDashboard(){
 
     // Últimos movimientos
     showFAB();
-    var {data:ultimos}=await sb.from('movimientos_v2').select('*').order('fecha',{ascending:false}).limit(8);
+    var ultimos=await DB.movimientos.recientes(8);
     var me=getUserName();
     var ultiEl=document.getElementById('db-ultimos-mvmts');
     if(!(ultimos&&ultimos.length)){

@@ -10,11 +10,7 @@ var facturasMonthFilter = 0; // 0 = todo el año, 1-12 = mes específico
 async function loadCarteraFacturas(){
   try{
     var hoy = new Date();
-    var {data:pendientes} = await sb.from('facturas')
-      .select('id,receptor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado,efecto_sat')
-      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada')
-      .or('efecto_sat.eq.Ingreso,efecto_sat.is.null')
-      .order('fecha',{ascending:true}).limit(200);
+    var pendientes = await DB.facturas.cartera();
     pendientes = pendientes||[];
     var el = document.getElementById('cartera-list-fact');
     var ct = document.getElementById('cartera-count-fact');
@@ -88,10 +84,7 @@ function toggleCartera(tipo){
 async function loadCarteraCxP(){
   try{
     var hoy = new Date();
-    var {data:pendientes} = await sb.from('facturas')
-      .select('id,emisor_nombre,numero_factura,fecha,fecha_vencimiento,total,monto_pagado')
-      .eq('tipo','recibida').eq('conciliado',false).neq('estatus','cancelada')
-      .order('fecha',{ascending:true}).limit(200);
+    var pendientes = await DB.facturas.carteraCxP();
     pendientes = pendientes||[];
     var el = document.getElementById('cartera-cxp-list');
     var ct = document.getElementById('cartera-cxp-count');
@@ -155,13 +148,7 @@ async function loadComplementosPorHacer(){
     var el = document.getElementById('comp-hacer-list');
     var ct = document.getElementById('comp-hacer-count');
     if(!el) return;
-    var {data:facts,error} = await sb.from('facturas')
-      .select('id,receptor_nombre,receptor_rfc,numero_factura,uuid_sat,concepto,fecha,total')
-      .eq('tipo','emitida').eq('metodo_pago','PPD').eq('conciliado',true)
-      .or('complemento_ok.is.null,complemento_ok.eq.false')
-      .neq('estatus','cancelada')
-      .order('fecha',{ascending:false}).limit(100);
-    if(error) throw error;
+    var facts = await DB.facturas.complementosPorHacer();
     facts = facts||[];
     if(!facts.length){
       if(ct) ct.textContent = '';
@@ -170,8 +157,7 @@ async function loadComplementosPorHacer(){
     }
     // Get payment info (fecha + concepto BBVA) from movimientos_v2
     var factIds = facts.map(function(f){return f.id;});
-    var {data:movs} = await sb.from('movimientos_v2')
-      .select('factura_id,fecha,descripcion').in('factura_id',factIds);
+    var movs = await DB.movimientos.byFacturas(factIds);
     var movByFact = {};
     (movs||[]).forEach(function(m){ if(!movByFact[m.factura_id]) movByFact[m.factura_id]={fecha:m.fecha,descripcion:m.descripcion}; });
     var hoy = new Date();
@@ -246,13 +232,7 @@ async function loadComplementosPorRecibir(){
     var el = document.getElementById('comp-recibir-list');
     var ct = document.getElementById('comp-recibir-count');
     if(!el) return;
-    var {data:facts,error} = await sb.from('facturas')
-      .select('id,emisor_nombre,numero_factura,concepto,fecha,total')
-      .eq('tipo','recibida').eq('metodo_pago','PPD').eq('conciliado',true)
-      .or('complemento_ok.is.null,complemento_ok.eq.false')
-      .neq('estatus','cancelada')
-      .order('fecha',{ascending:false}).limit(100);
-    if(error) throw error;
+    var facts = await DB.facturas.complementosPorRecibir();
     facts = facts||[];
     if(!facts.length){
       if(ct) ct.textContent = '';
@@ -287,8 +267,7 @@ async function loadComplementosPorRecibir(){
 
 async function marcarComplementoOk(id){
   try{
-    var {error}=await sb.from('facturas').update({complemento_ok:true}).eq('id',id);
-    if(error) throw error;
+    await DB.facturas.setComplemento(id);
     showStatus('Complemento marcado');
     loadComplementosPorHacer();
     loadComplementosPorRecibir();
@@ -326,9 +305,7 @@ async function loadFacturas(){
     }
     facturasMonthFilter = parseInt((monthSel&&monthSel.value)||0);
 
-    var {data,error} = await sb.from('facturas').select('*').eq('year',facturasYearFilter).order('fecha',{ascending:false});
-    if(error)throw error;
-    allFacturas = data||[];
+    allFacturas = await DB.facturas.loadAll(facturasYearFilter);
     renderFacturasKPIs();
     renderSemaforo();
     filtrarFacturas(document.getElementById('fact-search')&&document.getElementById('fact-search').value||'');
@@ -709,9 +686,8 @@ function renderFacturasList(list){
 async function verDetalleFactura(id){
   var f = allFacturas.find(function(x){return x.id===id;});
   if(!f){
-    var {data}=await sb.from('facturas').select('*').eq('id',id).maybeSingle();
-    if(!data)return;
-    f=data;
+    f=await DB.facturas.get(id);
+    if(!f)return;
   }
   var nombre = f.tipo==='emitida'?(f.receptor_nombre||f.receptor_rfc||'—'):(f.emisor_nombre||f.emisor_rfc||'—');
   var ini = nombre.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()||'F';
@@ -802,7 +778,7 @@ function _copiarUUID(u){
 async function _loadFactDistribucion(factId, totalFact){
   var el=document.getElementById('fact-asig-dist-'+factId); if(!el) return;
   try{
-    var {data:asigs}=await sb.from('factura_asignaciones').select('*').eq('factura_id',factId).order('created_at');
+    var asigs=await DB.asignaciones.byFactura(factId);
     asigs=asigs||[];
     if(!asigs.length){ el.style.display='none'; return; }
     var pctUsado=asigs.reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
@@ -833,7 +809,7 @@ async function _loadFactDistribucion(factId, totalFact){
 async function _guardarVencimiento(id,fecha){
   if(!fecha){showError('Selecciona una fecha');return;}
   try{
-    await sb.from('facturas').update({fecha_vencimiento:fecha}).eq('id',id);
+    await DB.facturas.setVencimiento(id, fecha);
     // Actualizar en memoria
     var idx=allFacturas.findIndex(function(x){return x.id===id;});
     if(idx>=0) allFacturas[idx].fecha_vencimiento=fecha;
@@ -847,7 +823,7 @@ async function _guardarVencimiento(id,fecha){
 async function cancelarFactura(id){
   if(!confirm('¿Cancelar esta factura?'))return;
   try{
-    await sb.from('facturas').update({estatus:'cancelada'}).eq('id',id);
+    await DB.facturas.cancel(id);
     showStatus('Factura cancelada');
     cerrarDetail();
     loadFacturas();
@@ -917,9 +893,8 @@ function abrirNuevaFactura(){
 async function editarFactura(id){
   var f = allFacturas.find(function(x){return x.id===id;});
   if(!f){
-    var {data}=await sb.from('facturas').select('*').eq('id',id).maybeSingle();
-    if(!data)return;
-    f=data;
+    f=await DB.facturas.get(id);
+    if(!f)return;
   }
   document.getElementById('fact-id-edit').value=f.id;
   var _fuuid2=document.getElementById('fact-uuid'); if(_fuuid2) _fuuid2.value=f.uuid_sat||'';
@@ -1308,12 +1283,11 @@ async function guardarFactura(){
     var btn=document.getElementById('btn-save-fact');
     btn.disabled=true;btn.textContent='Guardando...';
     if(id){
-      var {error}=await sb.from('facturas').update(row).eq('id',id);
-      if(error)throw error;
+      row.id=id;
+      await DB.facturas.save(row);
       showStatus('✓ Factura actualizada');
     }else{
-      var {error}=await sb.from('facturas').insert([row]);
-      if(error)throw error;
+      await DB.facturas.save(row);
       showStatus('✓ Factura creada');
     }
     document.getElementById('fact-modal').style.display='none';

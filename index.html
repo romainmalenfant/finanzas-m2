@@ -1423,6 +1423,26 @@
                      flex-shrink:0;margin-top:1px;" aria-label="Quitar contacto">×</button>
           </div>
         </div>
+        <!-- Usuario del cliente -->
+        <div class="form-group">
+          <label>Usuario <span style="font-size:10px;color:var(--text-3);">(quien solicitó el servicio, opcional)</span></label>
+          <div style="display:flex;gap:6px;align-items:flex-start;">
+            <div class="ac-wrap" style="flex:1;position:relative;">
+              <input type="text" id="cot-usuario-search" placeholder="Clic para ver contactos del cliente..."
+                autocomplete="off" oninput="buscarUsuarioCot(this.value)" onfocus="mostrarUsuariosCot()">
+              <input type="hidden" id="cot-usuario-id">
+              <div id="cot-usuario-dd" style="display:none;position:absolute;top:100%;left:0;right:0;
+                background:var(--bg-card);border:0.5px solid var(--border);border-radius:8px;
+                z-index:600;max-height:180px;overflow-y:auto;margin-top:2px;
+                box-shadow:0 4px 16px var(--shadow);"></div>
+            </div>
+            <button type="button" id="cot-usuario-clear" title="Quitar usuario"
+              onclick="limpiarCampoVinculo('cot-usuario-search','cot-usuario-id','cot-usuario-clear')"
+              style="display:none;background:none;border:0.5px solid var(--border);border-radius:6px;
+                     padding:6px 8px;cursor:pointer;color:var(--text-3);font-size:14px;line-height:1;
+                     flex-shrink:0;margin-top:1px;">×</button>
+          </div>
+        </div>
         <!-- Proyecto vinculado — hidden, kept for guardarCotizacion compatibility -->
         <input type="hidden" id="cot-proj-search">
         <input type="hidden" id="cot-proj-id">

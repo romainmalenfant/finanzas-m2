@@ -483,7 +483,7 @@ async function verDetalleProyecto(id){
     var cotFilter = p.cliente_id
       ? {col:'cliente_id', val:p.cliente_id}
       : {col:'nombre_cliente_ilike', val:p.nombre_cliente};
-    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre').order('fecha',{ascending:false}).limit(10);
+    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre,usuario_cliente_id').order('fecha',{ascending:false}).limit(10);
     if(p.cliente_id) cotQuery=cotQuery.eq('cliente_id',p.cliente_id);
     else cotQuery=cotQuery.ilike('cliente_nombre','%'+(p.nombre_cliente||'')+'%');
     var {data:cots}=await cotQuery;
@@ -505,6 +505,7 @@ async function verDetalleProyecto(id){
                 '</div>'+
                 '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+fmtDateFull(cot.fecha)+
                   (cot.numero_requisicion?' · <span style="font-family:monospace;color:var(--text-2);">REQ: '+esc(cot.numero_requisicion)+'</span>':'')+
+                  (cot.usuario_cliente_id?(function(){ var u=(contactos||[]).find(function(x){return x.id===cot.usuario_cliente_id;}); return u?' · <span style="color:var(--text-3);">Usuario: '+esc((u.nombre||'')+(u.apellido?' '+u.apellido:''))+'</span>':''; })():'')+
                 '</div>'+
               '</div>'+
               '<span style="font-weight:600;color:var(--text-1);">'+fmt(cot.total||0)+'</span>'+

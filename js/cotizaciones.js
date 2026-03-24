@@ -531,6 +531,18 @@ function editarCotizacion(id){
   document.getElementById('cot-vigencia').value = c.vigencia_dias||15;
   document.getElementById('cot-notas').value = c.notas||'';
   var _cr2=document.getElementById('cot-requisicion'); if(_cr2) _cr2.value=c.numero_requisicion||'';
+  // Pre-fill usuario_cliente
+  var usuId = c.usuario_cliente_id||'';
+  if(usuId && document.getElementById('cot-usuario-id')){
+    document.getElementById('cot-usuario-id').value = usuId;
+    var usu = (contactos||[]).find(function(x){return x.id===usuId;});
+    if(usu && document.getElementById('cot-usuario-search'))
+      document.getElementById('cot-usuario-search').value = (usu.nombre||'')+(usu.apellido?' '+usu.apellido:'');
+    setTimeout(function(){ actualizarBtnClear('cot-usuario-id','cot-usuario-clear'); }, 50);
+  } else {
+    if(document.getElementById('cot-usuario-id')) document.getElementById('cot-usuario-id').value='';
+    if(document.getElementById('cot-usuario-search')) document.getElementById('cot-usuario-search').value='';
+  }
   // Load items
   sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden').then(function(res){
     cotItemsTemp = res.data||[];
@@ -758,9 +770,64 @@ function _renderContactoCotDD(list, dd){
   dd.appendChild(frag);
 }
 
+function mostrarUsuariosCot(){
+  var clienteId = document.getElementById('cot-cliente-id').value;
+  var dd = document.getElementById('cot-usuario-dd');
+  if(!dd) return;
+  var pool = clienteId ? (contactos||[]).filter(function(c){ return c.cliente_id===clienteId; }) : [];
+  if(!pool.length){ dd.style.display='none'; return; }
+  _renderUsuarioCotDD(pool.slice(0,10), dd);
+  dd.style.display = 'block';
+}
+
+function buscarUsuarioCot(q){
+  var clienteId = document.getElementById('cot-cliente-id').value;
+  var dd = document.getElementById('cot-usuario-dd');
+  if(!dd) return;
+  var ql = (q||'').toLowerCase().trim();
+  if(!ql){ mostrarUsuariosCot(); return; }
+  var pool = clienteId ? (contactos||[]).filter(function(c){ return c.cliente_id===clienteId; }) : (contactos||[]);
+  var matches = pool.filter(function(c){
+    var nombre = ((c.nombre||'')+' '+(c.apellido||'')).toLowerCase();
+    return nombre.includes(ql)||(c.cargo||'').toLowerCase().includes(ql)||(c.email||'').toLowerCase().includes(ql);
+  }).slice(0,10);
+  if(!matches.length){ dd.style.display='none'; return; }
+  _renderUsuarioCotDD(matches, dd);
+  dd.style.display = 'block';
+}
+
+function _renderUsuarioCotDD(list, dd){
+  dd.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  list.forEach(function(c){
+    var nombre = (c.nombre||'')+(c.apellido?' '+c.apellido:'');
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:9px 12px;cursor:pointer;border-bottom:0.5px solid var(--border-light);font-size:13px;';
+    item.addEventListener('mouseenter', function(){ this.style.background='var(--bg-hover)'; });
+    item.addEventListener('mouseleave', function(){ this.style.background=''; });
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-weight:500;color:var(--text-1);';
+    nameEl.textContent = nombre;
+    var subEl = document.createElement('div');
+    subEl.style.cssText = 'font-size:10px;color:var(--text-3);';
+    subEl.textContent = (c.cargo||'')+(c.email?' · '+c.email:'');
+    item.appendChild(nameEl);
+    item.appendChild(subEl);
+    item.addEventListener('mousedown', function(){
+      document.getElementById('cot-usuario-search').value = nombre;
+      document.getElementById('cot-usuario-id').value = c.id;
+      dd.style.display = 'none';
+      actualizarBtnClear('cot-usuario-id','cot-usuario-clear');
+    });
+    frag.appendChild(item);
+  });
+  dd.appendChild(frag);
+}
+
 async function guardarCotizacion(){
   var clienteId  = document.getElementById('cot-cliente-id').value||null;
   var contactoId = (document.getElementById('cot-contacto-id')||{}).value||null;
+  var usuarioClienteId = (document.getElementById('cot-usuario-id')||{}).value||null;
   var proyectoId = (document.getElementById('cot-proj-id')||{}).value||null;
   var sel = document.getElementById('cot-cliente-sel');
   var tituloVal = (document.getElementById('cot-titulo')||{}).value||'';
@@ -785,6 +852,7 @@ async function guardarCotizacion(){
       titulo:      tituloVal||null,
       cliente_id:  clienteId,
       contacto_id: contactoId,
+      usuario_cliente_id: usuarioClienteId,
       proyecto_id: proyectoId,
       cliente_nombre: clienteNombre,
       fecha: fecha,
@@ -1109,6 +1177,26 @@ async function verDetalleCotizacion(id){
         '</div>';
     }
     body += contactoHTML;
+
+    // Usuario del cliente vinculado
+    if(c.usuario_cliente_id){
+      var {data:cotUsu}=await sb.from('contactos').select('*').eq('id',c.usuario_cliente_id).maybeSingle();
+      if(cotUsu){
+        var usuNombre=(cotUsu.nombre||'')+(cotUsu.apellido?' '+cotUsu.apellido:'');
+        body+=
+          '<div class="detail-section">'+
+          '<div class="detail-section-title">Usuario (solicitante)</div>'+
+          '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+cotUsu.id+'\')">'+
+            '<div>'+
+              '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(usuNombre)+'</div>'+
+              '<div style="font-size:11px;color:var(--text-3);">'+(cotUsu.cargo||'')+(cotUsu.email?' · '+cotUsu.email:'')+'</div>'+
+            '</div>'+
+            '<span style="font-size:11px;color:var(--text-3);">→</span>'+
+          '</div>'+
+          '</div>';
+      }
+    }
+
     document.getElementById('detail-body').innerHTML = body;
   }catch(e){
     console.error('Detalle cotizacion:',e);

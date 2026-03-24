@@ -91,6 +91,10 @@ function renderProyectos(){
           '<div class="proj-cliente">'+esc(p.nombre_cliente)+(p.tipo_pieza?' · '+esc(p.tipo_pieza):'')+'</div>'+
         '</div>'+
         '<span class="proj-status '+est.cls+'">'+est.lbl+'</span>'+
+        '<div style="text-align:right;min-width:110px;">'+
+          '<div style="font-size:13px;font-weight:700;color:var(--text-1);">'+fmt(monto)+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">monto total</div>'+
+        '</div>'+
         '<div class="proj-piezas">'+
           '<div class="proj-piezas-num">'+entregadas+'<span style="font-size:12px;font-weight:400;color:#888780;">/'+total+'</span></div>'+
           '<div class="proj-piezas-lbl">piezas</div>'+

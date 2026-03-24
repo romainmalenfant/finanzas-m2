@@ -1114,24 +1114,34 @@
   </div>
 
   <!-- Tab Rentabilidad -->
-  <div id="tab-rentabilidad" style="display:none;">
-    <div class="mvmts-card" style="margin:1.25rem;">
-      <!-- KPIs globales -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:1.25rem 1.25rem 0;">
-        <div class="kpi-box"><div class="kpi-label">Ingresos totales</div><div class="kpi-val" id="rent-k-ingresos">—</div></div>
-        <div class="kpi-box"><div class="kpi-label">Costos totales</div><div class="kpi-val" id="rent-k-costos">—</div></div>
-        <div class="kpi-box"><div class="kpi-label">Margen bruto</div><div class="kpi-val" id="rent-k-margen">—</div></div>
-        <div class="kpi-box"><div class="kpi-label">% Margen</div><div class="kpi-val" id="rent-k-pct">—</div></div>
+  <div id="tab-rentabilidad" style="display:none;padding:1.25rem;">
+    <!-- KPIs globales -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem;">
+      <div class="mvmts-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Ingresos totales</div>
+        <div style="font-size:22px;font-weight:700;color:var(--text-1);" id="rent-k-ingresos">—</div>
       </div>
-      <!-- Tabla de proyectos -->
-      <div style="padding:1.25rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div class="sec-title" style="margin-bottom:0;">Proyectos</div>
-          <input type="text" id="rent-search" placeholder="Buscar proyecto..." oninput="filtrarRentabilidad(this.value)"
-            style="font-size:12px;padding:5px 10px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card);color:var(--text-1);width:200px;">
-        </div>
-        <div id="rent-list"><div class="empty-state">Cargando...</div></div>
+      <div class="mvmts-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Costos totales</div>
+        <div style="font-size:22px;font-weight:700;color:#dc2626;" id="rent-k-costos">—</div>
       </div>
+      <div class="mvmts-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Margen bruto</div>
+        <div style="font-size:22px;font-weight:700;" id="rent-k-margen">—</div>
+      </div>
+      <div class="mvmts-card" style="padding:1rem 1.25rem;">
+        <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">% Margen</div>
+        <div style="font-size:22px;font-weight:700;" id="rent-k-pct">—</div>
+      </div>
+    </div>
+    <!-- Tabla de proyectos -->
+    <div class="mvmts-card" style="padding:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div class="sec-title" style="margin-bottom:0;">Proyectos</div>
+        <input type="text" id="rent-search" placeholder="Buscar proyecto..." oninput="filtrarRentabilidad(this.value)"
+          style="font-size:12px;padding:6px 12px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card);color:var(--text-1);width:220px;">
+      </div>
+      <div id="rent-list"><div class="empty-state">Cargando...</div></div>
     </div>
   </div>
 

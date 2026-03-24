@@ -31,6 +31,10 @@ function switchTab(tab, btn){
   } else {
     if(typeof hideFAB==='function') hideFAB();
   }
+  // Cerrar modales de rentabilidad al salir del tab
+  ['rent-costos-modal','rent-form-modal'].forEach(function(id){
+    var m=document.getElementById(id); if(m) m.style.display='none';
+  });
   // Ocultar todos usando el registro central
   APP_MODULES.forEach(function(m){
     var el=document.getElementById('tab-'+m.id);

@@ -646,7 +646,7 @@ async function importarXMLsCFDI(input) {
           moneda: parsed.moneda,
           tipo_cambio: parsed.tipo_cambio,
           estatus: 'vigente',
-          conciliado: parsed.metodo_pago === 'PUE', // PUE = ya pagada de origen
+          conciliado: false,
           xml_path: path,
         });
         okNuevo++;

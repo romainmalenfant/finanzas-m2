@@ -1674,6 +1674,37 @@
     <div id="docs-empty" style="color:var(--text-3);font-size:13px;padding:2rem 0;text-align:center;">
       Busca por empresa, folio, UUID o aplica un filtro.
     </div>
+
+    <!-- Panel huérfanos -->
+    <div style="margin-top:2rem;border-top:1px solid var(--border);padding-top:1rem;">
+      <button onclick="docsToggleHuerfanos()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13px;font-weight:500;padding:0;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+        Documentos sin vincular
+        <span id="docs-huerfanos-badge" style="display:none;background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:600;"></span>
+      </button>
+      <div id="docs-huerfanos-panel" style="display:none;margin-top:12px;">
+        <div id="docs-huerfanos-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal vincular huérfano -->
+  <div id="docs-vincular-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+    <div style="background:var(--bg-card,#fff);border-radius:12px;width:90%;max-width:480px;overflow:hidden;">
+      <div style="padding:1.25rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:15px;font-weight:500;">Vincular a factura</div>
+          <div id="docs-vincular-nombre" style="font-size:12px;color:var(--text-3);margin-top:2px;"></div>
+        </div>
+        <button onclick="docsVincularCerrar()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">×</button>
+      </div>
+      <div style="padding:1rem 1.25rem;">
+        <input type="text" id="docs-vincular-search" placeholder="Buscar por empresa o folio..."
+          oninput="docsVincularBuscar()"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);box-sizing:border-box;margin-bottom:12px;">
+        <div id="docs-vincular-results"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal preview PDF -->

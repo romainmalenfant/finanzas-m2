@@ -680,8 +680,9 @@ async function importarXMLsCFDI(input) {
       folio:   matchedXml ? matchedXml.folio   : '—',
       total:   matchedXml ? matchedXml.total   : null,
       fecha:   matchedXml ? matchedXml.fecha   : '',
-      error:   matchedXml ? null : 'Sin XML correspondiente en este lote',
-      incluir: !!matchedXml,
+      error:   null,
+      advertencia: matchedXml ? null : 'Se guardará sin vincular (huérfano)',
+      incluir: true,
       matchedXml: matchedXml,
     };
     _xmlItems.push(pdfItem);
@@ -719,7 +720,9 @@ function _xmlMostrarModal() {
     var empresa = it.empresa || '—';
     var total   = fmtMXN(it.total);
     var fecha   = it.fecha ? it.fecha.slice(0,10) : '—';
-    var errMsg  = it.error ? '<div style="color:#f87171;font-size:11px;margin-top:2px;">'+it.error+'</div>' : '';
+    var errMsg  = it.error        ? '<div style="color:#f87171;font-size:11px;margin-top:2px;">'+it.error+'</div>'
+                : it.advertencia ? '<div style="color:#f59e0b;font-size:11px;margin-top:2px;">⚠ '+it.advertencia+'</div>'
+                : '';
 
     return '<div' + rowCls + ' style="display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border,#e5e5e5);">' +
       '<div style="padding-top:2px;">' + chk + '</div>' +
@@ -773,16 +776,23 @@ async function xmlConfirmarImport() {
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     try {
-      // ── PDF vinculado a XML del mismo lote ─────────────────
+      // ── PDF ───────────────────────────────────────────────
       if (it.kind === 'pdf') {
         var mx = it.matchedXml;
-        if (!mx || !mx.parsed || !mx.parsed.uuid) { errors.push(it.file.name + ': sin factura vinculada'); continue; }
-        var pUUID = mx.parsed.uuid;
-        var pAño  = mx.parsed.fecha ? parseInt(mx.parsed.fecha.split('-')[0]) : new Date().getFullYear();
-        var pPath = pAño + '/' + pUUID + '.pdf';
-        await DB.storage.upload(pPath, it.file);
-        var pFac = await DB.facturas.get(pUUID);
-        if (pFac) { await DB.storage.linkPaths(pFac.id, { pdf_path: pPath }); }
+        if (mx && mx.parsed && mx.parsed.uuid) {
+          // Tiene XML correspondiente → vincular directo
+          var pUUID = mx.parsed.uuid;
+          var pAño  = mx.parsed.fecha ? parseInt(mx.parsed.fecha.split('-')[0]) : new Date().getFullYear();
+          var pPath = pAño + '/' + pUUID + '.pdf';
+          await DB.storage.upload(pPath, it.file);
+          var pFac = await DB.facturas.get(pUUID);
+          if (pFac) await DB.storage.linkPaths(pFac.id, { pdf_path: pPath });
+        } else {
+          // Sin coincidencia → guardar como huérfano
+          var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
+          await DB.storage.upload(hPath, it.file);
+          await DB.documentos.save({ nombre: it.file.name, path: hPath, tipo: 'pdf', factura_id: null });
+        }
         okPDF++;
         continue;
       }

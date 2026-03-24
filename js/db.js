@@ -1394,4 +1394,33 @@ var DB = {
 
   },
 
+  // ── documentos (huérfanos y vinculados) ────────────────────────────────────
+  documentos: {
+
+    /** Guarda un documento (huérfano si no tiene factura_id). */
+    save: async function (data) {
+      var res = await sb.from('documentos').insert([data]).select().single();
+      if (res.error) throw new Error('[DB.documentos.save] ' + res.error.message);
+      return res.data;
+    },
+
+    /** Lista huérfanos (sin factura vinculada). */
+    huerfanos: async function () {
+      return _dbQArr('DB.documentos.huerfanos',
+        sb.from('documentos').select('*').is('factura_id', null).order('created_at', { ascending: false })
+      );
+    },
+
+    /** Vincula un documento huérfano a una factura. */
+    vincular: async function (docId, facturaId, pdfPath) {
+      // Actualizar registro en documentos
+      var r1 = await sb.from('documentos').update({ factura_id: facturaId }).eq('id', docId);
+      if (r1.error) throw new Error('[DB.documentos.vincular] ' + r1.error.message);
+      // Actualizar pdf_path en la factura
+      var r2 = await sb.from('facturas').update({ pdf_path: pdfPath }).eq('id', facturaId);
+      if (r2.error) throw new Error('[DB.documentos.vincular:factura] ' + r2.error.message);
+    },
+
+  },
+
 };

@@ -7,6 +7,111 @@ var _docsSearchTimer = null;
 function docsInit() {
   var el = document.getElementById('docs-search');
   if (el) el.focus();
+  docsCargarHuerfanos();
+}
+
+// ── Huérfanos ──────────────────────────────────────────────
+var _docsHuerfanos = [];
+
+async function docsCargarHuerfanos() {
+  var badge = document.getElementById('docs-huerfanos-badge');
+  try {
+    var rows = await DB.documentos.huerfanos();
+    _docsHuerfanos = rows || [];
+    if (badge) {
+      badge.textContent = _docsHuerfanos.length || '';
+      badge.style.display = _docsHuerfanos.length ? 'inline-flex' : 'none';
+    }
+  } catch(e) { console.warn('huerfanos:', e.message); }
+}
+
+function docsToggleHuerfanos() {
+  var panel = document.getElementById('docs-huerfanos-panel');
+  if (!panel) return;
+  var visible = panel.style.display !== 'none';
+  panel.style.display = visible ? 'none' : 'block';
+  if (!visible) docsRenderHuerfanos();
+}
+
+function docsRenderHuerfanos() {
+  var wrap = document.getElementById('docs-huerfanos-list');
+  if (!wrap) return;
+  if (!_docsHuerfanos.length) {
+    wrap.innerHTML = '<div style="color:var(--text-3);font-size:13px;padding:12px 0;">Sin documentos huérfanos.</div>';
+    return;
+  }
+  wrap.innerHTML = _docsHuerfanos.map(function(d) {
+    var fecha = d.created_at ? d.created_at.slice(0,10) : '—';
+    return '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;color:var(--text-1);font-weight:500;">'+_docsEsc(d.nombre)+'</div>' +
+        '<div style="font-size:11px;color:var(--text-3);">'+fecha+'</div>' +
+      '</div>' +
+      '<button class="btn-sm" style="font-size:11px;white-space:nowrap;" onclick="docsVincularAbrir(\''+d.id+'\',\''+d.path+'\',\''+_docsEsc(d.nombre)+'\')">Vincular factura</button>' +
+    '</div>';
+  }).join('');
+}
+
+// ── Modal vincular huérfano ────────────────────────────────
+var _docsVincularDoc = null;
+
+function docsVincularAbrir(docId, path, nombre) {
+  _docsVincularDoc = { id: docId, path: path, nombre: nombre };
+  document.getElementById('docs-vincular-nombre').textContent = nombre;
+  document.getElementById('docs-vincular-search').value = '';
+  document.getElementById('docs-vincular-results').innerHTML = '';
+  document.getElementById('docs-vincular-modal').style.display = 'flex';
+}
+
+function docsVincularCerrar() {
+  document.getElementById('docs-vincular-modal').style.display = 'none';
+  _docsVincularDoc = null;
+}
+
+var _docsVincularTimer = null;
+async function docsVincularBuscar() {
+  clearTimeout(_docsVincularTimer);
+  _docsVincularTimer = setTimeout(async function() {
+    var q = (document.getElementById('docs-vincular-search') || {}).value || '';
+    if (q.trim().length < 2) return;
+    var wrap = document.getElementById('docs-vincular-results');
+    wrap.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Buscando…</div>';
+    try {
+      var res = await sb.from('facturas')
+        .select('id,emisor_nombre,receptor_nombre,numero_factura,total,fecha,tipo')
+        .or('emisor_nombre.ilike.%'+q+'%,receptor_nombre.ilike.%'+q+'%,numero_factura.ilike.%'+q+'%')
+        .order('fecha', { ascending: false }).limit(10);
+      var rows = res.data || [];
+      if (!rows.length) { wrap.innerHTML = '<div style="color:var(--text-3);font-size:12px;">Sin resultados.</div>'; return; }
+      wrap.innerHTML = rows.map(function(r) {
+        var empresa = r.tipo === 'emitida' ? (r.receptor_nombre||r.emisor_nombre||'—') : (r.emisor_nombre||r.receptor_nombre||'—');
+        var total = r.total != null ? '$'+parseFloat(r.total).toLocaleString('es-MX',{minimumFractionDigits:2}) : '';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;border:1px solid var(--border);margin-bottom:4px;" ' +
+          'onmouseenter="this.style.background=\'var(--bg-card-2)\'" onmouseleave="this.style.background=\'\'" ' +
+          'onclick="docsVincularConfirmar(\''+r.id+'\')">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:500;">'+_docsEsc(empresa)+'</div>' +
+            '<div style="font-size:11px;color:var(--text-3);">'+(r.numero_factura||'—')+' · '+(r.fecha||'—')+'</div>' +
+          '</div>' +
+          '<div style="font-size:12px;font-weight:600;">'+total+'</div>' +
+        '</div>';
+      }).join('');
+    } catch(e) { wrap.innerHTML = '<div style="color:#f87171;font-size:12px;">'+e.message+'</div>'; }
+  }, 350);
+}
+
+async function docsVincularConfirmar(facturaId) {
+  if (!_docsVincularDoc) return;
+  try {
+    await DB.documentos.vincular(_docsVincularDoc.id, facturaId, _docsVincularDoc.path);
+    docsVincularCerrar();
+    showStatus('✓ PDF vinculado a la factura');
+    await docsCargarHuerfanos();
+    docsRenderHuerfanos();
+    docsBuscar(); // refrescar tabla principal
+  } catch(e) {
+    showError('Error al vincular: ' + e.message);
+  }
 }
 
 // ── Búsqueda ──────────────────────────────────────────────

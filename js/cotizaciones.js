@@ -470,6 +470,7 @@ function abrirNuevaCotizacion(){
   document.getElementById('cot-fecha').value = new Date().toISOString().split('T')[0];
   document.getElementById('cot-vigencia').value = '15';
   document.getElementById('cot-notas').value = '';
+  var _cr=document.getElementById('cot-requisicion'); if(_cr) _cr.value='';
   // Limpiar contacto completamente al abrir nueva cotización
   var _ci = document.getElementById('cot-contacto-id');
   var _cs = document.getElementById('cot-contacto-search');
@@ -529,6 +530,7 @@ function editarCotizacion(id){
   document.getElementById('cot-fecha').value = c.fecha||'';
   document.getElementById('cot-vigencia').value = c.vigencia_dias||15;
   document.getElementById('cot-notas').value = c.notas||'';
+  var _cr2=document.getElementById('cot-requisicion'); if(_cr2) _cr2.value=c.numero_requisicion||'';
   // Load items
   sb.from('cotizacion_items').select('*').eq('cotizacion_id',id).order('orden').then(function(res){
     cotItemsTemp = res.data||[];
@@ -787,6 +789,7 @@ async function guardarCotizacion(){
       cliente_nombre: clienteNombre,
       fecha: fecha,
       vigencia_dias: parseInt(document.getElementById('cot-vigencia').value)||15,
+      numero_requisicion: (document.getElementById('cot-requisicion')||{}).value.trim()||null,
       notas: document.getElementById('cot-notas').value.trim()||null,
       subtotal: subtotal,
       iva: iva,
@@ -846,7 +849,9 @@ async function guardarCotizacion(){
 // ── Cambiar estatus ───────────────────────────────────────
 async function cambiarEstatusCot(id, estatus){
   try{
-    var {error} = await sb.from('cotizaciones').update({estatus:estatus}).eq('id',id);
+    var updateObj = {estatus:estatus};
+    if(estatus==='cerrada'||estatus==='perdida') updateObj.fecha_cierre = new Date().toISOString().split('T')[0];
+    var {error} = await sb.from('cotizaciones').update(updateObj).eq('id',id);
     if(error)throw error;
     if(estatus==='cerrada'){
       await convertirACotizacionCerrada(id);
@@ -862,7 +867,7 @@ async function cambiarEstatusCot(id, estatus){
 async function marcarPerdida(id){
   var motivo = prompt('Motivo de pérdida (opcional):') || '';
   try{
-    await sb.from('cotizaciones').update({estatus:'perdida', motivo_perdida:motivo}).eq('id',id);
+    await sb.from('cotizaciones').update({estatus:'perdida', motivo_perdida:motivo, fecha_cierre:new Date().toISOString().split('T')[0]}).eq('id',id);
     loadCotizaciones();
     cerrarDetail();
     showStatus('Cotización marcada como perdida');
@@ -1049,6 +1054,8 @@ async function verDetalleCotizacion(id){
       '<div class="detail-section"><div class="detail-grid">'+
         '<div class="detail-field"><div class="detail-field-label">Fecha</div><div class="detail-field-value">'+fmtDateFull(c.fecha)+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Vigencia</div><div class="detail-field-value">'+(c.vigencia_dias||15)+' días</div></div>'+
+        (c.numero_requisicion?'<div class="detail-field"><div class="detail-field-label">No. Requisición</div><div class="detail-field-value" style="font-family:monospace;">'+esc(c.numero_requisicion)+'</div></div>':'')+
+        (c.fecha_cierre?'<div class="detail-field"><div class="detail-field-label">Fecha cierre</div><div class="detail-field-value">'+fmtDateFull(c.fecha_cierre)+'</div></div>':'')+
         (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(c.notas)+'</div></div>':'')+
       '</div></div>'+
       // Items table

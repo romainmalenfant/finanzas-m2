@@ -569,11 +569,24 @@ function renderFacturaRow(f, hoy){
   metCell.appendChild(metBadge);
   tr.appendChild(metCell);
 
-  // Col 6: proyecto
+  // Col 6: proyecto (link clicleable si existe)
   var projCell = document.createElement('td');
   projCell.className = 'muted';
-  projCell.style.cssText = 'font-size:11px;color:var(--brand-red);';
-  projCell.textContent = proyTexto;
+  if(f.proyecto_id && proyTexto !== '—'){
+    var projLink = document.createElement('span');
+    projLink.style.cssText = 'font-size:11px;color:var(--brand-red);cursor:pointer;text-decoration:underline dotted;';
+    projLink.title = 'Ver proyecto';
+    projLink.textContent = proyTexto + ' →';
+    projLink.addEventListener('click', function(e){
+      e.stopPropagation();
+      switchTab('proyectos', document.getElementById('sb-proyectos'));
+      setTimeout(function(){ verDetalleProyecto(f.proyecto_id); }, 400);
+    });
+    projCell.appendChild(projLink);
+  } else {
+    projCell.style.cssText = 'font-size:11px;color:var(--text-3);';
+    projCell.textContent = '—';
+  }
   tr.appendChild(projCell);
 
   // Col 7: total

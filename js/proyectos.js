@@ -413,6 +413,25 @@ async function confirmarEntrega(){
   }catch(e){showError('Error al registrar entrega: '+e.message);}
 }
 
+// ── Toggle principal Proyectos / Entregas ─────────────────
+function toggleVistaProyectos(vista){
+  document.getElementById('panel-vista-proyectos').style.display = vista==='proyectos'?'block':'none';
+  document.getElementById('panel-vista-entregas').style.display  = vista==='entregas'?'block':'none';
+  document.getElementById('btn-vista-proyectos').classList.toggle('active', vista==='proyectos');
+  document.getElementById('btn-vista-entregas').classList.toggle('active', vista==='entregas');
+}
+
+// ── Pills de estado de proyectos ──────────────────────────
+function setProjStatusPill(val){
+  ['','En proceso','Atrasado','Completado'].forEach(function(v){
+    var map={'':'all','En proceso':'proceso','Atrasado':'atrasado','Completado':'completado'};
+    var btn=document.getElementById('proj-pill-'+map[v]);
+    if(btn) btn.classList.toggle('active', v===val);
+  });
+  document.getElementById('proj-status-filter').value=val;
+  filtrarProyectos(document.getElementById('proj-search').value);
+}
+
 // ── Render sección global de entregas ─────────────────────
 function renderEntregasSection(allProyectos, entregasByProyecto){
   // Recopilar TODAS las entregas con referencia a su proyecto
@@ -425,6 +444,9 @@ function renderEntregasSection(allProyectos, entregasByProyecto){
       todas.push({e:e, p:p, estado:est.lbl});
     });
   });
+  // Actualizar contador del toggle
+  var vtEnt=document.getElementById('vista-ent-count'); if(vtEnt) vtEnt.textContent=todas.length;
+
   if(!todas.length){
     ['entregas-ultimas-list','entregas-abiertos-list','entregas-cerrados-list'].forEach(function(id){
       var el=document.getElementById(id); if(el) el.innerHTML='<div class="empty-state" style="font-size:12px;">Sin entregas registradas</div>';
@@ -561,6 +583,7 @@ async function loadProyectos(){
     }):all;
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
     proyectos=filtered; allProyectos=filtered;
+    var vtProj=document.getElementById('vista-proj-count'); if(vtProj) vtProj.textContent=all.length;
     renderProyectos();
     renderEntregasSection(all, entregasByProyecto);
     updateBadges();

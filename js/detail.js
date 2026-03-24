@@ -510,45 +510,49 @@ async function verDetalleProyecto(id){
 
 async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
   try{
-    // Get invoices linked to this project OR to this client (sat_emitida)
-    var queries = [];
-    var {data:byProj} = await sb.from('movimientos_v2')
-      .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
-      .eq('origen','sat_emitida')
+    // Consultar tabla facturas (vinculadas por proyecto_id)
+    var {data:linked} = await sb.from('facturas')
+      .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre,emisor_nombre')
       .eq('proyecto_id', proyId)
+      .order('fecha', {ascending:false})
       .limit(50);
-    queries = byProj||[];
+    linked = linked||[];
 
-    // Also get unlinked invoices for this client (to allow linking)
+    // Facturas del cliente sin proyecto (para permitir vincular)
     var unlinked = [];
     if(clienteId){
-      var {data:byClient} = await sb.from('movimientos_v2')
-        .select('id,fecha,contraparte,rfc_contraparte,monto,numero_factura,conciliado,cliente_id,proyecto_id')
-        .eq('origen','sat_emitida')
+      var {data:byClient} = await sb.from('facturas')
+        .select('id,fecha,numero_factura,total,conciliado,tipo,receptor_nombre,emisor_nombre')
         .eq('cliente_id', clienteId)
+        .eq('tipo','emitida')
         .is('proyecto_id', null)
-        .limit(50);
+        .order('fecha', {ascending:false})
+        .limit(30);
       unlinked = byClient||[];
     }
 
-    var linkedIds = new Set(queries.map(function(f){return f.id;}));
-    var totalFacturado = queries.reduce(function(a,f){return a+(parseFloat(f.monto)||0);},0);
+    var totalFacturado = linked.reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
 
     var html = '<div class="detail-section">'+
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
-        '<div class="detail-section-title" style="margin-bottom:0;">Facturas SAT vinculadas</div>'+
-        '<span style="font-size:12px;color:#34d399;font-weight:600;">'+fmt(totalFacturado)+'</span>'+
+        '<div class="detail-section-title" style="margin-bottom:0;">Facturas vinculadas</div>'+
+        '<span style="font-size:12px;color:#34d399;font-weight:600;">'+(linked.length?fmt(totalFacturado):'')+'</span>'+
       '</div>';
 
-    if(queries.length){
-      html += queries.map(function(f){
+    if(linked.length){
+      html += linked.map(function(f){
+        var nombre = f.tipo==='emitida' ? (f.receptor_nombre||'') : (f.emisor_nombre||'');
         return '<div class="detail-list-item">'+
           '<div>'+
-            '<div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.id.slice(0,12))+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+(f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+'</div>'+
+            '<div style="font-size:12px;color:var(--text-1);">'+(f.numero_factura||f.id.slice(0,12))+
+              (nombre?' <span style="font-size:10px;color:var(--text-3);">· '+esc(nombre.slice(0,30))+'</span>':'')+
+            '</div>'+
+            '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+
+              (f.conciliado?' · <span style="color:#34d399;">Cobrada</span>':' · <span style="color:#fbbf24;">Pendiente</span>')+
+            '</div>'+
           '</div>'+
           '<div style="display:flex;align-items:center;gap:8px;">'+
-            '<span style="font-weight:600;color:#34d399;">'+fmt(parseFloat(f.monto)||0)+'</span>'+
+            '<span style="font-weight:600;color:#34d399;">'+fmt(parseFloat(f.total)||0)+'</span>'+
             '<button class="btn-sm" style="color:#f87171;font-size:10px;padding:2px 8px;" onclick="desvincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" title="Desvincular">×</button>'+
           '</div>'+
         '</div>';
@@ -557,10 +561,10 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
       html += '<div style="color:var(--text-4);font-size:12px;padding:4px 0;">Sin facturas vinculadas</div>';
     }
 
-    // Unlinked invoices for this client — show button to link
+    // Facturas del cliente sin proyecto — botón vincular
     if(unlinked.length){
       html += '<div style="margin-top:10px;">'+
-        '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Facturas de '+esc(nombreCliente||'este cliente')+' sin proyecto:</div>'+
+        '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Emitidas a '+esc(nombreCliente||'este cliente')+' sin proyecto:</div>'+
         unlinked.map(function(f){
           return '<div class="detail-list-item" style="opacity:.75;">'+
             '<div>'+
@@ -568,7 +572,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
               '<div style="font-size:10px;color:var(--text-3);">'+fmtDate(f.fecha)+'</div>'+
             '</div>'+
             '<div style="display:flex;align-items:center;gap:8px;">'+
-              '<span style="font-size:12px;color:var(--text-2);">'+fmt(parseFloat(f.monto)||0)+'</span>'+
+              '<span style="font-size:12px;color:var(--text-2);">'+fmt(parseFloat(f.total)||0)+'</span>'+
               '<button class="btn-sm" style="font-size:10px;padding:2px 8px;" onclick="vincularFacturaProyecto(\''+f.id+'\',\''+proyId+'\')" >+ Vincular</button>'+
             '</div>'+
           '</div>';
@@ -577,7 +581,6 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
     }
 
     html += '</div>';
-
     var body = document.getElementById('detail-body');
     if(body) body.innerHTML += html;
   }catch(e){console.warn('Facturas proyecto:',e);}
@@ -585,7 +588,7 @@ async function renderFacturasProyecto(proyId, clienteId, nombreCliente){
 
 async function vincularFacturaProyecto(facturaId, proyId){
   try{
-    await sb.from('movimientos_v2').update({proyecto_id: proyId}).eq('id', facturaId);
+    await sb.from('facturas').update({proyecto_id: proyId}).eq('id', facturaId);
     showStatus('✓ Factura vinculada al proyecto');
     verDetalleProyecto(proyId);
   }catch(e){showError('Error: '+e.message);}
@@ -593,7 +596,7 @@ async function vincularFacturaProyecto(facturaId, proyId){
 
 async function desvincularFacturaProyecto(facturaId, proyId){
   try{
-    await sb.from('movimientos_v2').update({proyecto_id: null}).eq('id', facturaId);
+    await sb.from('facturas').update({proyecto_id: null}).eq('id', facturaId);
     showStatus('Factura desvinculada');
     verDetalleProyecto(proyId);
   }catch(e){showError('Error: '+e.message);}

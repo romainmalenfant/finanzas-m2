@@ -57,9 +57,7 @@ var contactos=[], allContactos=[];
 
 async function loadContactos(){
   try{
-    var {data,error}=await sb.from('contactos').select('*,clientes(nombre),proveedores(nombre)').order('nombre',{ascending:true});
-    if(error)throw error;
-    contactos=data||[];allContactos=contactos;
+    contactos=await DB.contactos.list();allContactos=contactos;
     var kt=document.getElementById('cont-k-total'); if(kt)kt.textContent=contactos.length;
     var ka=document.getElementById('cont-k-activos'); if(ka)ka.textContent=contactos.filter(function(c){return c.activo!==false;}).length;
     var ke=document.getElementById('cont-k-empresas'); if(ke){var es=new Set(contactos.filter(function(c){return c.cliente_id;}).map(function(c){return c.cliente_id;}));ke.textContent=es.size;}
@@ -330,9 +328,9 @@ async function asociarContactoExistente(contactoId, tipo, entityId){
         return;
       }
     }
-    var update=tipo==='empresa' ? {cliente_id:entityId,proveedor_id:null} : {proveedor_id:entityId,cliente_id:null};
-    var {error}=await sb.from('contactos').update(update).eq('id',contactoId);
-    if(error)throw error;
+    var cliId  = tipo==='empresa'   ? entityId : null;
+    var provId = tipo==='proveedor' ? entityId : null;
+    await DB.contactos.link(contactoId, cliId, provId);
     showStatus('✓ Contacto asociado');
     loadContactos();
     // Refresh the current detail view
@@ -425,8 +423,7 @@ async function guardarContacto(){
     activo:document.getElementById('contacto-activo').checked
   };
   try{
-    var {error}=await sb.from('contactos').upsert([c]);
-    if(error)throw error;
+    await DB.contactos.save(c);
     // Save origin BEFORE cerrarModalContacto clears it
     var _orig=window._contactoOrigin||null;
     cerrarModalContacto();
@@ -446,7 +443,7 @@ async function guardarContacto(){
 async function eliminarContacto(id){
   var c=contactos.find(function(x){return x.id===id;});
   if(!confirm('¿Eliminar contacto "'+(c?c.nombre+' '+(c.apellido||''):id)+'"?'))return;
-  try{await sb.from('contactos').delete().eq('id',id);contactos=contactos.filter(function(x){return x.id!==id;});allContactos=contactos;renderContactosList(contactos);}
+  try{await DB.contactos.delete(id);contactos=contactos.filter(function(x){return x.id!==id;});allContactos=contactos;renderContactosList(contactos);}
   catch(e){showError('Error: '+e.message);}
 }
 

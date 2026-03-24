@@ -3,12 +3,7 @@
 
 async function loadEmpleados(){
   try{
-    var {data,error}=await sb.from('empleados').select('*').order('nombre',{ascending:true});
-    if(error){
-      document.getElementById('empleados-list').innerHTML='<div class="empty-state" style="color:#f87171;">Tabla <code>empleados</code> no encontrada. Créala en Supabase primero.</div>';
-      return;
-    }
-    empleados=data||[]; allEmpleados=empleados;
+    empleados=await DB.empleados.list(); allEmpleados=empleados;
     var activos=empleados.filter(function(e){return e.estatus==='Activo';}).length;
     var nomina=empleados.filter(function(e){return e.estatus==='Activo';}).reduce(function(a,e){return a+Number(e.salario_mensual||0);},0);
     var areas=new Set(empleados.map(function(e){return e.area;}).filter(Boolean)).size;
@@ -137,8 +132,7 @@ async function guardarEmpleado(){
   };
   if(idEdit)rec.id=idEdit;
   try{
-    var {error}=await sb.from('empleados').upsert([rec]);
-    if(error)throw error;
+    await DB.empleados.save(rec);
     document.getElementById('empleado-modal').style.display='none';
     showStatus('✓ Empleado guardado');
     loadEmpleados();
@@ -149,7 +143,7 @@ async function guardarEmpleado(){
 async function eliminarEmpleado(id){
   var e=empleados.find(function(x){return String(x.id)===String(id);});
   if(!confirm('¿Eliminar '+(e?e.nombre:id)+'?'))return;
-  try{await sb.from('empleados').delete().eq('id',id);loadEmpleados();}
+  try{await DB.empleados.delete(id);loadEmpleados();}
   catch(err){showError('Error: '+err.message);}
 }
 

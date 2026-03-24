@@ -116,6 +116,11 @@
       <span class="s-label">Rentabilidad</span>
     </button>
 
+    <button class="s-item" id="sb-documentos" onclick="switchTab('documentos',this)" title="Documentos">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      <span class="s-label">Documentos</span>
+    </button>
+
     <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Empresas">
       <svg viewBox="0 0 24 24"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
       <span class="s-label">Empresas</span>
@@ -1600,6 +1605,54 @@
     </div>
   </div>
 
+  <!-- Tab Documentos -->
+  <div id="tab-documentos" style="display:none;padding:1.25rem;">
+    <!-- Barra de búsqueda y filtros -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
+      <div style="position:relative;flex:1;min-width:220px;">
+        <input type="text" id="docs-search" placeholder="Buscar por empresa, folio, UUID, monto..."
+          oninput="docsOnInput()"
+          style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);box-sizing:border-box;">
+      </div>
+      <select id="docs-year" onchange="docsBuscar()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+        <option value="">Todos los años</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+      </select>
+      <select id="docs-tipo" onchange="docsBuscar()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+        <option value="">Emitidas y recibidas</option>
+        <option value="emitida">Emitidas</option>
+        <option value="recibida">Recibidas</option>
+      </select>
+      <select id="docs-archivo" onchange="docsBuscar()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+        <option value="">XML y PDF</option>
+        <option value="xml">Solo XML</option>
+        <option value="pdf">Solo PDF</option>
+      </select>
+      <span id="docs-spinner" style="display:none;font-size:12px;color:var(--text-3);">Buscando…</span>
+    </div>
+
+    <!-- Resultados -->
+    <div id="docs-results"></div>
+    <div id="docs-empty" style="color:var(--text-3);font-size:13px;padding:2rem 0;text-align:center;">
+      Busca por empresa, folio, UUID o aplica un filtro.
+    </div>
+  </div>
+
+  <!-- Modal preview PDF -->
+  <div id="docs-preview-modal" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;flex-direction:column;">
+    <div style="width:90vw;max-width:900px;height:90vh;background:var(--bg-card);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);">
+        <span id="docs-preview-title" style="font-size:13px;color:var(--text-2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80%;"></span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-sm" onclick="docsPreviewClose()">Cerrar</button>
+        </div>
+      </div>
+      <iframe id="docs-preview-frame" src="" style="flex:1;border:none;width:100%;"></iframe>
+    </div>
+  </div>
+
   <div id="tab-sat" style="display:none;">
 
     <!-- KPIs bancarios -->
@@ -1839,6 +1892,7 @@
   <script src="js/facturas.js"></script>
   <script src="js/banco.js"></script>
   <script src="js/rentabilidad.js"></script>
+  <script src="js/documentos.js"></script>
 
   <!-- Modal: Conciliación rápida post-guardado -->
   <div id="modal-conc-manual" style="display:none;position:fixed;inset:0;z-index:2100;background:rgba(0,0,0,.55);align-items:center;justify-content:center;">

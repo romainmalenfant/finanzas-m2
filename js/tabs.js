@@ -11,7 +11,8 @@ if(typeof APP_MODULES === 'undefined'){
     {id:'contactos',label:'Contactos',icon:'👤',color:'#a78bfa',showPeriod:false},
     {id:'empleados',label:'Empleados',icon:'👥',color:'#94a3b8',showPeriod:false},
     {id:'sat',label:'SAT & Banco',icon:'🏦',color:'#fb923c',showPeriod:true},
-    {id:'facturas',label:'Facturas',icon:'🧾',color:'#a78bfa',showPeriod:false}
+    {id:'facturas',label:'Facturas',icon:'🧾',color:'#a78bfa',showPeriod:false},
+    {id:'documentos',label:'Documentos',icon:'📁',color:'#38bdf8',showPeriod:false}
   ];
   var APP_MODULES_MAP = Object.fromEntries(APP_MODULES.map(function(m){return [m.id,m];}));
 }
@@ -66,4 +67,5 @@ function switchTab(tab, btn){
   if(tab==='sat')          initSATTab();
   if(tab==='cotizaciones') loadCotizaciones();
   if(tab==='facturas')     loadFacturas();
+  if(tab==='documentos')   docsInit();
 }

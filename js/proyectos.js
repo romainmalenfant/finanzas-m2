@@ -459,6 +459,33 @@ function setProjStatusPill(val){
   filtrarProyectos(document.getElementById('proj-search').value);
 }
 
+// ── Filtrar proyectos en memoria (pills + búsqueda) ───────
+function filtrarProyectos(q){
+  var status = document.getElementById('proj-status-filter').value;
+  var query  = (q||'').toLowerCase().trim();
+  var base   = allProyectos||[];
+
+  var filtered = base.filter(function(p){
+    // Filtro por estado
+    if(status){
+      var ents = entregasByProyecto[p.id]||[];
+      var entregadas = ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
+      var est = estadoProyecto(p, entregadas);
+      if((est.lbl||est) !== status) return false;
+    }
+    // Filtro por búsqueda
+    if(query){
+      var hay = (p.nombre_pedido||'').toLowerCase()+' '+(p.nombre_cliente||'').toLowerCase()+' '+(p.tipo_pieza||'').toLowerCase();
+      if(hay.indexOf(query)===-1) return false;
+    }
+    return true;
+  });
+
+  proyectos = filtered;
+  document.getElementById('proj-count').textContent = filtered.length+' proyecto'+(filtered.length!==1?'s':'');
+  renderProyectos();
+}
+
 // ── Render sección global de entregas ─────────────────────
 function renderEntregasSection(allProyectos, entregasByProyecto){
   // Recopilar TODAS las entregas con referencia a su proyecto

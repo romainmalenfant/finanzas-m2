@@ -581,88 +581,203 @@ function readFileAsText(file) {
   });
 }
 
-/** Maneja la subida de XMLs CFDI. */
+// ── Estado del preview XML ─────────────────────────────────
+var _xmlItems = [];   // { file, text, kind, parsed, acuse, label, empresa, folio, total, fecha, error, incluir }
+
+/** Maneja la subida de XMLs: parsea todo y abre preview. */
 async function importarXMLsCFDI(input) {
   var files = Array.from(input.files || []);
   if (!files.length) return;
   input.value = '';
 
   var btn = document.getElementById('xml-import-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Leyendo...'; }
 
-  var okNuevo = 0, okVinculado = 0, okComplemento = 0, okCancelacion = 0, errors = [];
   var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
+  _xmlItems = [];
 
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
+    var item = { file: file, text: '', kind: '', label: '', empresa: '', folio: '', total: null, fecha: '', error: null, incluir: true, parsed: null, acuse: null };
     try {
-      var text = await readFileAsText(file);
-      var parsed = parsearXMLCFDI(text);
+      item.text = await readFileAsText(file);
 
-      // ── Acuse de cancelación ───────────────────────────────
-      var acuse = parsearAcuseCancelacion(text);
+      // ¿Es acuse de cancelación?
+      var acuse = parsearAcuseCancelacion(item.text);
       if (acuse) {
-        if (!acuse.uuid) { errors.push(file.name + ': acuse sin UUID'); continue; }
-        if (acuse.estatus_uuid !== '201') {
-          errors.push(file.name + ': cancelación no aceptada por SAT (estatus ' + acuse.estatus_uuid + ')');
-          continue;
+        item.acuse = acuse;
+        item.kind  = 'cancelacion';
+        item.fecha = acuse.fecha_cancelacion || '';
+        if (!acuse.uuid) {
+          item.error = 'Acuse sin UUID'; item.incluir = false;
+        } else if (acuse.estatus_uuid !== '201') {
+          item.error = 'Cancelación no aceptada por SAT (estatus ' + acuse.estatus_uuid + ')'; item.incluir = false;
+        } else {
+          item.label = '🚫 Cancelación';
+          item.folio = acuse.uuid.slice(0, 8) + '…';
         }
-        var facCan = await DB.facturas.get(acuse.uuid);
+        _xmlItems.push(item); continue;
+      }
+
+      // CFDI normal o complemento
+      var parsed = parsearXMLCFDI(item.text);
+      item.parsed = parsed;
+
+      if (!parsed.uuid) { item.error = 'Sin UUID'; item.incluir = false; _xmlItems.push(item); continue; }
+
+      // Candado RFC
+      if (rfcEmp) {
+        var eRfc = (parsed.emisor_rfc  || '').toUpperCase();
+        var rRfc = (parsed.receptor_rfc|| '').toUpperCase();
+        if (eRfc !== rfcEmp && rRfc !== rfcEmp) {
+          item.error = 'RFC ajeno (' + (eRfc || '?') + ')'; item.incluir = false; _xmlItems.push(item); continue;
+        }
+      }
+
+      item.fecha = parsed.fecha || '';
+      item.total = parsed.total;
+
+      if (parsed.tipo_comprobante === 'P') {
+        item.kind    = 'complemento';
+        item.label   = '💳 Complemento pago';
+        item.empresa = parsed.receptor_nombre || parsed.emisor_nombre || '';
+        item.folio   = (parsed.folio || '') || (parsed.docs_relacionados.length ? parsed.docs_relacionados[0].uuid.slice(0,8)+'…' : '');
+        item.total   = null; // complemento siempre Total=0
+      } else {
+        var tipoFac = rfcEmp && (parsed.emisor_rfc||'').toUpperCase() === rfcEmp ? 'emitida' : 'recibida';
+        item.kind    = 'factura';
+        item.label   = tipoFac === 'emitida' ? '📤 Emitida' : '📥 Recibida';
+        item.empresa = tipoFac === 'emitida'
+          ? (parsed.receptor_nombre || '')
+          : (parsed.emisor_nombre   || '');
+        item.folio   = ((parsed.serie || '') + (parsed.folio ? '-' + parsed.folio : '')) || parsed.uuid.slice(0,8)+'…';
+      }
+    } catch(e) {
+      item.error = e.message; item.incluir = false;
+    }
+    _xmlItems.push(item);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
+
+  _xmlMostrarModal();
+}
+
+function _xmlMostrarModal() {
+  var validos  = _xmlItems.filter(function(it){ return !it.error; });
+  var errores  = _xmlItems.filter(function(it){ return  it.error; });
+
+  var titulo = _xmlItems.length + ' archivo' + (_xmlItems.length !== 1 ? 's' : '') + ' listos para importar';
+  var sub    = validos.length + ' válido' + (validos.length !== 1 ? 's' : '');
+  if (errores.length) sub += ' · ' + errores.length + ' con error';
+
+  document.getElementById('xml-modal-title').textContent = titulo;
+  document.getElementById('xml-modal-sub').textContent   = sub;
+
+  var fmtMXN = function(n){ return n != null ? '$' + parseFloat(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'; };
+
+  var html = _xmlItems.map(function(it, idx) {
+    var rowCls = it.error ? ' style="opacity:.55"' : '';
+    var chk = '<input type="checkbox" ' + (it.incluir ? 'checked' : '') + (it.error ? ' disabled' : '') +
+              ' onchange="_xmlToggle(' + idx + ',this.checked)" style="margin-right:8px;cursor:pointer;">';
+    var badge = it.error
+      ? '<span style="color:#f87171;font-size:11px;font-weight:600;">⚠ ERROR</span>'
+      : ('<span style="font-size:11px;">' + (it.label||'') + '</span>');
+    var empresa = it.empresa || '—';
+    var total   = fmtMXN(it.total);
+    var fecha   = it.fecha ? it.fecha.slice(0,10) : '—';
+    var errMsg  = it.error ? '<div style="color:#f87171;font-size:11px;margin-top:2px;">'+it.error+'</div>' : '';
+
+    return '<div' + rowCls + ' style="display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border,#e5e5e5);">' +
+      '<div style="padding-top:2px;">' + chk + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' +
+          badge +
+          '<span style="font-size:12px;color:var(--text-2,#666);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px;" title="'+it.file.name+'">'+it.file.name+'</span>' +
+        '</div>' +
+        '<div style="font-size:13px;font-weight:500;margin-top:3px;">'+_xmlEsc(empresa)+'</div>' +
+        '<div style="font-size:11px;color:var(--text-3,#999);margin-top:1px;">'+it.folio+' · '+fecha+'</div>' +
+        errMsg +
+      '</div>' +
+      '<div style="font-size:13px;font-weight:600;white-space:nowrap;padding-left:12px;">' + total + '</div>' +
+    '</div>';
+  }).join('');
+
+  document.getElementById('xml-preview-list').innerHTML = html || '<div style="color:#999;font-size:13px;">Sin archivos.</div>';
+
+  var nSel = _xmlItems.filter(function(it){ return it.incluir; }).length;
+  var btnOk = document.getElementById('btn-xml-confirm');
+  if (btnOk) btnOk.textContent = 'Importar ' + nSel + ' archivo' + (nSel !== 1 ? 's' : '');
+
+  document.getElementById('xml-modal').style.display = 'block';
+}
+
+function _xmlToggle(idx, checked) {
+  _xmlItems[idx].incluir = checked;
+  var nSel = _xmlItems.filter(function(it){ return it.incluir; }).length;
+  var btnOk = document.getElementById('btn-xml-confirm');
+  if (btnOk) btnOk.textContent = 'Importar ' + nSel + ' archivo' + (nSel !== 1 ? 's' : '');
+}
+
+function xmlCerrarModal() {
+  document.getElementById('xml-modal').style.display = 'none';
+  _xmlItems = [];
+}
+
+function _xmlEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/** Procesa los ítems seleccionados en el preview. */
+async function xmlConfirmarImport() {
+  var items = _xmlItems.filter(function(it){ return it.incluir && !it.error; });
+  if (!items.length) return;
+
+  var btnOk = document.getElementById('btn-xml-confirm');
+  if (btnOk) { btnOk.disabled = true; btnOk.textContent = 'Importando…'; }
+
+  var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
+  var okNuevo = 0, okVinculado = 0, okComplemento = 0, okCancelacion = 0, errors = [];
+
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    try {
+      // ── Cancelación ───────────────────────────────────────
+      if (it.kind === 'cancelacion') {
+        var facCan = await DB.facturas.get(it.acuse.uuid);
         if (facCan) {
-          await DB.facturas.save({
-            id: facCan.id,
-            estatus: 'cancelada',
-            fecha_cancelacion: acuse.fecha_cancelacion,
-          });
+          await DB.facturas.save({ id: facCan.id, estatus: 'cancelada', fecha_cancelacion: it.acuse.fecha_cancelacion });
           okCancelacion++;
         } else {
-          errors.push(file.name + ': factura ' + acuse.uuid.slice(0,8) + '… no encontrada en BD');
+          errors.push(it.file.name + ': factura no encontrada en BD');
         }
         continue;
       }
 
-      if (!parsed.uuid) { errors.push(file.name + ': sin UUID'); continue; }
-
-      // Candado RFC: el emisor o receptor debe ser Grupo M2
-      if (rfcEmp) {
-        var emisorRfc  = (parsed.emisor_rfc  || '').toUpperCase();
-        var receptorRfc= (parsed.receptor_rfc|| '').toUpperCase();
-        if (emisorRfc !== rfcEmp && receptorRfc !== rfcEmp) {
-          errors.push(file.name + ': RFC no corresponde a esta empresa');
-          continue;
-        }
-      }
-
-      var año = parsed.fecha ? parseInt(parsed.fecha.split('-')[0]) : new Date().getFullYear();
+      var parsed = it.parsed;
+      var año  = parsed.fecha ? parseInt(parsed.fecha.split('-')[0]) : new Date().getFullYear();
       var path = año + '/' + parsed.uuid + '.xml';
 
-      // ── Complemento de pago (tipo P) ───────────────────────
-      if (parsed.tipo_comprobante === 'P') {
-        // Subir XML del complemento a Storage para referencia
-        await DB.storage.upload(path, new File([text], parsed.uuid + '.xml', { type: 'application/xml' }));
-
-        // Marcar cada factura referenciada según saldo insoluto
+      // ── Complemento de pago ───────────────────────────────
+      if (it.kind === 'complemento') {
+        await DB.storage.upload(path, new File([it.text], parsed.uuid + '.xml', { type: 'application/xml' }));
         var marcadas = 0;
         for (var j = 0; j < parsed.docs_relacionados.length; j++) {
-          var doc = parsed.docs_relacionados[j];
-          var facRef = await DB.facturas.get(doc.uuid);
+          var dr = parsed.docs_relacionados[j];
+          var facRef = await DB.facturas.get(dr.uuid);
           if (facRef) {
-            var update = { id: facRef.id };
-            // Si saldo insoluto = 0 → completamente pagada
-            if (doc.pagado_completo) update.conciliado = true;
-            await DB.facturas.save(update);
+            var upd = { id: facRef.id };
+            if (dr.pagado_completo) upd.conciliado = true;
+            await DB.facturas.save(upd);
             marcadas++;
           }
         }
         okComplemento++;
         if (!marcadas && parsed.docs_relacionados.length) {
-          errors.push(file.name + ': complemento procesado pero facturas referenciadas no encontradas en BD');
+          errors.push(it.file.name + ': facturas referenciadas no encontradas en BD');
         }
         continue;
       }
 
-      // ── Factura normal (tipo I, E, N, T) ───────────────────
-      // Determinar tipo: emisor = M2 → emitida; receptor = M2 → recibida
+      // ── Factura normal ────────────────────────────────────
       var existing = await DB.facturas.get(parsed.uuid);
       var tipo = existing ? existing.tipo : null;
       if (!tipo && rfcEmp) {
@@ -670,8 +785,7 @@ async function importarXMLsCFDI(input) {
       }
       if (!tipo) tipo = 'recibida';
 
-      // Subir XML a Storage
-      await DB.storage.upload(path, new File([text], parsed.uuid + '.xml', { type: 'application/xml' }));
+      await DB.storage.upload(path, new File([it.text], parsed.uuid + '.xml', { type: 'application/xml' }));
 
       if (existing) {
         await DB.storage.linkPaths(existing.id, { xml_path: path });
@@ -679,44 +793,36 @@ async function importarXMLsCFDI(input) {
       } else {
         var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
         await DB.facturas.save({
-          id: parsed.uuid,
-          uuid_sat: parsed.uuid,
+          id: parsed.uuid, uuid_sat: parsed.uuid,
           tipo: tipo,
-          emisor_nombre: parsed.emisor_nombre,
-          emisor_rfc: parsed.emisor_rfc,
-          receptor_nombre: parsed.receptor_nombre,
-          receptor_rfc: parsed.receptor_rfc,
-          total: parsed.total,
-          fecha: parsed.fecha,
-          year: año,
-          month: parsed.fecha ? parseInt(parsed.fecha.split('-')[1]) : null,
+          emisor_nombre: parsed.emisor_nombre, emisor_rfc: parsed.emisor_rfc,
+          receptor_nombre: parsed.receptor_nombre, receptor_rfc: parsed.receptor_rfc,
+          total: parsed.total, fecha: parsed.fecha,
+          year: año, month: parsed.fecha ? parseInt(parsed.fecha.split('-')[1]) : null,
           numero_factura: numero || null,
-          metodo_pago: parsed.metodo_pago,
-          forma_pago: parsed.forma_pago,
-          moneda: parsed.moneda,
-          tipo_cambio: parsed.tipo_cambio,
-          estatus: 'vigente',
-          conciliado: false,
+          metodo_pago: parsed.metodo_pago, forma_pago: parsed.forma_pago,
+          moneda: parsed.moneda, tipo_cambio: parsed.tipo_cambio,
+          estatus: 'vigente', conciliado: false,
           xml_path: path,
         });
         okNuevo++;
       }
     } catch(e) {
-      errors.push(file.name + ': ' + e.message);
+      errors.push(it.file.name + ': ' + e.message);
     }
   }
 
-  if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
+  if (btnOk) { btnOk.disabled = false; }
+  xmlCerrarModal();
 
   var totalGeneral = okNuevo + okVinculado + okComplemento + okCancelacion;
-
   if (totalGeneral > 0) {
     var partes = [];
-    if (okNuevo)        partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
-    if (okVinculado)    partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
-    if (okComplemento)  partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
-    if (okCancelacion)  partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
+    if (okNuevo)       partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
+    if (okVinculado)   partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
+    if (okComplemento) partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
+    if (okCancelacion) partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
     showStatus('✓ ' + totalGeneral + ' XML' + (totalGeneral !== 1 ? 's' : '') + ' procesado' + (totalGeneral !== 1 ? 's' : '') + ' — ' + partes.join(', '));
   }
-  if (errors.length) showError(errors.slice(0, 3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length - 3) + ' más)' : ''));
+  if (errors.length) showError(errors.slice(0,3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length-3) + ' más)' : ''));
 }

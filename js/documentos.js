@@ -238,81 +238,86 @@ function docsRender(rows) {
   }
   document.getElementById('docs-empty').style.display = 'none';
 
-  var html = '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
-    '<thead><tr style="border-bottom:1px solid var(--border);color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:.04em;">' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Empresa</th>' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Folio</th>' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Fecha</th>' +
-    '<th style="text-align:right;padding:6px 8px;font-weight:500;">Total</th>' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Tipo</th>' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Estatus</th>' +
-    '<th style="text-align:left;padding:6px 8px;font-weight:500;">Conciliado</th>' +
-    '<th style="text-align:center;padding:6px 8px;font-weight:500;">Archivos</th>' +
-    '</tr></thead><tbody>';
+  var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
 
   rows.forEach(function(r) {
-    var rowStyle = 'background:#fff;border-bottom:1px solid var(--border);cursor:default;';
 
-    // ── Fila huérfana (tabla documentos) ──────────────────
+    // ── Tarjeta huérfana ──────────────────────────────────
     if (r._orphan) {
       var fecha = r.created_at ? r.created_at.slice(0,10) : '—';
-      html += '<tr style="'+rowStyle+'opacity:.75;" onmouseenter="this.style.background=\'#f5f4f0\'" onmouseleave="this.style.background=\'#fff\'">' +
-        '<td style="padding:10px 8px;border-left:3px solid #94a3b8;color:var(--text-2);font-style:italic;" colspan="3">'+_docsEsc(r.nombre)+'</td>' +
-        '<td style="padding:8px 8px;color:var(--text-3);">'+fecha+'</td>' +
-        '<td colspan="3"><span style="color:#94a3b8;font-size:11px;">Sin vincular</span></td>' +
-        '<td style="padding:8px 8px;text-align:center;">' +
-          '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'pdf\')">PDF</button> ' +
-          '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsVincularAbrir(\''+r.id+'\',\''+r.path+'\',\''+_docsEsc(r.nombre)+'\')">Vincular</button>' +
-        '</td>' +
-      '</tr>';
+      html +=
+        '<div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-left:3px solid #94a3b8;border-radius:8px;padding:12px 16px;opacity:.8;">' +
+          '<div style="width:36px;height:44px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📄</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:500;color:var(--text-2);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_docsEsc(r.nombre)+'</div>' +
+            '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+fecha+' · <span style="color:#94a3b8;">Sin vincular</span></div>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+            '<button class="btn-sm" style="font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'pdf\')">Ver PDF</button>' +
+            '<button class="btn-sm" style="font-size:11px;" onclick="docsVincularAbrir(\''+r.id+'\',\''+r.path+'\',\''+_docsEsc(r.nombre)+'\')">Vincular</button>' +
+          '</div>' +
+        '</div>';
       return;
     }
 
-    // ── Fila factura ───────────────────────────────────────
+    // ── Tarjeta factura ───────────────────────────────────
     var empresa = r.tipo === 'emitida'
       ? (r.receptor_nombre || r.emisor_nombre || '—')
       : (r.emisor_nombre   || r.receptor_nombre || '—');
-    var folio = r.numero_factura || '—';
-    var fecha = r.fecha ? r.fecha.split('T')[0] : '—';
-    var total = r.total != null ? '$' + parseFloat(r.total).toLocaleString('es-MX', {minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
+    var folio   = r.numero_factura || '—';
+    var fecha   = r.fecha ? r.fecha.slice(0,10) : '—';
+    var total   = r.total != null ? '$' + parseFloat(r.total).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—';
 
-    var tipoLabel = r.tipo === 'emitida'
-      ? '<span style="color:#34d399;font-size:11px;font-weight:600;">Emitida</span>'
-      : '<span style="color:#f87171;font-size:11px;font-weight:600;">Recibida</span>';
+    var cancelada  = r.estatus === 'cancelada';
+    var acento     = cancelada ? '#f87171' : r.tipo === 'emitida' ? '#34d399' : '#f59e0b';
+    var tipoTxt    = r.tipo === 'emitida' ? 'Emitida' : 'Recibida';
+    var tipoColor  = r.tipo === 'emitida' ? '#34d399' : '#f59e0b';
 
-    var cancelada = r.estatus === 'cancelada';
-    var estatusLabel = cancelada
-      ? '<span style="color:#f87171;font-size:11px;font-weight:600;">Cancelada</span>'
-      : '<span style="color:#34d399;font-size:11px;">Vigente</span>';
-
-    var conciliadoLabel = r.conciliado
-      ? '<span style="color:#34d399;font-size:13px;" title="Conciliada">✓</span>'
-      : '<span style="color:#f59e0b;font-size:11px;">Pendiente</span>';
-
-    var uuid = r.uuid_sat || r.id || '';
+    var uuid    = r.uuid_sat || r.id || '';
     var copyBtn = uuid
-      ? '<button onclick="docsCopiarUUID(\''+uuid+'\',this)" title="Copiar UUID" style="background:none;border:none;cursor:pointer;color:var(--text-3,#aaa);font-size:12px;padding:0 4px;opacity:.5;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.5">⧉</button>'
+      ? '<button onclick="docsCopiarUUID(\''+uuid+'\',this)" title="Copiar UUID" style="background:none;border:none;cursor:pointer;color:#b0aaa0;font-size:13px;padding:0 2px;line-height:1;" onmouseenter="this.style.color=\'#666\'" onmouseleave="this.style.color=\'#b0aaa0\'">⧉</button>'
       : '';
 
-    var archivos = '';
-    if (r.xml_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.xml_path+'\',\'xml\')">XML</button> ';
-    if (r.pdf_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')">PDF</button>';
+    // Ícono compuesto según archivos disponibles
+    var hasXML = !!r.xml_path, hasPDF = !!r.pdf_path;
+    var iconBg  = cancelada ? '#fee2e2' : r.tipo === 'emitida' ? '#d1fae5' : '#fef3c7';
+    var iconTxt = cancelada ? '🚫' : hasPDF ? '📄' : '📋';
 
-    var acento = r.tipo === 'emitida' ? '#34d399' : '#f59e0b';
-    rowStyle += (cancelada ? 'opacity:.55;' : '');
-    html += '<tr style="'+rowStyle+'" onmouseenter="this.style.background=\'#f5f4f0\'" onmouseleave="this.style.background=\'#fff\'">' +
-      '<td style="padding:10px 8px;border-left:3px solid '+acento+';color:var(--text-1);' + (cancelada ? 'text-decoration:line-through;' : '') + '">'+_docsEsc(empresa)+'</td>' +
-      '<td style="padding:8px 8px;color:var(--text-2);">'+_docsEsc(folio)+copyBtn+'</td>' +
-      '<td style="padding:8px 8px;color:var(--text-3);">'+fecha+'</td>' +
-      '<td style="padding:8px 8px;text-align:right;color:var(--text-1);">'+total+'</td>' +
-      '<td style="padding:8px 8px;">'+tipoLabel+'</td>' +
-      '<td style="padding:8px 8px;">'+estatusLabel+'</td>' +
-      '<td style="padding:8px 8px;">'+conciliadoLabel+'</td>' +
-      '<td style="padding:8px 8px;text-align:center;">'+archivos+'</td>' +
-      '</tr>';
+    var fileBtns = '';
+    if (hasXML) fileBtns += '<button onclick="docsAbrir(\''+r.xml_path+'\',\'xml\')" style="display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;letter-spacing:.02em;" onmouseenter="this.style.background=\'#e2e8f0\'" onmouseleave="this.style.background=\'#f1f5f9\'">XML</button> ';
+    if (hasPDF) fileBtns  += '<button onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')" style="display:inline-flex;align-items:center;gap:3px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;color:#dc2626;cursor:pointer;letter-spacing:.02em;" onmouseenter="this.style.background=\'#fecaca\'" onmouseleave="this.style.background=\'#fef2f2\'">PDF</button>';
+
+    var concilBadge = r.conciliado
+      ? '<span style="font-size:11px;color:#34d399;font-weight:600;">✓ Conciliada</span>'
+      : '<span style="font-size:11px;color:#f59e0b;">Pendiente</span>';
+
+    html +=
+      '<div style="display:flex;align-items:stretch;background:#fff;border:1px solid var(--border);border-left:3px solid '+acento+';border-radius:8px;overflow:hidden;' + (cancelada ? 'opacity:.55;' : '') + '">' +
+        // Ícono
+        '<div style="width:52px;background:'+iconBg+';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;border-right:1px solid var(--border);">'+iconTxt+'</div>' +
+        // Contenido
+        '<div style="flex:1;min-width:0;padding:10px 14px;display:flex;align-items:center;gap:16px;">' +
+          // Empresa + folio
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:14px;font-weight:600;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (cancelada ? 'text-decoration:line-through;' : '') + '">'+_docsEsc(empresa)+'</div>' +
+            '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+_docsEsc(folio)+' · '+fecha+copyBtn+'</div>' +
+          '</div>' +
+          // Total
+          '<div style="text-align:right;flex-shrink:0;">' +
+            '<div style="font-size:15px;font-weight:700;color:var(--text-1);">'+total+'</div>' +
+            '<div style="font-size:10px;color:'+tipoColor+';font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:1px;">'+tipoTxt+'</div>' +
+          '</div>' +
+          // Badges estatus
+          '<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;">' +
+            concilBadge +
+          '</div>' +
+          // Botones archivo
+          '<div style="flex-shrink:0;">'+fileBtns+'</div>' +
+        '</div>' +
+      '</div>';
   });
 
-  html += '</tbody></table>';
+  html += '</div>';
   wrap.innerHTML = html;
 }
 

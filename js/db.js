@@ -646,9 +646,9 @@ var DB = {
         ',id.ilike.%' + q + '%'
       );
       var rows = await _dbQArr('DB.facturas.buscarRecibidas', textQ);
-      // Búsqueda por monto — query separada si q parece número
+      // Búsqueda por monto — query separada solo si q es puramente numérico
       var numQ = parseFloat(q.replace(/[$,\s]/g, ''));
-      if (!isNaN(numQ) && numQ > 0) {
+      if (/^[$\d,.\s]+$/.test(q) && !isNaN(numQ) && numQ > 0) {
         var amountQ = sb.from('facturas')
           .select('id,emisor_nombre,numero_factura,total,fecha,concepto,efecto_sat')
           .eq('tipo', 'recibida')

@@ -995,10 +995,78 @@ async function cambiarEstatusCot(id, estatus){
   }catch(e){showError('Error: '+e.message);}
 }
 
-async function marcarPerdida(id){
-  var motivo = prompt('Motivo de pérdida (opcional):') || '';
+var _perdidaId = null;
+var PERDIDA_MOTIVOS = [
+  'Precio muy alto',
+  'Se fue con la competencia',
+  'Proyecto cancelado por cliente',
+  'Sin respuesta / cliente desapareció',
+  'Fuera de presupuesto',
+  'Tiempos de entrega',
+  'Otro'
+];
+
+function marcarPerdida(id){
+  _perdidaId = id;
+  var cot = (allCotizaciones||[]).find(function(c){return c.id===id;});
+  var overlay = document.getElementById('perdida-modal-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'perdida-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML =
+      '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:14px;width:100%;max-width:420px;padding:24px;box-shadow:0 8px 40px var(--shadow);">'+
+        '<div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Marcar como perdida</div>'+
+        '<div id="perdida-modal-sub" style="font-size:12px;color:var(--text-3);margin-bottom:18px;"></div>'+
+        '<label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Motivo</label>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px;">'+
+          PERDIDA_MOTIVOS.map(function(m){
+            return '<button onclick="perdidaSelMotivo(this,\''+m+'\')" style="font-size:11px;padding:4px 10px;border:.5px solid var(--border);border-radius:20px;background:none;color:var(--text-2);cursor:pointer;transition:all .12s;">'+m+'</button>';
+          }).join('')+
+        '</div>'+
+        '<label style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;">Notas adicionales <span style="font-weight:400;">(opcional)</span></label>'+
+        '<textarea id="perdida-modal-notas" rows="2" placeholder="Detalles..." style="width:100%;margin-top:6px;padding:8px 10px;border:.5px solid var(--border);border-radius:8px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>'+
+        '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">'+
+          '<button onclick="cerrarModalPerdida()" style="padding:8px 18px;border:.5px solid var(--border);border-radius:8px;background:none;color:var(--text-2);cursor:pointer;font-size:13px;">Cancelar</button>'+
+          '<button onclick="confirmarPerdida()" style="padding:8px 20px;border-radius:8px;background:#f87171;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Confirmar pérdida</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(overlay);
+  }
+  var sub = document.getElementById('perdida-modal-sub');
+  if(sub) sub.textContent = cot ? (cot.numero||'')+' · '+(cot.cliente_nombre||'') : '';
+  // Reset state
+  var notas = document.getElementById('perdida-modal-notas');
+  if(notas) notas.value = '';
+  overlay.querySelectorAll('button[data-sel]').forEach(function(b){ b.removeAttribute('data-sel'); b.style.cssText='font-size:11px;padding:4px 10px;border:.5px solid var(--border);border-radius:20px;background:none;color:var(--text-2);cursor:pointer;transition:all .12s;'; });
+  overlay.style.display = 'flex';
+}
+
+function perdidaSelMotivo(btn, motivo){
+  var overlay = document.getElementById('perdida-modal-overlay');
+  if(!overlay) return;
+  overlay.querySelectorAll('button[data-sel]').forEach(function(b){ b.removeAttribute('data-sel'); b.style.background='none'; b.style.color='var(--text-2)'; b.style.borderColor='var(--border)'; });
+  btn.setAttribute('data-sel','1');
+  btn.style.background = '#f87171'; btn.style.color = '#fff'; btn.style.borderColor = '#f87171';
+}
+
+function cerrarModalPerdida(){
+  var overlay = document.getElementById('perdida-modal-overlay');
+  if(overlay) overlay.style.display = 'none';
+  _perdidaId = null;
+}
+
+async function confirmarPerdida(){
+  if(!_perdidaId) return;
+  var overlay = document.getElementById('perdida-modal-overlay');
+  var selBtn = overlay ? overlay.querySelector('button[data-sel]') : null;
+  var motivo = selBtn ? selBtn.textContent : '';
+  var notas = ((document.getElementById('perdida-modal-notas')||{}).value||'').trim();
+  var motivoFinal = motivo + (notas ? (motivo ? ' — ' : '') + notas : '');
+  var id = _perdidaId;
+  cerrarModalPerdida();
   try{
-    await DB.cotizaciones.updateEstatus(id,'perdida',{motivo_perdida:motivo,fecha_cierre:new Date().toISOString().split('T')[0]});
+    await DB.cotizaciones.updateEstatus(id,'perdida',{motivo_perdida:motivoFinal||null,fecha_cierre:new Date().toISOString().split('T')[0]});
     loadCotizaciones();
     cerrarDetail();
     showStatus('Cotización marcada como perdida');
@@ -1618,6 +1686,10 @@ async function kanbanMoveCard(e, cotId, fromEstatus, toEstatus){
   if(fromEstatus===toEstatus) return;
   if(toEstatus==='cerrada'){
     await cambiarEstatusCot(cotId,'cerrada');
+    return;
+  }
+  if(toEstatus==='perdida'){
+    marcarPerdida(cotId);
     return;
   }
   try{

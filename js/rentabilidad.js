@@ -296,7 +296,7 @@ function _buildExpand(p){
         '</div>'+
       '</div>'+
       // Sección: Asignar factura recibida — colapsada por defecto
-      '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;overflow:hidden;margin-top:10px;">'+
+      '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;margin-top:10px;">'+
         '<button onclick="rentToggleAsignar(\''+p.id+'\')"'+
           ' style="width:100%;display:flex;align-items:center;gap:8px;padding:11px 14px;background:none;border:none;'+
           'cursor:pointer;font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;text-align:left;">'+

@@ -1404,6 +1404,13 @@ var DB = {
       return res.data;
     },
 
+    /** Upsert por id — para complementos/cancelaciones que usan UUID del CFDI como id. */
+    upsert: async function (data) {
+      var res = await sb.from('documentos').upsert(data, { onConflict: 'id' }).select().single();
+      if (res.error) throw new Error('[DB.documentos.upsert] ' + res.error.message);
+      return res.data;
+    },
+
     /** Lista huérfanos (sin factura vinculada). */
     huerfanos: async function () {
       return _dbQArr('DB.documentos.huerfanos',

@@ -906,9 +906,21 @@ async function xmlConfirmarImport() {
     try {
       // ── PDF ───────────────────────────────────────────────
       if (it.kind === 'pdf') {
-        var mx  = it.matchedXml;
+        var mx = it.matchedXml;
+
+        // PDF que matchea un complemento o cancelación en el mismo lote
+        if (mx && (mx.kind === 'complemento' || mx.kind === 'cancelacion') && mx.parsed && mx.parsed.uuid) {
+          var docUUID = mx.parsed.uuid;
+          var docAño  = mx.parsed.fecha ? parseInt(mx.parsed.fecha.split('-')[0]) : new Date().getFullYear();
+          var pPath   = docAño + '/' + docUUID + '.pdf';
+          await DB.storage.upload(pPath, it.file);
+          try { await sb.from('documentos').update({ pdf_path: pPath }).eq('id', docUUID); } catch(e) {}
+          okPDF++; continue;
+        }
+
+        // PDF que matchea una factura (en lote o por dbFactura)
         var pUUID = (mx && mx.parsed && mx.parsed.uuid) ? mx.parsed.uuid
-                  : (it.dbFactura && it.dbFactura.uuid_sat)  ? it.dbFactura.uuid_sat
+                  : (it.dbFactura && it.dbFactura.uuid_sat) ? it.dbFactura.uuid_sat
                   : null;
 
         if (pUUID) {
@@ -919,13 +931,11 @@ async function xmlConfirmarImport() {
             await DB.storage.upload(pPath, it.file);
             await DB.storage.linkPaths(pFac.id, { pdf_path: pPath });
           } else {
-            // UUID conocido pero factura no existe aún → huérfano
             var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
             await DB.storage.upload(hPath, it.file);
             await DB.documentos.save({ nombre: it.file.name, path: hPath, tipo: 'pdf', factura_id: null });
           }
         } else {
-          // Sin coincidencia → guardar como huérfano
           var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
           await DB.storage.upload(hPath, it.file);
           await DB.documentos.save({ nombre: it.file.name, path: hPath, tipo: 'pdf', factura_id: null });
@@ -940,7 +950,8 @@ async function xmlConfirmarImport() {
         if (facCan) {
           await DB.facturas.save({ id: facCan.id, estatus: 'cancelada', fecha_cancelacion: it.acuse.fecha_cancelacion });
           try {
-            await DB.documentos.save({ nombre: it.file.name, path: '', tipo: 'cancelacion', factura_id: facCan.id });
+            // Upsert usando UUID de la factura cancelada como id del documento
+            await DB.documentos.upsert({ id: it.acuse.uuid, nombre: it.file.name, path: '', tipo: 'cancelacion', factura_id: facCan.id });
           } catch(e) { /* no bloquear */ }
           okCancelacion++;
         } else {
@@ -969,9 +980,10 @@ async function xmlConfirmarImport() {
             marcadas++;
           }
         }
-        // Guardar en documentos para que sea buscable
+        // Guardar en documentos (upsert por UUID — evita duplicados)
         try {
-          await DB.documentos.save({
+          await DB.documentos.upsert({
+            id: parsed.uuid,
             nombre: it.file.name,
             path: path,
             tipo: 'complemento',

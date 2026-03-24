@@ -296,7 +296,10 @@ function docsRender(rows) {
             '<div style="font-size:13px;font-weight:500;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_docsEsc(r.nombre)+'</div>' +
             '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+fecha+' · <span style="color:#60a5fa;font-weight:600;">Complemento de pago</span></div>' +
           '</div>' +
-          '<button class="btn-sm" style="font-size:11px;flex-shrink:0;" onclick="docsAbrir(\''+r.path+'\',\'xml\')">Ver XML</button>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+            '<button class="btn-sm" style="font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'xml\')">Ver XML</button>' +
+            (r.pdf_path ? '<button class="btn-sm" style="font-size:11px;" onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')">Ver PDF</button>' : '') +
+          '</div>' +
         '</div>';
       return;
     }

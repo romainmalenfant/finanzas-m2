@@ -667,6 +667,24 @@ async function importarXMLsCFDI(input) {
     _xmlItems.push(item);
   }
 
+  // ── Verificar duplicados en BD (batch) ───────────────────
+  var facturaItems = _xmlItems.filter(function(it){ return it.kind === 'factura' && !it.error && it.parsed && it.parsed.uuid; });
+  if (facturaItems.length) {
+    try {
+      var uuidsACheck = facturaItems.map(function(it){ return it.parsed.uuid; });
+      var { data: existentes } = await sb.from('facturas').select('id').in('id', uuidsACheck);
+      if (existentes && existentes.length) {
+        var existSet = new Set(existentes.map(function(r){ return r.id; }));
+        facturaItems.forEach(function(it){
+          if (existSet.has(it.parsed.uuid)) {
+            it.error   = 'Ya existe en la BD — omitir para no sobreescribir';
+            it.incluir = false;
+          }
+        });
+      }
+    } catch(e) { /* si falla el check, seguimos sin bloquear */ }
+  }
+
   // ── Procesar PDFs ────────────────────────────────────────
   for (var j = 0; j < pdfFiles.length; j++) {
     var pdf = pdfFiles[j];
@@ -845,8 +863,8 @@ async function xmlConfirmarImport() {
       await DB.storage.upload(path, new File([it.text], parsed.uuid + '.xml', { type: 'application/xml' }));
 
       if (existing) {
-        await DB.storage.linkPaths(existing.id, { xml_path: path });
-        okVinculado++;
+        // No debería llegar aquí (bloqueado en preview), pero por seguridad no sobreescribimos
+        errors.push(it.file.name + ': ya existe en BD (omitido)');
       } else {
         var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
         await DB.facturas.upsert({
@@ -915,17 +933,16 @@ async function xmlConfirmarImport() {
   if (btnOk) { btnOk.disabled = false; }
   xmlCerrarModal();
 
-  var totalGeneral = okNuevo + okVinculado + okComplemento + okCancelacion;
-  if (totalGeneral > 0) {
+  var totalGeneral = okNuevo + okComplemento + okCancelacion;
+  if (totalGeneral > 0 || okPDF > 0) {
     var partes = [];
     if (okNuevo)           partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
-    if (okVinculado)       partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
     if (okComplemento)     partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
     if (okCancelacion)     partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
-    if (okPDF)             partes.push(okPDF + ' PDF' + (okPDF !== 1 ? 's' : '') + ' vinculado' + (okPDF !== 1 ? 's' : ''));
+    if (okPDF)             partes.push(okPDF + ' PDF' + (okPDF !== 1 ? 's' : '') + ' guardado' + (okPDF !== 1 ? 's' : ''));
     if (clientesNuevos)    partes.push(clientesNuevos + ' cliente' + (clientesNuevos !== 1 ? 's' : '') + ' creado' + (clientesNuevos !== 1 ? 's' : ''));
     if (proveedoresNuevos) partes.push(proveedoresNuevos + ' proveedor' + (proveedoresNuevos !== 1 ? 'es' : '') + ' creado' + (proveedoresNuevos !== 1 ? 's' : ''));
-    showStatus('✓ ' + totalGeneral + ' XML' + (totalGeneral !== 1 ? 's' : '') + ' procesado' + (totalGeneral !== 1 ? 's' : '') + ' — ' + partes.join(', '));
+    showStatus('✓ ' + partes.join(', '));
   }
   if (errors.length) showError(errors.slice(0,3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length-3) + ' más)' : ''));
   if (clientesNuevos || proveedoresNuevos) { loadClientes(); }

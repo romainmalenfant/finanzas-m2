@@ -40,10 +40,11 @@ async function iniciarApp(){
 async function loadBadgeData(){
   // Load each independently so one failure doesn't block others
   try{
-    var {data:cxc}=await sb.from('movimientos_v2')
-      .select('contraparte,monto,fecha')
-      .eq('tipo','emitida').eq('conciliado',false).eq('estatus','vigente');
-    _cxcRows=cxc||[];
+    var {data:cxc}=await sb.from('facturas')
+      .select('receptor_nombre,total,fecha')
+      .eq('tipo','emitida').eq('conciliado',false).neq('estatus','cancelada')
+      .eq('efecto_sat','Ingreso');
+    _cxcRows=(cxc||[]).map(function(f){return {contraparte:f.receptor_nombre,monto:f.total,fecha:f.fecha};});
   }catch(e){console.warn('Badge CxC:',e); _cxcRows=[];}
 
   try{

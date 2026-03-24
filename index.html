@@ -1624,8 +1624,16 @@
   </div>
 
   <!-- Tab Documentos -->
-  <div id="tab-documentos" style="display:none;padding:1.25rem;">
-    <!-- Barra de búsqueda y filtros -->
+  <div id="tab-documentos" style="display:none;padding:1.25rem;position:relative;"
+    ondragover="docsDragOver(event)" ondragleave="docsDragLeave(event)" ondrop="docsDrop(event)">
+
+    <!-- Overlay al arrastrar -->
+    <div id="docs-drop-overlay" style="display:none;position:absolute;inset:0;z-index:50;border-radius:12px;border:2px dashed var(--accent,#E8192C);background:rgba(232,25,44,.05);pointer-events:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;">
+      <div style="font-size:32px;">📂</div>
+      <div style="font-size:14px;font-weight:500;color:var(--accent,#E8192C);">Suelta los archivos para subir</div>
+    </div>
+
+    <!-- Barra de búsqueda, filtros y botón subir -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
       <div style="position:relative;flex:1;min-width:220px;">
         <input type="text" id="docs-search" placeholder="Buscar por empresa, folio, UUID, monto..."
@@ -1637,6 +1645,7 @@
         <option value="2026">2026</option>
         <option value="2025">2025</option>
         <option value="2024">2024</option>
+        <option value="2023">2023</option>
       </select>
       <select id="docs-tipo" onchange="docsBuscar()" style="padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg-input);color:var(--text-1);">
         <option value="">Emitidas y recibidas</option>
@@ -1648,6 +1657,8 @@
         <option value="xml">Solo XML</option>
         <option value="pdf">Solo PDF</option>
       </select>
+      <label for="docs-upload-input" class="btn-sm" style="cursor:pointer;white-space:nowrap;">↑ Subir</label>
+      <input type="file" id="docs-upload-input" multiple accept=".xml,.pdf" style="display:none" onchange="docsHandleFiles(this.files);this.value='';">
       <span id="docs-spinner" style="display:none;font-size:12px;color:var(--text-3);">Buscando…</span>
     </div>
 

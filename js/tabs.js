@@ -54,6 +54,7 @@ function switchTab(tab, btn){
   if(tab==='dashboard')    loadDashboard();
   if(tab==='finanzas')     {initFlujoSelectors();loadMovements();}
   if(tab==='proyectos')    loadProyectos();
+  if(tab==='rentabilidad') loadRentabilidad();
   if(tab==='clientes')     {loadClientes();loadClientesKPIs();}
   if(tab==='proveedores')  {loadProveedores();loadProveedoresKPIs();}
   if(tab==='contactos')    loadContactos();

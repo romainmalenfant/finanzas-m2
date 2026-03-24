@@ -706,8 +706,44 @@ async function importarXMLsCFDI(input) {
     _xmlItems.push(pdfItem);
   }
 
+  // ── Detectar PDFs duplicados (ya en documentos o ya vinculados) ──────────
+  var allPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.error; });
+  if (allPDFs.length) {
+    try {
+      var pdfNames = allPDFs.map(function(it){ return it.file.name; });
+      var { data: existDocs } = await sb.from('documentos').select('nombre').in('nombre', pdfNames);
+      if (existDocs && existDocs.length) {
+        var existNombres = new Set(existDocs.map(function(d){ return d.nombre.toLowerCase(); }));
+        allPDFs.forEach(function(it) {
+          if (existNombres.has(it.file.name.toLowerCase())) {
+            it.error   = 'Ya existe en BD (huérfano duplicado)';
+            it.incluir = false;
+          }
+        });
+      }
+      // También verificar si la factura vinculada ya tiene pdf_path
+      var matchedPDFs = allPDFs.filter(function(it){ return !it.error && (it.matchedXml || it.dbFactura); });
+      if (matchedPDFs.length) {
+        var uuids = matchedPDFs.map(function(it){
+          return it.matchedXml ? it.matchedXml.parsed.uuid : it.dbFactura.uuid_sat;
+        }).filter(Boolean);
+        var { data: facConPDF } = await sb.from('facturas').select('id,uuid_sat').not('pdf_path','is',null).in('uuid_sat', uuids);
+        if (facConPDF && facConPDF.length) {
+          var uuidConPDF = new Set(facConPDF.map(function(f){ return f.uuid_sat; }));
+          matchedPDFs.forEach(function(it) {
+            var uuid = it.matchedXml ? it.matchedXml.parsed.uuid : it.dbFactura.uuid_sat;
+            if (uuid && uuidConPDF.has(uuid)) {
+              it.error   = 'La factura ya tiene PDF vinculado';
+              it.incluir = false;
+            }
+          });
+        }
+      }
+    } catch(e) { /* si falla, continuar sin bloquear */ }
+  }
+
   // ── PDFs sin match en lote → buscar factura en BD por filename_original ──
-  var unmatchedPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.matchedXml; });
+  var unmatchedPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.matchedXml && !it.error; });
   if (unmatchedPDFs.length) {
     try {
       var xmlNames = unmatchedPDFs.map(function(it){ return _xmlBaseName(it.file) + '.xml'; });

@@ -215,7 +215,16 @@ async function _docsFetch(q, año, tipo, archivo) {
     merge(plain.data || []);
   }
 
-  return rows;
+  // ── Tabla documentos (PDFs huérfanos) ──────────────────
+  var orphans = [];
+  try {
+    var oqb = sb.from('documentos').select('*').is('factura_id', null).order('created_at', { ascending: false }).limit(10);
+    if (q) oqb = oqb.ilike('nombre', '%' + q + '%');
+    var oRes = await oqb;
+    orphans = (oRes.data || []).map(function(d){ return Object.assign({}, d, { _orphan: true }); });
+  } catch(e) { /* silenciar */ }
+
+  return rows.concat(orphans);
 }
 
 // ── Render ────────────────────────────────────────────────
@@ -242,6 +251,24 @@ function docsRender(rows) {
     '</tr></thead><tbody>';
 
   rows.forEach(function(r) {
+    var rowStyle = 'background:#fff;border-bottom:1px solid var(--border);cursor:default;';
+
+    // ── Fila huérfana (tabla documentos) ──────────────────
+    if (r._orphan) {
+      var fecha = r.created_at ? r.created_at.slice(0,10) : '—';
+      html += '<tr style="'+rowStyle+'opacity:.75;" onmouseenter="this.style.background=\'#f5f4f0\'" onmouseleave="this.style.background=\'#fff\'">' +
+        '<td style="padding:10px 8px;border-left:3px solid #94a3b8;color:var(--text-2);font-style:italic;" colspan="3">'+_docsEsc(r.nombre)+'</td>' +
+        '<td style="padding:8px 8px;color:var(--text-3);">'+fecha+'</td>' +
+        '<td colspan="3"><span style="color:#94a3b8;font-size:11px;">Sin vincular</span></td>' +
+        '<td style="padding:8px 8px;text-align:center;">' +
+          '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'pdf\')">PDF</button> ' +
+          '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsVincularAbrir(\''+r.id+'\',\''+r.path+'\',\''+_docsEsc(r.nombre)+'\')">Vincular</button>' +
+        '</td>' +
+      '</tr>';
+      return;
+    }
+
+    // ── Fila factura ───────────────────────────────────────
     var empresa = r.tipo === 'emitida'
       ? (r.receptor_nombre || r.emisor_nombre || '—')
       : (r.emisor_nombre   || r.receptor_nombre || '—');
@@ -272,7 +299,7 @@ function docsRender(rows) {
     if (r.pdf_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')">PDF</button>';
 
     var acento = r.tipo === 'emitida' ? '#34d399' : '#f59e0b';
-    var rowStyle = 'background:#fff;border-bottom:1px solid var(--border);cursor:default;' + (cancelada ? 'opacity:.55;' : '');
+    rowStyle += (cancelada ? 'opacity:.55;' : '');
     html += '<tr style="'+rowStyle+'" onmouseenter="this.style.background=\'#f5f4f0\'" onmouseleave="this.style.background=\'#fff\'">' +
       '<td style="padding:10px 8px;border-left:3px solid '+acento+';color:var(--text-1);' + (cancelada ? 'text-decoration:line-through;' : '') + '">'+_docsEsc(empresa)+'</td>' +
       '<td style="padding:8px 8px;color:var(--text-2);">'+_docsEsc(folio)+copyBtn+'</td>' +

@@ -1788,6 +1788,12 @@ async function kanbanDrop(e, newEstatus){
     await cambiarEstatusCot(cot.id,'cerrada');
     return;
   }
+  // Special handling for perdida — show reason modal
+  if(newEstatus==='perdida'){
+    _dragId=null;
+    marcarPerdida(cot.id);
+    return;
+  }
   try{
     await DB.cotizaciones.updateEstatus(cot.id, newEstatus);
     showStatus('✓ Movida a '+EST_LABELS[newEstatus]);

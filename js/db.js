@@ -653,10 +653,14 @@ var DB = {
       var rows = await _dbQArr('DB.facturas.buscarRecibidas', textQ);
       var seen = {}; rows.forEach(function(r){ seen[r.id] = true; });
       function _merge(arr){ arr.forEach(function(r){ if(!seen[r.id]){ rows.push(r); seen[r.id]=true; } }); }
-      // UUID: query separada con cast explícito (id::text)
-      var uuidRows = await _dbQArr('DB.facturas.buscarRecibidas:uuid',
-        base2().filter('id::text', 'ilike', '%' + q + '%'));
-      _merge(uuidRows);
+      // UUID: exact match solo si el input luce como UUID (36 chars con guiones)
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(q.trim())) {
+        try {
+          var uuidRows = await _dbQArr('DB.facturas.buscarRecibidas:uuid',
+            base2().eq('id', q.trim()));
+          _merge(uuidRows);
+        } catch(e) { /* silenciar si falla */ }
+      }
       // Monto: query separada solo si q es puramente numérico
       var numQ = parseFloat(q.replace(/[$,\s]/g, ''));
       if (/^[$\d,.\s]+$/.test(q) && !isNaN(numQ) && numQ > 0) {

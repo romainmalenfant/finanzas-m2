@@ -900,7 +900,16 @@ function _xmlMostrarModal() {
   if (btnOk) btnOk.textContent = 'Importar ' + nSel + ' archivo' + (nSel !== 1 ? 's' : '');
 
   document.getElementById('xml-modal').style.display = 'block';
+
+  if (!_xmlEscHandler) {
+    _xmlEscHandler = function(e) {
+      if (e.key === 'Escape') xmlCerrarModal();
+    };
+  }
+  document.addEventListener('keydown', _xmlEscHandler);
 }
+
+var _xmlEscHandler = null;
 
 function _xmlToggle(idx, checked) {
   _xmlItems[idx].incluir = checked;
@@ -912,6 +921,9 @@ function _xmlToggle(idx, checked) {
 function xmlCerrarModal() {
   document.getElementById('xml-modal').style.display = 'none';
   _xmlItems = [];
+  if (_xmlEscHandler) {
+    document.removeEventListener('keydown', _xmlEscHandler);
+  }
 }
 
 function _xmlEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }

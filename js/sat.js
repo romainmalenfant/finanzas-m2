@@ -481,3 +481,134 @@ async function confirmarImportSAT(){
   finally{btn.disabled=false;btn.textContent='Importar';}
 }
 
+
+// ── XML CFDI Import ───────────────────────────────────────
+
+/** Parsea un XML CFDI y extrae los campos relevantes. */
+function parsearXMLCFDI(xmlText) {
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlText, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('XML inválido');
+
+  // Comprobante (puede tener namespace cfdi: o sin prefijo)
+  var comp = doc.querySelector('Comprobante') || doc.querySelector('[*|Comprobante]');
+  if (!comp) {
+    // Intentar con el elemento raíz directamente
+    comp = doc.documentElement;
+  }
+
+  // Timbre fiscal
+  var timbre = doc.querySelector('TimbreFiscalDigital') ||
+               doc.querySelector('[*|TimbreFiscalDigital]');
+  var uuid = timbre ? (timbre.getAttribute('UUID') || timbre.getAttribute('uuid') || '').toLowerCase() : null;
+
+  var emisor  = doc.querySelector('Emisor')  || doc.querySelector('[*|Emisor]');
+  var receptor= doc.querySelector('Receptor')|| doc.querySelector('[*|Receptor]');
+
+  return {
+    uuid:         uuid,
+    fecha:        (comp.getAttribute('Fecha')||'').split('T')[0] || null,
+    total:        parseFloat(comp.getAttribute('Total') || comp.getAttribute('total') || '0') || 0,
+    tipo_cambio:  parseFloat(comp.getAttribute('TipoCambio') || '1') || 1,
+    moneda:       comp.getAttribute('Moneda') || 'MXN',
+    metodo_pago:  comp.getAttribute('MetodoPago') || 'PUE',
+    forma_pago:   comp.getAttribute('FormaPago') || null,
+    serie:        comp.getAttribute('Serie') || null,
+    folio:        comp.getAttribute('Folio') || null,
+    emisor_rfc:   emisor  ? emisor.getAttribute('Rfc')    || emisor.getAttribute('rfc')    : null,
+    emisor_nombre:emisor  ? emisor.getAttribute('Nombre') || emisor.getAttribute('nombre') : null,
+    receptor_rfc: receptor? receptor.getAttribute('Rfc')    || receptor.getAttribute('rfc')    : null,
+    receptor_nombre:receptor?receptor.getAttribute('Nombre') || receptor.getAttribute('nombre') : null,
+  };
+}
+
+/** Lee un File como texto. */
+function readFileAsText(file) {
+  return new Promise(function(resolve, reject) {
+    var r = new FileReader();
+    r.onload = function(e) { resolve(e.target.result); };
+    r.onerror = reject;
+    r.readAsText(file, 'utf-8');
+  });
+}
+
+/** Maneja la subida de XMLs CFDI. */
+async function importarXMLsCFDI(input) {
+  var files = Array.from(input.files || []);
+  if (!files.length) return;
+  input.value = '';
+
+  var btn = document.getElementById('xml-import-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
+
+  var ok = 0, skip = 0, errors = [];
+
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    try {
+      var text = await readFileAsText(file);
+      var parsed = parsearXMLCFDI(text);
+
+      if (!parsed.uuid) { errors.push(file.name + ': sin UUID'); continue; }
+
+      var año = parsed.fecha ? parseInt(parsed.fecha.split('-')[0]) : new Date().getFullYear();
+
+      // Buscar factura existente por UUID
+      var existing = await DB.facturas.get(parsed.uuid);
+
+      // Determinar tipo: si el RFC emisor es de la empresa → emitida, si no → recibida
+      // (se puede mejorar consultando RFC propio, por ahora usamos lo que existe en BD)
+      var tipo = existing ? existing.tipo : null;
+      if (!tipo) {
+        // Si no existe aún, necesitamos saberlo — dejamos pendiente para el upsert
+        tipo = 'recibida'; // default conservador
+      }
+
+      // Path en storage: año/uuid_tipo.xml
+      var path = año + '/' + parsed.uuid + '.xml';
+
+      // Subir XML a Storage
+      var fileBlob = new Blob([text], { type: 'application/xml' });
+      fileBlob.name = file.name;
+      await DB.storage.upload(path, new File([text], parsed.uuid + '.xml', { type: 'application/xml' }));
+
+      // Vincular path al registro de factura (si existe)
+      if (existing) {
+        await DB.storage.linkPaths(existing.id, { xml_path: path });
+        ok++;
+      } else {
+        // Crear registro mínimo si no existe
+        var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
+        await DB.facturas.save({
+          id: parsed.uuid,
+          uuid_sat: parsed.uuid,
+          tipo: tipo,
+          emisor_nombre: parsed.emisor_nombre,
+          emisor_rfc: parsed.emisor_rfc,
+          receptor_nombre: parsed.receptor_nombre,
+          receptor_rfc: parsed.receptor_rfc,
+          total: parsed.total,
+          fecha: parsed.fecha,
+          year: año,
+          month: parsed.fecha ? parseInt(parsed.fecha.split('-')[1]) : null,
+          numero_factura: numero || null,
+          metodo_pago: parsed.metodo_pago,
+          forma_pago: parsed.forma_pago,
+          moneda: parsed.moneda,
+          tipo_cambio: parsed.tipo_cambio,
+          estatus: 'vigente',
+          conciliado: false,
+          xml_path: path,
+        });
+        ok++;
+      }
+    } catch(e) {
+      errors.push(file.name + ': ' + e.message);
+    }
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
+
+  if (ok > 0) showStatus('✓ ' + ok + ' XML' + (ok !== 1 ? 's' : '') + ' procesado' + (ok !== 1 ? 's' : ''));
+  if (errors.length) showError(errors.slice(0, 3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length - 3) + ' más)' : ''));
+}

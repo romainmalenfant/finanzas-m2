@@ -1358,4 +1358,33 @@ var DB = {
     },
   },
 
+  // ── storage ────────────────────────────────────────────────────────────────
+
+  storage: {
+
+    /** Sube un archivo al bucket facturas. path = 'año/uuid.xml' o 'año/uuid.pdf' */
+    upload: async function (path, file) {
+      var res = await sb.storage.from('facturas').upload(path, file, {
+        upsert: true,
+        contentType: file.type || 'application/octet-stream'
+      });
+      if (res.error) throw new Error('[DB.storage.upload] ' + res.error.message);
+      return res.data;
+    },
+
+    /** URL firmada para descargar (válida 1 hora). */
+    signedUrl: async function (path) {
+      var res = await sb.storage.from('facturas').createSignedUrl(path, 3600);
+      if (res.error) throw new Error('[DB.storage.signedUrl] ' + res.error.message);
+      return res.data.signedUrl;
+    },
+
+    /** Vincula xml_path y/o pdf_path al registro de factura. */
+    linkPaths: async function (facturaId, paths) {
+      var res = await sb.from('facturas').update(paths).eq('id', facturaId);
+      if (res.error) throw new Error('[DB.storage.linkPaths] ' + res.error.message);
+    },
+
+  },
+
 };

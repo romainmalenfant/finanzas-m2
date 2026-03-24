@@ -760,6 +760,20 @@ async function verDetalleFactura(id){
       '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar factura</button>'+
       (esSAT?'<span style="font-size:11px;color:var(--text-3);margin-left:4px;">Origen SAT · UUID, fechas y montos bloqueados</span>':'')+
     '</div>'+
+    // Archivos adjuntos
+    '<div class="detail-section">'+
+      '<div class="detail-section-title" style="margin-bottom:8px;">Archivos</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">'+
+        (f.xml_path
+          ? '<button class="btn-sm" onclick="descargarArchivoFactura(\''+f.xml_path+'\')">⬇ XML</button>'
+          : '<label class="btn-sm" for="fact-xml-up-'+f.id+'" style="cursor:pointer;">📎 Adjuntar XML</label>'+
+            '<input type="file" id="fact-xml-up-'+f.id+'" accept=".xml" style="display:none" onchange="adjuntarXMLFactura(\''+f.id+'\',\''+f.uuid_sat+'\',\''+f.year+'\',this)">')+
+        (f.pdf_path
+          ? '<button class="btn-sm" onclick="descargarArchivoFactura(\''+f.pdf_path+'\')">⬇ PDF</button>'
+          : '<label class="btn-sm" for="fact-pdf-up-'+f.id+'" style="cursor:pointer;">📎 Adjuntar PDF</label>'+
+            '<input type="file" id="fact-pdf-up-'+f.id+'" accept=".pdf" style="display:none" onchange="adjuntarPDFFactura(\''+f.id+'\',\''+f.uuid_sat+'\',\''+f.year+'\',this)">')+
+      '</div>'+
+    '</div>'+
     (f.tipo==='recibida'?
       '<div class="detail-section" id="fact-asig-dist-'+f.id+'">'+
         '<div class="detail-section-title">Distribución a proyectos</div>'+
@@ -1297,4 +1311,38 @@ async function guardarFactura(){
     var btn=document.getElementById('btn-save-fact');
     btn.disabled=false;btn.textContent='Guardar';
   }
+}
+
+// ── Archivos adjuntos (Storage) ───────────────────────────
+
+async function adjuntarXMLFactura(factId, uuid, año, input) {
+  var file = input.files[0]; if (!file) return; input.value = '';
+  try {
+    showStatus('Subiendo XML...', 0);
+    var path = (año || new Date().getFullYear()) + '/' + (uuid || factId) + '.xml';
+    await DB.storage.upload(path, file);
+    await DB.storage.linkPaths(factId, { xml_path: path });
+    showStatus('✓ XML adjuntado');
+    // Refrescar detalle
+    verDetalleFactura(factId);
+  } catch(e) { showError('Error: ' + e.message); }
+}
+
+async function adjuntarPDFFactura(factId, uuid, año, input) {
+  var file = input.files[0]; if (!file) return; input.value = '';
+  try {
+    showStatus('Subiendo PDF...', 0);
+    var path = (año || new Date().getFullYear()) + '/' + (uuid || factId) + '.pdf';
+    await DB.storage.upload(path, file);
+    await DB.storage.linkPaths(factId, { pdf_path: path });
+    showStatus('✓ PDF adjuntado');
+    verDetalleFactura(factId);
+  } catch(e) { showError('Error: ' + e.message); }
+}
+
+async function descargarArchivoFactura(path) {
+  try {
+    var url = await DB.storage.signedUrl(path);
+    window.open(url, '_blank');
+  } catch(e) { showError('Error al obtener enlace: ' + e.message); }
 }

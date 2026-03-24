@@ -706,6 +706,33 @@ async function importarXMLsCFDI(input) {
     _xmlItems.push(pdfItem);
   }
 
+  // ── PDFs sin match en lote → buscar factura en BD por filename_original ──
+  var unmatchedPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.matchedXml; });
+  if (unmatchedPDFs.length) {
+    try {
+      var xmlNames = unmatchedPDFs.map(function(it){ return _xmlBaseName(it.file) + '.xml'; });
+      var { data: candidatos } = await sb.from('facturas')
+        .select('id, uuid_sat, filename_original, year, emisor_nombre, receptor_nombre, numero_factura, total, fecha')
+        .in('filename_original', xmlNames);
+      if (candidatos && candidatos.length) {
+        var facByFilename = {};
+        candidatos.forEach(function(f){ if (f.filename_original) facByFilename[f.filename_original.toLowerCase()] = f; });
+        unmatchedPDFs.forEach(function(pdfIt) {
+          var xmlName = (_xmlBaseName(pdfIt.file) + '.xml').toLowerCase();
+          var fac = facByFilename[xmlName];
+          if (fac) {
+            pdfIt.dbFactura   = fac;
+            pdfIt.advertencia = null;
+            pdfIt.empresa     = fac.receptor_nombre || fac.emisor_nombre || '';
+            pdfIt.folio       = fac.numero_factura || '—';
+            pdfIt.total       = fac.total;
+            pdfIt.fecha       = fac.fecha || '';
+          }
+        });
+      }
+    } catch(e) { /* si falla, quedan como huérfanos */ }
+  }
+
   // ── Otros formatos ───────────────────────────────────────
   otros.forEach(function(f) {
     _xmlItems.push({ file: f, text: '', kind: 'error', label: '', empresa: '', folio: '', total: null, fecha: '', error: 'Formato no soportado', incluir: false, parsed: null, acuse: null, matchedXml: null });
@@ -734,6 +761,8 @@ function _xmlMostrarModal() {
               ' onchange="_xmlToggle(' + idx + ',this.checked)" style="margin-right:8px;cursor:pointer;">';
     var badge = it.error
       ? '<span style="color:#f87171;font-size:11px;font-weight:600;">⚠ ERROR</span>'
+      : it.dbFactura
+      ? '<span style="font-size:11px;">📄 PDF · <span style="color:#34d399;font-weight:600;">vincula a factura existente</span></span>'
       : ('<span style="font-size:11px;">' + (it.label||'') + '</span>');
     var empresa = it.empresa || '—';
     var total   = fmtMXN(it.total);
@@ -796,15 +825,24 @@ async function xmlConfirmarImport() {
     try {
       // ── PDF ───────────────────────────────────────────────
       if (it.kind === 'pdf') {
-        var mx = it.matchedXml;
-        if (mx && mx.parsed && mx.parsed.uuid) {
-          // Tiene XML correspondiente → vincular directo
-          var pUUID = mx.parsed.uuid;
-          var pAño  = mx.parsed.fecha ? parseInt(mx.parsed.fecha.split('-')[0]) : new Date().getFullYear();
-          var pPath = pAño + '/' + pUUID + '.pdf';
-          await DB.storage.upload(pPath, it.file);
+        var mx  = it.matchedXml;
+        var pUUID = (mx && mx.parsed && mx.parsed.uuid) ? mx.parsed.uuid
+                  : (it.dbFactura && it.dbFactura.uuid_sat)  ? it.dbFactura.uuid_sat
+                  : null;
+
+        if (pUUID) {
           var pFac = await DB.facturas.get(pUUID);
-          if (pFac) await DB.storage.linkPaths(pFac.id, { pdf_path: pPath });
+          if (pFac) {
+            var pAño  = pFac.year || new Date().getFullYear();
+            var pPath = pAño + '/' + pUUID + '.pdf';
+            await DB.storage.upload(pPath, it.file);
+            await DB.storage.linkPaths(pFac.id, { pdf_path: pPath });
+          } else {
+            // UUID conocido pero factura no existe aún → huérfano
+            var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
+            await DB.storage.upload(hPath, it.file);
+            await DB.documentos.save({ nombre: it.file.name, path: hPath, tipo: 'pdf', factura_id: null });
+          }
         } else {
           // Sin coincidencia → guardar como huérfano
           var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
@@ -879,6 +917,7 @@ async function xmlConfirmarImport() {
           moneda: parsed.moneda, tipo_cambio: parsed.tipo_cambio,
           estatus: 'vigente', conciliado: false,
           xml_path: path,
+          filename_original: it.file.name,
         });
         okNuevo++;
       }

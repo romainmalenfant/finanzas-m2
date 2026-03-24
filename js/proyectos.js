@@ -379,7 +379,7 @@ function seleccionarProyectoEntrega(id){
   var yaEntregadas=entregas.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
   var faltantes=Math.max(0,(p.total_piezas||0)-yaEntregadas);
   var info=document.getElementById('entrega-info');
-  info.textContent='Faltan '+faltantes+' pieza'+(faltantes!==1?'s')+' de '+p.total_piezas+' totales';
+  info.textContent='Faltan '+faltantes+' pieza'+(faltantes!==1?'s':'')+' de '+p.total_piezas+' totales';
   info.style.display='block';
 }
 

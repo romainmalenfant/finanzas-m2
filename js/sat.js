@@ -505,20 +505,41 @@ function parsearXMLCFDI(xmlText) {
   var emisor  = doc.querySelector('Emisor')  || doc.querySelector('[*|Emisor]');
   var receptor= doc.querySelector('Receptor')|| doc.querySelector('[*|Receptor]');
 
+  var tipoComp = comp.getAttribute('TipoDeComprobante') || 'I';
+
+  // Para complementos de pago (tipo P): extraer facturas relacionadas
+  var docsRelacionados = [];
+  if (tipoComp === 'P') {
+    var docNodes = doc.querySelectorAll('DoctoRelacionado');
+    docNodes.forEach(function(d) {
+      var idDoc = d.getAttribute('IdDocumento') || d.getAttribute('iddocumento') || '';
+      var impPagado = parseFloat(d.getAttribute('ImpPagado') || '0') || 0;
+      var saldoInsoluto = parseFloat(d.getAttribute('ImpSaldoInsoluto') || '-1');
+      if (idDoc) docsRelacionados.push({
+        uuid: idDoc.toLowerCase(),
+        imp_pagado: impPagado,
+        saldo_insoluto: saldoInsoluto,
+        pagado_completo: saldoInsoluto === 0
+      });
+    });
+  }
+
   return {
-    uuid:         uuid,
-    fecha:        (comp.getAttribute('Fecha')||'').split('T')[0] || null,
-    total:        parseFloat(comp.getAttribute('Total') || comp.getAttribute('total') || '0') || 0,
-    tipo_cambio:  parseFloat(comp.getAttribute('TipoCambio') || '1') || 1,
-    moneda:       comp.getAttribute('Moneda') || 'MXN',
-    metodo_pago:  comp.getAttribute('MetodoPago') || 'PUE',
-    forma_pago:   comp.getAttribute('FormaPago') || null,
-    serie:        comp.getAttribute('Serie') || null,
-    folio:        comp.getAttribute('Folio') || null,
-    emisor_rfc:   emisor  ? emisor.getAttribute('Rfc')    || emisor.getAttribute('rfc')    : null,
-    emisor_nombre:emisor  ? emisor.getAttribute('Nombre') || emisor.getAttribute('nombre') : null,
-    receptor_rfc: receptor? receptor.getAttribute('Rfc')    || receptor.getAttribute('rfc')    : null,
-    receptor_nombre:receptor?receptor.getAttribute('Nombre') || receptor.getAttribute('nombre') : null,
+    uuid:            uuid,
+    tipo_comprobante: tipoComp,
+    fecha:           (comp.getAttribute('Fecha')||'').split('T')[0] || null,
+    total:           parseFloat(comp.getAttribute('Total') || comp.getAttribute('total') || '0') || 0,
+    tipo_cambio:     parseFloat(comp.getAttribute('TipoCambio') || '1') || 1,
+    moneda:          comp.getAttribute('Moneda') || 'MXN',
+    metodo_pago:     comp.getAttribute('MetodoPago') || null,
+    forma_pago:      comp.getAttribute('FormaPago') || null,
+    serie:           comp.getAttribute('Serie') || null,
+    folio:           comp.getAttribute('Folio') || null,
+    emisor_rfc:      emisor  ? emisor.getAttribute('Rfc')    || emisor.getAttribute('rfc')    : null,
+    emisor_nombre:   emisor  ? emisor.getAttribute('Nombre') || emisor.getAttribute('nombre') : null,
+    receptor_rfc:    receptor? receptor.getAttribute('Rfc')    || receptor.getAttribute('rfc')    : null,
+    receptor_nombre: receptor? receptor.getAttribute('Nombre') || receptor.getAttribute('nombre') : null,
+    docs_relacionados: docsRelacionados,
   };
 }
 
@@ -541,7 +562,8 @@ async function importarXMLsCFDI(input) {
   var btn = document.getElementById('xml-import-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
 
-  var okNuevo = 0, okVinculado = 0, errors = [];
+  var okNuevo = 0, okVinculado = 0, okComplemento = 0, errors = [];
+  var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
 
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
@@ -552,7 +574,6 @@ async function importarXMLsCFDI(input) {
       if (!parsed.uuid) { errors.push(file.name + ': sin UUID'); continue; }
 
       // Candado RFC: el emisor o receptor debe ser Grupo M2
-      var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
       if (rfcEmp) {
         var emisorRfc  = (parsed.emisor_rfc  || '').toUpperCase();
         var receptorRfc= (parsed.receptor_rfc|| '').toUpperCase();
@@ -563,31 +584,49 @@ async function importarXMLsCFDI(input) {
       }
 
       var año = parsed.fecha ? parseInt(parsed.fecha.split('-')[0]) : new Date().getFullYear();
+      var path = año + '/' + parsed.uuid + '.xml';
 
-      // Buscar factura existente por UUID
+      // ── Complemento de pago (tipo P) ───────────────────────
+      if (parsed.tipo_comprobante === 'P') {
+        // Subir XML del complemento a Storage para referencia
+        await DB.storage.upload(path, new File([text], parsed.uuid + '.xml', { type: 'application/xml' }));
+
+        // Marcar cada factura referenciada según saldo insoluto
+        var marcadas = 0;
+        for (var j = 0; j < parsed.docs_relacionados.length; j++) {
+          var doc = parsed.docs_relacionados[j];
+          var facRef = await DB.facturas.get(doc.uuid);
+          if (facRef) {
+            var update = { id: facRef.id };
+            // Si saldo insoluto = 0 → completamente pagada
+            if (doc.pagado_completo) update.conciliado = true;
+            await DB.facturas.save(update);
+            marcadas++;
+          }
+        }
+        okComplemento++;
+        if (!marcadas && parsed.docs_relacionados.length) {
+          errors.push(file.name + ': complemento procesado pero facturas referenciadas no encontradas en BD');
+        }
+        continue;
+      }
+
+      // ── Factura normal (tipo I, E, N, T) ───────────────────
+      // Determinar tipo: emisor = M2 → emitida; receptor = M2 → recibida
       var existing = await DB.facturas.get(parsed.uuid);
-
-      // Determinar tipo por RFC: si el emisor es Grupo M2 → emitida; si el receptor es Grupo M2 → recibida
       var tipo = existing ? existing.tipo : null;
       if (!tipo && rfcEmp) {
         tipo = (parsed.emisor_rfc || '').toUpperCase() === rfcEmp ? 'emitida' : 'recibida';
       }
-      if (!tipo) tipo = 'recibida'; // fallback conservador
-
-      // Path en storage: año/uuid_tipo.xml
-      var path = año + '/' + parsed.uuid + '.xml';
+      if (!tipo) tipo = 'recibida';
 
       // Subir XML a Storage
-      var fileBlob = new Blob([text], { type: 'application/xml' });
-      fileBlob.name = file.name;
       await DB.storage.upload(path, new File([text], parsed.uuid + '.xml', { type: 'application/xml' }));
 
-      // Vincular path al registro de factura (si existe)
       if (existing) {
         await DB.storage.linkPaths(existing.id, { xml_path: path });
         okVinculado++;
       } else {
-        // Crear registro mínimo si no existe
         var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
         await DB.facturas.save({
           id: parsed.uuid,
@@ -607,7 +646,7 @@ async function importarXMLsCFDI(input) {
           moneda: parsed.moneda,
           tipo_cambio: parsed.tipo_cambio,
           estatus: 'vigente',
-          conciliado: false,
+          conciliado: parsed.metodo_pago === 'PUE', // PUE = ya pagada de origen
           xml_path: path,
         });
         okNuevo++;
@@ -619,12 +658,15 @@ async function importarXMLsCFDI(input) {
 
   if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
 
-  var total = okNuevo + okVinculado;
-  if (total > 0) {
+  var totalFacturas = okNuevo + okVinculado;
+  var totalGeneral = totalFacturas + okComplemento;
+
+  if (totalGeneral > 0) {
     var partes = [];
-    if (okNuevo)      partes.push(okNuevo + ' nuevo' + (okNuevo !== 1 ? 's' : ''));
-    if (okVinculado)  partes.push(okVinculado + ' vinculado' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
-    showStatus('✓ ' + total + ' XML' + (total !== 1 ? 's' : '') + ' procesado' + (total !== 1 ? 's' : '') + ' (' + partes.join(', ') + ')');
+    if (okNuevo)        partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
+    if (okVinculado)    partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
+    if (okComplemento)  partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago procesado' + (okComplemento !== 1 ? 's' : ''));
+    showStatus('✓ ' + totalGeneral + ' XML' + (totalGeneral !== 1 ? 's' : '') + ' procesado' + (totalGeneral !== 1 ? 's' : '') + ' — ' + partes.join(', '));
   }
   if (errors.length) showError(errors.slice(0, 3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length - 3) + ' más)' : ''));
 }

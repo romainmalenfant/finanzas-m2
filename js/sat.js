@@ -541,7 +541,7 @@ async function importarXMLsCFDI(input) {
   var btn = document.getElementById('xml-import-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
 
-  var ok = 0, skip = 0, errors = [];
+  var okNuevo = 0, okVinculado = 0, errors = [];
 
   for (var i = 0; i < files.length; i++) {
     var file = files[i];
@@ -585,7 +585,7 @@ async function importarXMLsCFDI(input) {
       // Vincular path al registro de factura (si existe)
       if (existing) {
         await DB.storage.linkPaths(existing.id, { xml_path: path });
-        ok++;
+        okVinculado++;
       } else {
         // Crear registro mínimo si no existe
         var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
@@ -610,7 +610,7 @@ async function importarXMLsCFDI(input) {
           conciliado: false,
           xml_path: path,
         });
-        ok++;
+        okNuevo++;
       }
     } catch(e) {
       errors.push(file.name + ': ' + e.message);
@@ -619,6 +619,12 @@ async function importarXMLsCFDI(input) {
 
   if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
 
-  if (ok > 0) showStatus('✓ ' + ok + ' XML' + (ok !== 1 ? 's' : '') + ' procesado' + (ok !== 1 ? 's' : ''));
+  var total = okNuevo + okVinculado;
+  if (total > 0) {
+    var partes = [];
+    if (okNuevo)      partes.push(okNuevo + ' nuevo' + (okNuevo !== 1 ? 's' : ''));
+    if (okVinculado)  partes.push(okVinculado + ' vinculado' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
+    showStatus('✓ ' + total + ' XML' + (total !== 1 ? 's' : '') + ' procesado' + (total !== 1 ? 's' : '') + ' (' + partes.join(', ') + ')');
+  }
   if (errors.length) showError(errors.slice(0, 3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length - 3) + ' más)' : ''));
 }

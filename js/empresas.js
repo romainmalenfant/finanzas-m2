@@ -265,12 +265,15 @@ async function loadClientesKPIs(){
     var hace90=new Date(); hace90.setDate(hace90.getDate()-90);
     var f90=hace90.toISOString().split('T')[0];
 
-    // Activos en últimos 90 días — usar rfc_contraparte (SAT no siempre tiene cliente_id)
-    var {data:activos}=await sb.from('movimientos_v2').select('rfc_contraparte,cliente_id').eq('tipo','ingreso').gte('fecha',f90);
+    // Activos en últimos 90 días — facturas emitidas como fuente más confiable
+    var {data:activos}=await sb.from('facturas')
+      .select('cliente_id,receptor_rfc,receptor_nombre')
+      .eq('tipo','emitida').gte('fecha',f90);
     var activosSet=new Set();
-    (activos||[]).forEach(function(m){
-      if(m.cliente_id)activosSet.add('id:'+m.cliente_id);
-      else if(m.rfc_contraparte)activosSet.add('rfc:'+m.rfc_contraparte);
+    (activos||[]).forEach(function(f){
+      if(f.cliente_id) activosSet.add('id:'+f.cliente_id);
+      else if(f.receptor_rfc) activosSet.add('rfc:'+f.receptor_rfc);
+      else if(f.receptor_nombre) activosSet.add('nom:'+f.receptor_nombre.trim().toLowerCase());
     });
     document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 

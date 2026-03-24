@@ -36,6 +36,8 @@ function switchTab(tab, btn){
   ['rent-costos-modal','rent-form-modal'].forEach(function(id){
     var m=document.getElementById(id); if(m) m.style.display='none';
   });
+  // Reset overlay drag & drop de documentos al cambiar de tab
+  if(typeof _docsDragReset==='function') _docsDragReset();
   // Ocultar todos usando el registro central
   APP_MODULES.forEach(function(m){
     var el=document.getElementById('tab-'+m.id);

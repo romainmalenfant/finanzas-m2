@@ -226,30 +226,40 @@ function docsHandleFiles(files) {
 }
 
 var _docsDragCounter = 0;
+var _docsDragTimeout = null;
+
+function _docsDragReset() {
+  _docsDragCounter = 0;
+  clearTimeout(_docsDragTimeout);
+  var overlay = document.getElementById('docs-drop-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
 
 function docsDragOver(e) {
   e.preventDefault();
   _docsDragCounter++;
+  clearTimeout(_docsDragTimeout);
+  // Timeout de seguridad: si dragover deja de dispararse, limpiamos
+  _docsDragTimeout = setTimeout(_docsDragReset, 300);
   var overlay = document.getElementById('docs-drop-overlay');
   if (overlay) overlay.style.display = 'flex';
 }
 
 function docsDragLeave(e) {
   _docsDragCounter--;
-  if (_docsDragCounter <= 0) {
-    _docsDragCounter = 0;
-    var overlay = document.getElementById('docs-drop-overlay');
-    if (overlay) overlay.style.display = 'none';
-  }
+  if (_docsDragCounter <= 0) _docsDragReset();
 }
 
 function docsDrop(e) {
   e.preventDefault();
-  _docsDragCounter = 0;
-  var overlay = document.getElementById('docs-drop-overlay');
-  if (overlay) overlay.style.display = 'none';
+  _docsDragReset();
   docsHandleFiles(e.dataTransfer.files);
 }
+
+// ESC cancela el overlay
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') _docsDragReset();
+});
 
 // ── Helpers ───────────────────────────────────────────────
 function _docsEsc(s) {

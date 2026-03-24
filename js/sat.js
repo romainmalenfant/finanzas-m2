@@ -484,6 +484,34 @@ async function confirmarImportSAT(){
 
 // ── XML CFDI Import ───────────────────────────────────────
 
+/**
+ * Parsea un Acuse de Cancelación del SAT.
+ * Devuelve { es_acuse, uuid, fecha_cancelacion, estatus_uuid } o null si no es acuse.
+ */
+function parsearAcuseCancelacion(xmlText) {
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlText, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+
+  var acuse = doc.querySelector('Acuse');
+  if (!acuse) return null;
+
+  var folios = doc.querySelector('Folios') || doc.querySelector('[*|Folios]');
+  var uuidEl = folios ? (folios.querySelector('UUID') || folios.querySelector('[*|UUID]')) : null;
+  var estatusEl = folios ? (folios.querySelector('EstatusUUID') || folios.querySelector('[*|EstatusUUID]')) : null;
+
+  var uuid = uuidEl ? uuidEl.textContent.trim().toLowerCase() : null;
+  var estatusUUID = estatusEl ? estatusEl.textContent.trim() : null;
+  var fechaStr = (acuse.getAttribute('Fecha') || '').split('T')[0] || null;
+
+  return {
+    es_acuse: true,
+    uuid: uuid,
+    fecha_cancelacion: fechaStr,
+    estatus_uuid: estatusUUID,   // 201 = aceptada, 202 = en proceso, 203 = rechazada
+  };
+}
+
 /** Parsea un XML CFDI y extrae los campos relevantes. */
 function parsearXMLCFDI(xmlText) {
   var parser = new DOMParser();
@@ -562,7 +590,7 @@ async function importarXMLsCFDI(input) {
   var btn = document.getElementById('xml-import-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
 
-  var okNuevo = 0, okVinculado = 0, okComplemento = 0, errors = [];
+  var okNuevo = 0, okVinculado = 0, okComplemento = 0, okCancelacion = 0, errors = [];
   var rfcEmp = (typeof RFC_EMPRESA !== 'undefined' ? RFC_EMPRESA : '').toUpperCase();
 
   for (var i = 0; i < files.length; i++) {
@@ -570,6 +598,28 @@ async function importarXMLsCFDI(input) {
     try {
       var text = await readFileAsText(file);
       var parsed = parsearXMLCFDI(text);
+
+      // ── Acuse de cancelación ───────────────────────────────
+      var acuse = parsearAcuseCancelacion(text);
+      if (acuse) {
+        if (!acuse.uuid) { errors.push(file.name + ': acuse sin UUID'); continue; }
+        if (acuse.estatus_uuid !== '201') {
+          errors.push(file.name + ': cancelación no aceptada por SAT (estatus ' + acuse.estatus_uuid + ')');
+          continue;
+        }
+        var facCan = await DB.facturas.get(acuse.uuid);
+        if (facCan) {
+          await DB.facturas.save({
+            id: facCan.id,
+            estatus: 'cancelada',
+            fecha_cancelacion: acuse.fecha_cancelacion,
+          });
+          okCancelacion++;
+        } else {
+          errors.push(file.name + ': factura ' + acuse.uuid.slice(0,8) + '… no encontrada en BD');
+        }
+        continue;
+      }
 
       if (!parsed.uuid) { errors.push(file.name + ': sin UUID'); continue; }
 
@@ -658,14 +708,14 @@ async function importarXMLsCFDI(input) {
 
   if (btn) { btn.disabled = false; btn.textContent = 'Subir XMLs'; }
 
-  var totalFacturas = okNuevo + okVinculado;
-  var totalGeneral = totalFacturas + okComplemento;
+  var totalGeneral = okNuevo + okVinculado + okComplemento + okCancelacion;
 
   if (totalGeneral > 0) {
     var partes = [];
     if (okNuevo)        partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
     if (okVinculado)    partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
-    if (okComplemento)  partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago procesado' + (okComplemento !== 1 ? 's' : ''));
+    if (okComplemento)  partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
+    if (okCancelacion)  partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
     showStatus('✓ ' + totalGeneral + ' XML' + (totalGeneral !== 1 ? 's' : '') + ' procesado' + (totalGeneral !== 1 ? 's' : '') + ' — ' + partes.join(', '));
   }
   if (errors.length) showError(errors.slice(0, 3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length - 3) + ' más)' : ''));

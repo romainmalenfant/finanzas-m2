@@ -776,6 +776,30 @@ async function importarXMLsCFDI(input) {
     } catch(e) { /* si falla, quedan como huérfanos */ }
   }
 
+  // ── 1b. PDFs aún sin match → buscar complemento/cancelación en documentos ──
+  var stillUnmatched = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.matchedXml && !it.dbFactura && !it.error; });
+  if (stillUnmatched.length) {
+    try {
+      var docXmlNames = stillUnmatched.map(function(it){ return it.file.name.replace(/\.pdf$/i, '.xml'); });
+      var { data: docCandidatos } = await sb.from('documentos')
+        .select('id, nombre, path, tipo, factura_id')
+        .in('nombre', docXmlNames)
+        .in('tipo', ['complemento', 'cancelacion']);
+      if (docCandidatos && docCandidatos.length) {
+        var docByNombre = {};
+        docCandidatos.forEach(function(d){ docByNombre[d.nombre.toLowerCase()] = d; });
+        stillUnmatched.forEach(function(pdfIt) {
+          var xmlNombre = pdfIt.file.name.replace(/\.pdf$/i, '.xml').toLowerCase();
+          var doc = docByNombre[xmlNombre];
+          if (doc) {
+            pdfIt.dbDoc      = doc;
+            pdfIt.advertencia = null;
+          }
+        });
+      }
+    } catch(e) { /* si falla, quedan como huérfanos */ }
+  }
+
   // ── 2. Detectar PDFs duplicados (ya en documentos o ya vinculados) ────────
   var allPDFs = _xmlItems.filter(function(it){ return it.kind === 'pdf' && !it.error; });
   if (allPDFs.length) {
@@ -843,6 +867,8 @@ function _xmlMostrarModal() {
       ? '<span style="color:#f87171;font-size:11px;font-weight:600;">⚠ ERROR</span>'
       : it.dbFactura
       ? '<span style="font-size:11px;">📄 PDF · <span style="color:#34d399;font-weight:600;">vincula a factura existente</span></span>'
+      : it.dbDoc
+      ? '<span style="font-size:11px;">📄 PDF · <span style="color:#60a5fa;font-weight:600;">vincula a ' + (it.dbDoc.tipo === 'cancelacion' ? 'cancelación' : 'complemento') + ' existente</span></span>'
       : ('<span style="font-size:11px;">' + (it.label||'') + '</span>');
     var empresa = it.empresa || '—';
     var total   = fmtMXN(it.total);
@@ -935,6 +961,14 @@ async function xmlConfirmarImport() {
             await DB.storage.upload(hPath, it.file);
             await DB.documentos.save({ nombre: it.file.name, path: hPath, tipo: 'pdf', factura_id: null });
           }
+        } else if (it.dbDoc) {
+          // PDF corresponde a un complemento o cancelación ya en BD
+          var docId   = it.dbDoc.id;
+          var docYear = it.dbDoc.path ? parseInt(it.dbDoc.path.split('/')[0]) : new Date().getFullYear();
+          if (isNaN(docYear)) docYear = new Date().getFullYear();
+          var pPath   = docYear + '/' + docId + '.pdf';
+          await DB.storage.upload(pPath, it.file);
+          try { await sb.from('documentos').update({ pdf_path: pPath }).eq('id', docId); } catch(e) {}
         } else {
           var hPath = 'huerfanos/' + Date.now() + '_' + it.file.name;
           await DB.storage.upload(hPath, it.file);

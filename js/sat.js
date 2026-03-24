@@ -711,7 +711,7 @@ async function importarXMLsCFDI(input) {
   if (allPDFs.length) {
     try {
       var pdfNames = allPDFs.map(function(it){ return it.file.name; });
-      var { data: existDocs } = await sb.from('documentos').select('nombre').in('nombre', pdfNames);
+      var { data: existDocs } = await sb.from('documentos').select('nombre').in('nombre', pdfNames).is('factura_id', null);
       if (existDocs && existDocs.length) {
         var existNombres = new Set(existDocs.map(function(d){ return d.nombre.toLowerCase(); }));
         allPDFs.forEach(function(it) {

@@ -248,7 +248,7 @@ async function verDetalleProveedor(id){
         '<div class="detail-field"><div class="detail-field-label">Condiciones</div><div class="detail-field-value">'+(p.condiciones_pago||'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Categoría</div><div class="detail-field-value">'+(p.categoria?p.categoria.charAt(0).toUpperCase()+p.categoria.slice(1):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Calificación</div><div class="detail-field-value">'+(p.calificacion?'⭐'.repeat(p.calificacion):'—')+'</div></div>'+
-        '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+(p.clabe?copyBtn(p.clabe):'')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Límite crédito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+
       '</div>'+
       (p.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(p.notas)+'</div></div>':'')+
@@ -318,8 +318,8 @@ async function verDetalleContacto(id){
         ? '<div class="detail-field-value" style="color:#f87171;cursor:pointer;" onclick="verDetalleProveedor(\''+c.proveedor_id+'\')">' + esc(empresa) + '</div>'
         : '<div class="detail-field-value">'+esc(empresa)+'</div>')+
       '</div>'+
-      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>':'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>'+copyBtn(c.email):'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+(c.telefono?copyBtn(c.telefono):'')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activo':'Inactivo')+'</div></div>'+
       (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value">'+esc(c.notas)+'</div></div>':'')+''+
     '</div></div>';
@@ -350,13 +350,13 @@ async function verDetalleEmpleado(id){
       '<div class="detail-field"><div class="detail-field-label">Área</div><div class="detail-field-value">'+(e.area||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Tipo contrato</div><div class="detail-field-value">'+(e.tipo_contrato||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">Fecha ingreso</div><div class="detail-field-value">'+(e.fecha_ingreso?fmtDateFull(e.fecha_ingreso):'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(e.email?'<a href="mailto:'+esc(e.email)+'" style="color:#60a5fa;">'+esc(e.email)+'</a>':'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.telefono||'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(e.email?'<a href="mailto:'+esc(e.email)+'" style="color:#60a5fa;">'+esc(e.email)+'</a>'+copyBtn(e.email):'—')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(e.telefono||'—')+(e.telefono?copyBtn(e.telefono):'')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">Fiscal y bancario</div><div class="detail-grid">'+
       '<div class="detail-field"><div class="detail-field-label">RFC</div><div class="detail-field-value">'+(e.rfc||'—')+'</div></div>'+
       '<div class="detail-field"><div class="detail-field-label">IMSS / NSS</div><div class="detail-field-value">'+(e.imss||'—')+'</div></div>'+
-      '<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">CLABE bancaria</div><div class="detail-field-value">'+(e.clabe||'—')+'</div></div>'+
+      '<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">CLABE bancaria</div><div class="detail-field-value">'+(e.clabe||'—')+(e.clabe?copyBtn(e.clabe):'')+'</div></div>'+
     '</div></div>'+
     '<div class="detail-section"><div class="detail-section-title">Documentos</div>'+
       '<div style="display:flex;gap:12px;flex-wrap:wrap;">'+

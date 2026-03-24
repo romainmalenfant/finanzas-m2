@@ -15,6 +15,36 @@ function toggleTheme(){
   applyTheme(saved);
 })();
 
+// ── Copy to clipboard ────────────────────────────────────
+function copyBtn(text){
+  if(!text)return'';
+  var safe=(text+'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return '<button onclick="copyToClipboard(\''+safe+'\',this)" title="Copiar" '+
+    'style="background:none;border:none;cursor:pointer;padding:1px 4px;color:var(--text-3);'+
+    'vertical-align:middle;opacity:.6;line-height:1;" '+
+    'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'.6\'">'+
+    '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">'+
+      '<rect x="9" y="9" width="13" height="13" rx="2"/>'+
+      '<path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>'+
+    '</svg></button>';
+}
+function copyToClipboard(text,btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var orig=btn.innerHTML;
+    btn.innerHTML='<span style="color:#34d399;font-size:11px;font-weight:600;">✓</span>';
+    setTimeout(function(){btn.innerHTML=orig;},1500);
+  }).catch(function(){
+    // fallback para contextos sin clipboard API
+    var ta=document.createElement('textarea');
+    ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();document.execCommand('copy');
+    document.body.removeChild(ta);
+    var orig=btn.innerHTML;
+    btn.innerHTML='<span style="color:#34d399;font-size:11px;font-weight:600;">✓</span>';
+    setTimeout(function(){btn.innerHTML=orig;},1500);
+  });
+}
+
 // ── Helpers ──────────────────────────────────────────────
 function fmt(n){if(!n&&n!==0)n=0;var neg=n<0;var a=Math.abs(n);var s=a.toFixed(2);var p=s.split('.');var i=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,',');return(neg?'-':'')+'$'+i+'.'+p[1];}
 function fmtDate(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');var hoy=new Date();var base=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return d.getFullYear()===hoy.getFullYear()?base:base+' '+d.getFullYear();}

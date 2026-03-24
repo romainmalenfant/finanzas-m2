@@ -473,7 +473,7 @@ async function verDetalleProyecto(id){
     var cotFilter = p.cliente_id
       ? {col:'cliente_id', val:p.cliente_id}
       : {col:'nombre_cliente_ilike', val:p.nombre_cliente};
-    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre').order('fecha',{ascending:false}).limit(10);
+    var cotQuery = sb.from('cotizaciones').select('id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre').order('fecha',{ascending:false}).limit(10);
     if(p.cliente_id) cotQuery=cotQuery.eq('cliente_id',p.cliente_id);
     else cotQuery=cotQuery.ilike('cliente_nombre','%'+(p.nombre_cliente||'')+'%');
     var {data:cots}=await cotQuery;
@@ -493,7 +493,9 @@ async function verDetalleProyecto(id){
                   '<span style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(cot.numero||'COT')+'</span>'+
                   '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:'+ec+'22;color:'+ec+';">'+esc(el)+'</span>'+
                 '</div>'+
-                '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+fmtDateFull(cot.fecha)+'</div>'+
+                '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+fmtDateFull(cot.fecha)+
+                  (cot.numero_requisicion?' · <span style="font-family:monospace;color:var(--text-2);">REQ: '+esc(cot.numero_requisicion)+'</span>':'')+
+                '</div>'+
               '</div>'+
               '<span style="font-weight:600;color:var(--text-1);">'+fmt(cot.total||0)+'</span>'+
             '</div>';

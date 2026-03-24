@@ -985,7 +985,9 @@ async function confirmarConversion(){
 
 // ── Detalle cotización ────────────────────────────────────
 async function verDetalleCotizacion(id){
-  var c = cotizaciones.find(function(x){return x.id===id;});
+  // Siempre re-fetch para tener fecha_cierre y numero_requisicion actualizados
+  var {data:cFresh} = await sb.from('cotizaciones').select('*').eq('id',id).single();
+  var c = cFresh || cotizaciones.find(function(x){return x.id===id;});
   if(!c) return;
 
   var ini = (c.numero||'COT').slice(0,3).toUpperCase();

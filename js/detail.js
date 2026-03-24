@@ -449,14 +449,26 @@ async function verDetalleProyecto(id){
           '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contacto clave asignado</div>')+
       '</div>'+
       // Entregas
-      (ents.length?'<div class="detail-section"><div class="detail-section-title">Historial de entregas</div>'+
-        ents.map(function(e){
-          return '<div class="detail-list-item">'+
-            '<div><div style="font-size:12px;color:var(--text-1);">'+fmtDateFull(e.fecha)+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+(e.notas||'')+'</div></div>'+
-            '<span style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</span>'+
-          '</div>';
-        }).join('')+'</div>':'');
+      '<div class="detail-section">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
+          '<div class="detail-section-title" style="margin-bottom:0;">Entregas parciales</div>'+
+          '<button class="btn-sm" style="font-size:11px;background:#E8F5E9;color:#2E7D32;border-color:#A5D6A7;" onclick="abrirEntrega(\''+id+'\')">+ Registrar entrega</button>'+
+        '</div>'+
+        (ents.length
+          ? ents.map(function(e){
+              return '<div class="detail-list-item">'+
+                '<div>'+
+                  '<div style="font-size:12px;color:var(--text-1);">'+fmtDateFull(e.fecha)+'</div>'+
+                  '<div style="font-size:10px;color:var(--text-3);">'+(e.notas||'')+(e.factura_numero?' · Factura: '+esc(e.factura_numero):'')+'</div>'+
+                '</div>'+
+                '<div style="text-align:right;">'+
+                  '<div style="font-weight:600;color:#34d399;">'+e.piezas+' pzs</div>'+
+                  (e.factura_monto?'<div style="font-size:10px;color:var(--text-3);">'+fmt(parseFloat(e.factura_monto)||0)+'</div>':'')+
+                '</div>'+
+              '</div>';
+            }).join('')
+          : '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin entregas registradas</div>')+
+      '</div>';
     // F3: Cotizaciones vinculadas a este proyecto/cliente
     var cotFilter = p.cliente_id
       ? {col:'cliente_id', val:p.cliente_id}

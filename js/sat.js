@@ -812,17 +812,63 @@ async function xmlConfirmarImport() {
     }
   }
 
+  // ── Auto-crear clientes y proveedores desde XMLs procesados ─
+  var clientesNuevos = 0, proveedoresNuevos = 0;
+  try {
+    var itemsProcesados = items.filter(function(it){ return it.kind === 'factura'; });
+
+    // Emitidas → clientes (receptor)
+    var emitidas = itemsProcesados.filter(function(it){
+      return it.parsed && (it.parsed.receptor_rfc || '').toUpperCase() !== rfcEmp &&
+             (it.parsed.emisor_rfc || '').toUpperCase() === rfcEmp;
+    });
+    var rfcsCliente = [...new Set(emitidas.map(function(it){ return it.parsed.receptor_rfc; }).filter(Boolean))];
+    if (rfcsCliente.length) {
+      var cliExist = await DB.clientes.byRFC(rfcsCliente);
+      var cliExistSet = new Set((cliExist || []).map(function(c){ return c.rfc; }));
+      var cliNuevos = {};
+      emitidas.forEach(function(it) {
+        var rfc = it.parsed.receptor_rfc;
+        if (!rfc || cliExistSet.has(rfc) || cliNuevos[rfc]) return;
+        cliNuevos[rfc] = { id: 'cli_' + rfc.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16), nombre: it.parsed.receptor_nombre || rfc, rfc: rfc, condiciones_pago: '30' };
+      });
+      var cliArr = Object.values(cliNuevos);
+      if (cliArr.length) { await DB.clientes.upsertBulk(cliArr); clientesNuevos = cliArr.length; }
+    }
+
+    // Recibidas → proveedores (emisor)
+    var recibidas = itemsProcesados.filter(function(it){
+      return it.parsed && (it.parsed.receptor_rfc || '').toUpperCase() === rfcEmp;
+    });
+    var rfcsProv = [...new Set(recibidas.map(function(it){ return it.parsed.emisor_rfc; }).filter(Boolean))];
+    if (rfcsProv.length) {
+      var provExist = await DB.proveedores.byRFC(rfcsProv);
+      var provExistSet = new Set((provExist || []).map(function(p){ return p.rfc; }));
+      var provNuevos = {};
+      recibidas.forEach(function(it) {
+        var rfc = it.parsed.emisor_rfc;
+        if (!rfc || provExistSet.has(rfc) || provNuevos[rfc]) return;
+        provNuevos[rfc] = { id: Date.now().toString(36) + Math.random().toString(36).slice(2,5), nombre: it.parsed.emisor_nombre || rfc, rfc: rfc, condiciones_pago: '30', tipo: 'general' };
+      });
+      var provArr = Object.values(provNuevos);
+      if (provArr.length) { await DB.proveedores.upsertBulk(provArr); proveedoresNuevos = provArr.length; }
+    }
+  } catch(e) { console.warn('Auto-crear empresas desde XML:', e.message); }
+
   if (btnOk) { btnOk.disabled = false; }
   xmlCerrarModal();
 
   var totalGeneral = okNuevo + okVinculado + okComplemento + okCancelacion;
   if (totalGeneral > 0) {
     var partes = [];
-    if (okNuevo)       partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
-    if (okVinculado)   partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
-    if (okComplemento) partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
-    if (okCancelacion) partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
+    if (okNuevo)           partes.push(okNuevo + ' nueva' + (okNuevo !== 1 ? 's' : ''));
+    if (okVinculado)       partes.push(okVinculado + ' vinculada' + (okVinculado !== 1 ? 's' : '') + ' a factura existente');
+    if (okComplemento)     partes.push(okComplemento + ' complemento' + (okComplemento !== 1 ? 's' : '') + ' de pago');
+    if (okCancelacion)     partes.push(okCancelacion + ' cancelación' + (okCancelacion !== 1 ? 'es' : '') + ' aplicada' + (okCancelacion !== 1 ? 's' : ''));
+    if (clientesNuevos)    partes.push(clientesNuevos + ' cliente' + (clientesNuevos !== 1 ? 's' : '') + ' creado' + (clientesNuevos !== 1 ? 's' : ''));
+    if (proveedoresNuevos) partes.push(proveedoresNuevos + ' proveedor' + (proveedoresNuevos !== 1 ? 'es' : '') + ' creado' + (proveedoresNuevos !== 1 ? 's' : ''));
     showStatus('✓ ' + totalGeneral + ' XML' + (totalGeneral !== 1 ? 's' : '') + ' procesado' + (totalGeneral !== 1 ? 's' : '') + ' — ' + partes.join(', '));
   }
   if (errors.length) showError(errors.slice(0,3).join(' | ') + (errors.length > 3 ? ' (+' + (errors.length-3) + ' más)' : ''));
+  if (clientesNuevos || proveedoresNuevos) { loadClientes(); }
 }

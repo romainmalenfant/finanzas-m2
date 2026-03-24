@@ -225,29 +225,30 @@ function docsHandleFiles(files) {
   }
 }
 
-var _docsDragCounter = 0;
 var _docsDragTimeout = null;
 
 function _docsDragReset() {
-  _docsDragCounter = 0;
   clearTimeout(_docsDragTimeout);
+  _docsDragTimeout = null;
   var overlay = document.getElementById('docs-drop-overlay');
   if (overlay) overlay.style.display = 'none';
 }
 
 function docsDragOver(e) {
   e.preventDefault();
-  _docsDragCounter++;
+  // Mostrar overlay y resetear timeout — cuando dragover deja de dispararse
+  // (ESC, salir de ventana, cancelar) el timeout apaga el overlay automáticamente
   clearTimeout(_docsDragTimeout);
-  // Timeout de seguridad: si dragover deja de dispararse, limpiamos
-  _docsDragTimeout = setTimeout(_docsDragReset, 300);
+  _docsDragTimeout = setTimeout(_docsDragReset, 200);
   var overlay = document.getElementById('docs-drop-overlay');
-  if (overlay) overlay.style.display = 'flex';
+  if (overlay && overlay.style.display !== 'flex') overlay.style.display = 'flex';
 }
 
 function docsDragLeave(e) {
-  _docsDragCounter--;
-  if (_docsDragCounter <= 0) _docsDragReset();
+  // Solo apagar si el mouse salió del tab completo (relatedTarget fuera del tab)
+  var tab = document.getElementById('tab-documentos');
+  if (tab && e.relatedTarget && tab.contains(e.relatedTarget)) return;
+  _docsDragReset();
 }
 
 function docsDrop(e) {
@@ -259,6 +260,11 @@ function docsDrop(e) {
 // ESC cancela el overlay
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') _docsDragReset();
+});
+
+// Drag que sale de la ventana del browser
+document.addEventListener('dragleave', function(e) {
+  if (!e.relatedTarget) _docsDragReset();
 });
 
 // ── Helpers ───────────────────────────────────────────────

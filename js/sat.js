@@ -685,6 +685,28 @@ async function importarXMLsCFDI(input) {
     } catch(e) { /* si falla el check, seguimos sin bloquear */ }
   }
 
+  // ── XML → buscar PDF huérfano correspondiente en BD ─────
+  var facturaItemsNuevos = facturaItems.filter(function(it){ return !it.error; });
+  if (facturaItemsNuevos.length) {
+    try {
+      var pdfNamesEsperados = facturaItemsNuevos.map(function(it){ return it.file.name.replace(/\.xml$/i, '.pdf'); });
+      var { data: huerfanosMatch } = await sb.from('documentos')
+        .select('id, nombre, path')
+        .in('nombre', pdfNamesEsperados)
+        .is('factura_id', null);
+      if (huerfanosMatch && huerfanosMatch.length) {
+        var pdfByNombre = {};
+        huerfanosMatch.forEach(function(d){ pdfByNombre[d.nombre.toLowerCase()] = d; });
+        facturaItemsNuevos.forEach(function(it) {
+          var pdfNombre = it.file.name.replace(/\.xml$/i, '.pdf').toLowerCase();
+          if (pdfByNombre[pdfNombre]) {
+            it.linkedPDF = pdfByNombre[pdfNombre];
+          }
+        });
+      }
+    } catch(e) { /* si falla, seguimos sin vincular PDF */ }
+  }
+
   // ── Procesar PDFs ────────────────────────────────────────
   for (var j = 0; j < pdfFiles.length; j++) {
     var pdf = pdfFiles[j];
@@ -807,6 +829,7 @@ function _xmlMostrarModal() {
     var fecha   = it.fecha ? it.fecha.slice(0,10) : '—';
     var errMsg  = it.error        ? '<div style="color:#f87171;font-size:11px;margin-top:2px;">'+it.error+'</div>'
                 : it.advertencia ? '<div style="color:#f59e0b;font-size:11px;margin-top:2px;">⚠ '+it.advertencia+'</div>'
+                : it.linkedPDF   ? '<div style="color:#34d399;font-size:11px;margin-top:2px;">📎 PDF encontrado: '+_xmlEsc(it.linkedPDF.nombre)+' — se vinculará automáticamente</div>'
                 : '';
 
     return '<div' + rowCls + ' style="display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border,#e5e5e5);">' +
@@ -957,6 +980,12 @@ async function xmlConfirmarImport() {
           xml_path: path,
           filename_original: it.file.name,
         });
+        // ── Auto-vincular PDF huérfano si se encontró match ──
+        if (it.linkedPDF) {
+          try {
+            await DB.documentos.vincular(it.linkedPDF.id, parsed.uuid, it.linkedPDF.path);
+          } catch(e) { /* no bloquear si falla el vincular */ }
+        }
         okNuevo++;
       }
     } catch(e) {

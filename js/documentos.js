@@ -215,13 +215,23 @@ async function _docsFetch(q, año, tipo, archivo) {
     merge(plain.data || []);
   }
 
-  // ── Tabla documentos (PDFs huérfanos) ──────────────────
+  // ── Tabla documentos (PDFs huérfanos + complementos) ───
   var orphans = [];
   try {
+    // PDFs sin vincular
     var oqb = sb.from('documentos').select('*').is('factura_id', null).order('created_at', { ascending: false }).limit(10);
     if (q) oqb = oqb.ilike('nombre', '%' + q + '%');
     var oRes = await oqb;
     orphans = (oRes.data || []).map(function(d){ return Object.assign({}, d, { _orphan: true }); });
+
+    // Complementos de pago (tienen factura_id pero tipo='complemento')
+    var cqb = sb.from('documentos').select('*').eq('tipo', 'complemento').order('created_at', { ascending: false }).limit(10);
+    if (q) cqb = cqb.ilike('nombre', '%' + q + '%');
+    var cRes = await cqb;
+    var compls = (cRes.data || []).map(function(d){ return Object.assign({}, d, { _complemento: true }); });
+    // Evitar duplicados si ya apareció en orphans
+    var seenIds = new Set(orphans.map(function(o){ return o.id; }));
+    compls.forEach(function(c){ if (!seenIds.has(c.id)) orphans.push(c); });
   } catch(e) { /* silenciar */ }
 
   return rows.concat(orphans);
@@ -256,6 +266,21 @@ function docsRender(rows) {
             '<button class="btn-sm" style="font-size:11px;" onclick="docsAbrir(\''+r.path+'\',\'pdf\')">Ver PDF</button>' +
             '<button class="btn-sm" style="font-size:11px;" onclick="docsVincularAbrir(\''+r.id+'\',\''+r.path+'\',\''+_docsEsc(r.nombre)+'\')">Vincular</button>' +
           '</div>' +
+        '</div>';
+      return;
+    }
+
+    // ── Tarjeta complemento de pago ───────────────────────
+    if (r._complemento) {
+      var fecha = r.created_at ? r.created_at.slice(0,10) : '—';
+      html +=
+        '<div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:8px;padding:12px 16px;">' +
+          '<div style="width:36px;height:44px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">💳</div>' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:13px;font-weight:500;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_docsEsc(r.nombre)+'</div>' +
+            '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+fecha+' · <span style="color:#60a5fa;font-weight:600;">Complemento de pago</span></div>' +
+          '</div>' +
+          '<button class="btn-sm" style="font-size:11px;flex-shrink:0;" onclick="docsAbrir(\''+r.path+'\',\'xml\')">Ver XML</button>' +
         '</div>';
       return;
     }

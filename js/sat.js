@@ -934,6 +934,7 @@ async function xmlConfirmarImport() {
       if (it.kind === 'complemento') {
         await DB.storage.upload(path, new File([it.text], parsed.uuid + '.xml', { type: 'application/xml' }));
         var marcadas = 0;
+        var primeraFacturaId = null;
         for (var j = 0; j < parsed.docs_relacionados.length; j++) {
           var dr = parsed.docs_relacionados[j];
           var facRef = await DB.facturas.get(dr.uuid);
@@ -941,9 +942,19 @@ async function xmlConfirmarImport() {
             var upd = { id: facRef.id };
             if (dr.pagado_completo) upd.conciliado = true;
             await DB.facturas.save(upd);
+            if (!primeraFacturaId) primeraFacturaId = facRef.id;
             marcadas++;
           }
         }
+        // Guardar en documentos para que sea buscable
+        try {
+          await DB.documentos.save({
+            nombre: it.file.name,
+            path: path,
+            tipo: 'complemento',
+            factura_id: primeraFacturaId || null,
+          });
+        } catch(e) { /* no bloquear */ }
         okComplemento++;
         if (!marcadas && parsed.docs_relacionados.length) {
           errors.push(it.file.name + ': facturas referenciadas no encontradas en BD');

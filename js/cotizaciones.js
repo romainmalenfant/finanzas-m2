@@ -1582,15 +1582,6 @@ async function generarPDFCotizacion(id){
   var c = await DB.cotizaciones.get(id);
   if(!c){ showError('Cotización no encontrada'); return; }
 
-  // If already generated, open from storage
-  if(c.pdf_path){
-    try{
-      var url = await DB.storage.signedUrl(c.pdf_path);
-      window.open(url,'_blank');
-      return;
-    }catch(e){ /* fall through to regenerate */ }
-  }
-
   var items = await DB.cotizacionItems.byCotizacion(id);
   items = items||[];
 
@@ -1609,20 +1600,19 @@ async function generarPDFCotizacion(id){
     }catch(e){}
   }
 
-  // Pre-cargar logo como dataURL via canvas
+  // Pre-cargar logo via fetch → FileReader (evita CORS de canvas)
   var logoDataUrl = null;
   try{
-    logoDataUrl = await new Promise(function(resolve, reject){
-      var img = new Image();
-      img.onload = function(){
-        var cv = document.createElement('canvas');
-        cv.width = img.naturalWidth; cv.height = img.naturalHeight;
-        cv.getContext('2d').drawImage(img,0,0);
-        resolve(cv.toDataURL('image/jpeg',0.92));
-      };
-      img.onerror = reject;
-      img.src = 'logo.jpg?v=1';
-    });
+    var logoResp = await fetch('logo.jpg');
+    if(logoResp.ok){
+      var logoBlob = await logoResp.blob();
+      logoDataUrl = await new Promise(function(resolve, reject){
+        var fr = new FileReader();
+        fr.onload  = function(){ resolve(fr.result); };
+        fr.onerror = reject;
+        fr.readAsDataURL(logoBlob);
+      });
+    }
   }catch(e){ logoDataUrl = null; }
 
   try{
@@ -1829,7 +1819,9 @@ async function generarPDFCotizacion(id){
     if(EMPRESA_CONFIG.banco) doc.text(EMPRESA_CONFIG.banco, pw/2, footerY+17, {align:'center'});
 
 
-    // ── Save to storage ───────────────────────────────────
+    // ── Guardar en storage (siempre sobreescribe) ─────────
+    var vSuffix = 'v' + (c.version || 1);
+    var fileName = (c.numero||'cotizacion') + '.' + vSuffix + '.pdf';
     try{
       var pdfBlob = doc.output('blob');
       var pdfPath = 'cotizaciones/' + id + '.pdf';
@@ -1839,7 +1831,6 @@ async function generarPDFCotizacion(id){
       if(local) local.pdf_path = pdfPath;
     }catch(storageErr){ console.warn('No se pudo guardar PDF en storage:', storageErr); }
 
-    var fileName = (c.numero||'cotizacion') + (c.version && c.version > 1 ? '-v'+c.version : '') + '.pdf';
     doc.save(fileName);
     showStatus('✓ PDF generado y guardado');
   }catch(e){

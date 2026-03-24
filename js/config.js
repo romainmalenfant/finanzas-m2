@@ -29,7 +29,7 @@ Object.defineProperties(window,{
   proveedores:{get:function(){return M2State.proveedores;},set:function(v){M2State.proveedores=v;},configurable:true},
   allProveedores:{get:function(){return M2State.proveedores;},set:function(v){M2State.proveedores=v;},configurable:true},
   proyectos:{get:function(){return M2State.proyectos;},set:function(v){M2State.proyectos=v;},configurable:true},
-  allProyectos:{get:function(){return M2State.proyectos;},set:function(v){M2State.proyectos=v;},configurable:true},
+  allProyectos:{get:function(){return M2State.allProyectos;},set:function(v){M2State.allProyectos=v;},configurable:true},
   contactos:{get:function(){return M2State.contactos;},set:function(v){M2State.contactos=v;},configurable:true},
   allContactos:{get:function(){return M2State.contactos;},set:function(v){M2State.contactos=v;},configurable:true},
   empleados:{get:function(){return M2State.empleados;},set:function(v){M2State.empleados=v;},configurable:true},

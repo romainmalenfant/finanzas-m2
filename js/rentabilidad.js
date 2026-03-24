@@ -1,8 +1,13 @@
 // ── Rentabilidad ──────────────────────────────────────────
-var _rentAllCostos  = [];
-var _rentExpanded   = null;   // id del proyecto expandido
-var _rentLineas     = [];
-var _rentProjCostos = [];     // costos del proyecto expandido
+var _rentAllCostos   = [];
+var _rentAllAsig     = [];    // factura_asignaciones globales (todos los proyectos)
+var _rentExpanded    = null;  // id del proyecto expandido
+var _rentLineas      = [];
+var _rentProjCostos  = [];    // costos manuales del proyecto expandido
+var _rentProjAsig    = [];    // factura_asignaciones del proyecto expandido
+var _rentFactSelData = {};    // {projId: facturaData seleccionada}
+var _rentFactOpts    = {};    // {projId: {factId: factData}} para evitar escaping
+var _rentFactTimer   = {};    // debounce por projId
 
 var RENT_CAT_LABELS = {
   mano_obra:'Mano de obra', materiales:'Materiales',
@@ -15,17 +20,23 @@ async function loadRentabilidad(){
   // Reset al entrar al tab — colapsa cualquier proyecto abierto
   _rentExpanded = null;
   _rentProjCostos = [];
+  _rentProjAsig = [];
   _rentLineasByProj = {};
+  _rentFactSelData = {};
+  _rentFactOpts = {};
   var el = document.getElementById('rent-list');
   if(!el) return;
   try{
     if(!(allProyectos||[]).length) await loadProyectos();
     var projs = allProyectos||[];
     if(!projs.length){ el.innerHTML='<div class="empty-state">Sin proyectos</div>'; return; }
+    var ids = projs.map(function(p){return p.id;});
     var {data:costos} = await sb.from('proyecto_costos')
-      .select('id,proyecto_id,monto,categoria')
-      .in('proyecto_id', projs.map(function(p){return p.id;}));
+      .select('id,proyecto_id,monto,categoria').in('proyecto_id', ids);
     _rentAllCostos = costos||[];
+    var {data:asig} = await sb.from('factura_asignaciones')
+      .select('id,proyecto_id,monto').in('proyecto_id', ids);
+    _rentAllAsig = asig||[];
     filtrarRentabilidad(document.getElementById('rent-search').value||'');
   }catch(e){ if(el) el.innerHTML='<div style="color:#f87171;font-size:12px;padding:8px;">Error: '+e.message+'</div>'; }
 }
@@ -46,6 +57,9 @@ function renderRentList(projs){
   var costosByProj = {};
   _rentAllCostos.forEach(function(c){
     costosByProj[c.proyecto_id]=(costosByProj[c.proyecto_id]||0)+(parseFloat(c.monto)||0);
+  });
+  _rentAllAsig.forEach(function(a){
+    if(a.proyecto_id) costosByProj[a.proyecto_id]=(costosByProj[a.proyecto_id]||0)+(parseFloat(a.monto)||0);
   });
 
   var totalIng=0, totalCos=0;
@@ -129,9 +143,12 @@ async function toggleRentProyecto(id){
   if(expandEl) expandEl.innerHTML='<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>';
 
   try{
-    var {data:costos}=await sb.from('proyecto_costos')
-      .select('*').eq('proyecto_id',id).order('semana',{ascending:false}).order('created_at',{ascending:false});
+    var [{data:costos},{data:asig}] = await Promise.all([
+      sb.from('proyecto_costos').select('*').eq('proyecto_id',id).order('semana',{ascending:false}).order('created_at',{ascending:false}),
+      sb.from('factura_asignaciones').select('*').eq('proyecto_id',id).order('created_at',{ascending:false})
+    ]);
     _rentProjCostos=costos||[];
+    _rentProjAsig=asig||[];
     var p=(allProyectos||[]).find(function(x){return x.id===id;});
     if(expandEl&&p){
       expandEl.innerHTML=_buildExpand(p);
@@ -142,7 +159,8 @@ async function toggleRentProyecto(id){
 
 function _buildExpand(p){
   var ingresos=parseFloat(p.monto_total)||0;
-  var costos=_rentProjCostos.reduce(function(a,c){return a+(parseFloat(c.monto)||0);},0);
+  var costos=_rentProjCostos.reduce(function(a,c){return a+(parseFloat(c.monto)||0);},0)
+            +_rentProjAsig.reduce(function(a,c){return a+(parseFloat(c.monto)||0);},0);
   var margen=ingresos-costos;
   var pct=ingresos>0?Math.round((margen/ingresos)*100):null;
   var mc=margen>=0?'#16a34a':'#dc2626';
@@ -153,6 +171,25 @@ function _buildExpand(p){
     if(!semanas[c.semana]) semanas[c.semana]=[];
     semanas[c.semana].push(c);
   });
+
+  // Facturas asignadas
+  var asigHTML='';
+  if(_rentProjAsig.length){
+    asigHTML='<div style="margin-top:10px;">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">🧾 Facturas asignadas</div>'+
+      _rentProjAsig.map(function(a){
+        return '<div style="display:grid;grid-template-columns:2fr 50px 70px 80px 28px;gap:6px;align-items:center;'+
+          'font-size:12px;padding:5px 8px;background:var(--bg-card);border-radius:5px;margin-bottom:3px;">'+
+          '<span style="color:var(--text-1);">'+esc(a.emisor_nombre||'Proveedor')+(a.numero_factura?' <span style="color:var(--text-3);">· '+esc(a.numero_factura)+'</span>':'')+'</span>'+
+          '<span style="color:var(--text-3);text-align:center;">'+parseFloat(a.porcentaje).toFixed(1)+'%</span>'+
+          '<span style="color:var(--text-3);text-align:right;">'+fmt(parseFloat(a.total_factura)||0)+'</span>'+
+          '<span style="font-weight:600;text-align:right;color:#16a34a;">'+fmt(parseFloat(a.monto)||0)+'</span>'+
+          '<button onclick="eliminarAsig(\''+a.id+'\',\''+p.id+'\')" title="Eliminar"'+
+            ' style="background:none;border:none;color:var(--text-4);cursor:pointer;font-size:16px;padding:0;line-height:1;">×</button>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }
 
   var historialHTML='<div class="empty-state" style="font-size:12px;">Sin costos registrados aún</div>';
   if(_rentProjCostos.length){
@@ -208,6 +245,7 @@ function _buildExpand(p){
     '<div style="margin-bottom:14px;">'+
       '<div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Costos registrados</div>'+
       historialHTML+
+      asigHTML+
     '</div>'+
     // Form inline
     '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;padding:14px;" id="rent-inline-form-'+p.id+'">'+
@@ -250,6 +288,17 @@ function _buildExpand(p){
         '</div>'+
         '<button class="btn-primary" onclick="rentGuardar(\''+p.id+'\')" style="font-size:12px;padding:7px 18px;">Guardar</button>'+
       '</div>'+
+    '</div>'+
+    // Sección: Asignar factura recibida
+    '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;">'+
+      '<div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">🧾 Asignar factura recibida</div>'+
+      '<div style="position:relative;">'+
+        '<input type="text" id="rent-fact-search-'+p.id+'" placeholder="Buscar por proveedor o folio..." autocomplete="off"'+
+          ' oninput="rentBuscarFactura(\''+p.id+'\',this.value)"'+
+          ' style="width:100%;padding:6px 10px;border:.5px solid var(--border);border-radius:7px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;box-sizing:border-box;">'+
+        '<div id="rent-fact-dd-'+p.id+'" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:.5px solid var(--border);border-radius:8px;z-index:650;max-height:180px;overflow-y:auto;margin-top:3px;box-shadow:0 4px 20px var(--shadow);"></div>'+
+      '</div>'+
+      '<div id="rent-fact-info-'+p.id+'" style="display:none;margin-top:10px;"></div>'+
     '</div>'+
   '</div>';
 }
@@ -415,7 +464,150 @@ document.addEventListener('click',function(e){
   if(!e.target.closest('[id^="ri-subcat-"]')) {
     document.querySelectorAll('[id^="ri-subcat-dd-"]').forEach(function(dd){ dd.style.display='none'; });
   }
+  if(!e.target.closest('[id^="rent-fact-"]')) {
+    document.querySelectorAll('[id^="rent-fact-dd-"]').forEach(function(dd){ dd.style.display='none'; });
+  }
 });
+
+// ── Asignación de facturas ─────────────────────────────────
+function rentBuscarFactura(projId, q){
+  var dd=document.getElementById('rent-fact-dd-'+projId);
+  if(!q||q.length<2){ if(dd) dd.style.display='none'; return; }
+  clearTimeout(_rentFactTimer[projId]);
+  _rentFactTimer[projId]=setTimeout(async function(){
+    try{
+      var {data}=await sb.from('facturas')
+        .select('id,emisor_nombre,numero_factura,total,fecha,concepto')
+        .eq('tipo','recibida')
+        .or('emisor_nombre.ilike.%'+q+'%,numero_factura.ilike.%'+q+'%,concepto.ilike.%'+q+'%')
+        .order('fecha',{ascending:false}).limit(8);
+      if(!dd) return;
+      if(!(data&&data.length)){
+        dd.innerHTML='<div style="padding:8px 12px;font-size:12px;color:var(--text-3);">Sin resultados</div>';
+        dd.style.display='block'; return;
+      }
+      if(!_rentFactOpts[projId]) _rentFactOpts[projId]={};
+      data.forEach(function(f){ _rentFactOpts[projId][f.id]=f; });
+      dd.innerHTML=data.map(function(f){
+        return '<div style="padding:8px 12px;cursor:pointer;border-bottom:.5px solid var(--border);"'+
+          ' onmouseenter="this.style.background=\'var(--bg-card-2)\'" onmouseleave="this.style.background=\'\'"'+
+          ' onclick="rentSelFactura(\''+projId+'\',\''+f.id+'\')">'+
+          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(f.emisor_nombre||'—')+'</div>'+
+          '<div style="font-size:11px;color:var(--text-3);">'+(f.numero_factura||'Sin folio')+' · '+fmtDate(f.fecha)+' · <strong>'+fmt(parseFloat(f.total)||0)+'</strong></div>'+
+        '</div>';
+      }).join('');
+      dd.style.display='block';
+    }catch(e){ console.error('rentBuscarFactura:',e); }
+  },320);
+}
+
+async function rentSelFactura(projId, factId){
+  var f=(_rentFactOpts[projId]||{})[factId]; if(!f) return;
+  _rentFactSelData[projId]=f;
+  var dd=document.getElementById('rent-fact-dd-'+projId);
+  if(dd) dd.style.display='none';
+  var inp=document.getElementById('rent-fact-search-'+projId);
+  if(inp) inp.value=esc(f.emisor_nombre||'')+(f.numero_factura?' — '+f.numero_factura:'');
+  var infoEl=document.getElementById('rent-fact-info-'+projId); if(!infoEl) return;
+  infoEl.innerHTML='<div style="font-size:12px;color:var(--text-3);">Cargando disponibilidad...</div>';
+  infoEl.style.display='block';
+  // Cargar % ya asignado de esta factura
+  var {data:prevAsigs}=await sb.from('factura_asignaciones').select('proyecto_id,porcentaje,monto').eq('factura_id',factId);
+  var pctUsado=(prevAsigs||[]).reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
+  var pctDisp=Math.max(0,100-pctUsado);
+  var totalFact=parseFloat(f.total)||0;
+  infoEl.innerHTML=
+    // Info de la factura
+    '<div style="background:var(--bg-card-2);border:.5px solid var(--border);border-radius:7px;padding:8px 12px;margin-bottom:10px;font-size:12px;">'+
+      '<span style="font-weight:600;color:var(--text-1);">'+esc(f.emisor_nombre||'—')+'</span>'+
+      (f.numero_factura?'<span style="color:var(--text-3);"> · '+esc(f.numero_factura)+'</span>':'')+
+      '<span style="float:right;font-weight:700;color:var(--text-1);">'+fmt(totalFact)+'</span>'+
+      (f.concepto?'<div style="color:var(--text-3);margin-top:2px;font-size:11px;">'+esc(f.concepto.slice(0,60))+'</div>':'')+
+    '</div>'+
+    // Barra de disponibilidad
+    '<div style="margin-bottom:10px;">'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);margin-bottom:4px;">'+
+        '<span>Ya asignado: <strong>'+pctUsado.toFixed(1)+'%</strong> ('+fmt(totalFact*pctUsado/100)+')</span>'+
+        '<span>Disponible: <strong style="color:'+(pctDisp>0?'#16a34a':'#dc2626')+';">'+pctDisp.toFixed(1)+'%</strong></span>'+
+      '</div>'+
+      '<div style="height:6px;background:var(--bg-hover);border-radius:4px;overflow:hidden;">'+
+        '<div style="width:'+Math.min(100,pctUsado)+'%;height:100%;background:'+(pctUsado>=100?'#dc2626':'#f87171')+';border-radius:4px;"></div>'+
+      '</div>'+
+    '</div>'+
+    // Inputs: % y notas
+    '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">'+
+      '<div class="form-group" style="margin:0;flex:0 0 100px;">'+
+        '<label style="font-size:10px;">% a asignar</label>'+
+        '<input type="number" id="rent-fact-pct-'+projId+'" min="0.1" max="'+pctDisp+'" step="0.1" placeholder="40"'+
+          ' oninput="rentCalcAsig(\''+projId+'\')"'+
+          ' style="padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;width:100%;">'+
+      '</div>'+
+      '<div style="flex:0 0 90px;padding-bottom:1px;">'+
+        '<div style="font-size:10px;color:var(--text-3);margin-bottom:4px;">Monto</div>'+
+        '<div id="rent-fact-monto-'+projId+'" style="font-size:16px;font-weight:700;color:#16a34a;">$0</div>'+
+      '</div>'+
+      '<div class="form-group" style="margin:0;flex:1 1 140px;">'+
+        '<label style="font-size:10px;">Notas <span style="font-weight:400;color:var(--text-4);">(opcional)</span></label>'+
+        '<input type="text" id="rent-fact-notas-'+projId+'" placeholder="Ej: Acero estructura principal"'+
+          ' style="padding:5px 8px;border:.5px solid var(--border);border-radius:6px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;width:100%;">'+
+      '</div>'+
+      '<button class="btn-primary" onclick="rentGuardarAsig(\''+projId+'\')" style="font-size:12px;padding:7px 18px;flex:0 0 auto;">Asignar</button>'+
+    '</div>';
+}
+
+function rentCalcAsig(projId){
+  var f=_rentFactSelData[projId]; if(!f) return;
+  var pct=parseFloat((document.getElementById('rent-fact-pct-'+projId)||{}).value)||0;
+  var monto=(parseFloat(f.total)||0)*pct/100;
+  var el=document.getElementById('rent-fact-monto-'+projId);
+  if(el){ el.textContent=fmt(monto); el.style.color=monto>0?'#16a34a':'var(--text-3)'; }
+}
+
+async function rentGuardarAsig(projId){
+  var f=_rentFactSelData[projId];
+  if(!f){ showError('Selecciona una factura recibida'); return; }
+  var pct=parseFloat((document.getElementById('rent-fact-pct-'+projId)||{}).value)||0;
+  if(!pct||pct<=0){ showError('Ingresa un porcentaje válido'); return; }
+  var totalFact=parseFloat(f.total)||0;
+  var monto=totalFact*pct/100;
+  var notas=((document.getElementById('rent-fact-notas-'+projId)||{}).value||'').trim()||null;
+  // Validar que no exceda 100%
+  var {data:prevAsigs}=await sb.from('factura_asignaciones').select('porcentaje').eq('factura_id',f.id);
+  var pctUsado=(prevAsigs||[]).reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
+  if(pctUsado+pct>100.001){
+    showError('Excede el 100%. Disponible: '+(100-pctUsado).toFixed(1)+'%'); return;
+  }
+  try{
+    var {error}=await sb.from('factura_asignaciones').insert({
+      factura_id:f.id, proyecto_id:projId,
+      porcentaje:pct, monto:monto,
+      emisor_nombre:f.emisor_nombre||null,
+      numero_factura:f.numero_factura||null,
+      total_factura:totalFact||null,
+      notas:notas
+    });
+    if(error) throw error;
+    showStatus('✓ '+fmt(monto)+' asignado ('+pct+'% de factura)');
+    delete _rentFactSelData[projId];
+    // Actualizar listas en memoria y re-renderizar
+    var newRec={id:'tmp',proyecto_id:projId,monto:monto,porcentaje:pct,
+      emisor_nombre:f.emisor_nombre,numero_factura:f.numero_factura,total_factura:totalFact};
+    _rentProjAsig=[newRec].concat(_rentProjAsig);
+    _rentAllAsig=[{id:'tmp',proyecto_id:projId,monto:monto}].concat(_rentAllAsig);
+    filtrarRentabilidad(document.getElementById('rent-search').value||'');
+  }catch(e){ showError('Error: '+e.message); }
+}
+
+async function eliminarAsig(id, projId){
+  if(!confirm('¿Eliminar esta asignación?')) return;
+  try{
+    await sb.from('factura_asignaciones').delete().eq('id',id);
+    _rentProjAsig=_rentProjAsig.filter(function(a){return a.id!==id;});
+    _rentAllAsig=_rentAllAsig.filter(function(a){return a.id!==id;});
+    showStatus('Asignación eliminada');
+    filtrarRentabilidad(document.getElementById('rent-search').value||'');
+  }catch(e){ showError('Error: '+e.message); }
+}
 
 // Inicializar líneas al expandir (llamado desde _buildExpand vía DOM ready)
 function _initRentExpand(projId){

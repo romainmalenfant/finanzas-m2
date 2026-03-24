@@ -783,13 +783,51 @@ async function verDetalleFactura(id){
       (!f.conciliado&&f.estatus!=='cancelada'?'<button class="btn-sm" onclick="editarFactura(\''+f.id+'\')">Editar'+(esSAT?' (campos limitados)':'')+'</button>':'')+
       '<button class="btn-sm" style="color:#dc2626;border-color:#dc2626;" onclick="cancelarFactura(\''+f.id+'\')">Cancelar factura</button>'+
       (esSAT?'<span style="font-size:11px;color:var(--text-3);margin-left:4px;">Origen SAT · UUID, fechas y montos bloqueados</span>':'')+
-    '</div>';
+    '</div>'+
+    (f.tipo==='recibida'?
+      '<div class="detail-section" id="fact-asig-dist-'+f.id+'">'+
+        '<div class="detail-section-title">Distribución a proyectos</div>'+
+        '<div style="font-size:12px;color:var(--text-3);padding:4px 0;">Cargando...</div>'+
+      '</div>':''
+    );
 
   abrirDetail(nombre,'Factura '+(f.tipo==='emitida'?'emitida':'recibida'),ini,body, function(){cerrarDetail();editarFactura(f.id);});
+  if(f.tipo==='recibida') _loadFactDistribucion(f.id, parseFloat(f.total)||0);
 }
 
 function _copiarUUID(u){
   navigator.clipboard.writeText(u).then(function(){showStatus('UUID copiado al portapapeles');});
+}
+
+async function _loadFactDistribucion(factId, totalFact){
+  var el=document.getElementById('fact-asig-dist-'+factId); if(!el) return;
+  try{
+    var {data:asigs}=await sb.from('factura_asignaciones').select('*').eq('factura_id',factId).order('created_at');
+    asigs=asigs||[];
+    if(!asigs.length){ el.style.display='none'; return; }
+    var pctUsado=asigs.reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
+    var pctDisp=Math.max(0,100-pctUsado);
+    var html='<div class="detail-section-title">Distribución a proyectos</div>';
+    html+=asigs.map(function(a){
+      var proy=a.proyecto_id?(allProyectos||[]).find(function(p){return p.id===a.proyecto_id;}):null;
+      var proyNombre=proy?(proy.nombre_pedido||a.proyecto_id.slice(0,8)):(a.proyecto_id?a.proyecto_id.slice(0,8):'Sin proyecto');
+      return '<div class="detail-list-item">'+
+        '<div>'+
+          '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(proyNombre)+'</div>'+
+          '<div style="font-size:10px;color:var(--text-3);">'+parseFloat(a.porcentaje).toFixed(1)+'% del total'+(a.notas?' · '+esc(a.notas):'')+'</div>'+
+        '</div>'+
+        '<span style="font-weight:600;color:#dc2626;">'+fmt(parseFloat(a.monto)||0)+'</span>'+
+      '</div>';
+    }).join('');
+    if(pctDisp>0){
+      html+='<div style="font-size:11px;color:var(--text-3);margin-top:6px;padding:6px 0;border-top:.5px solid var(--border);">'+
+        'Sin asignar: <strong>'+pctDisp.toFixed(1)+'%</strong> = '+fmt(totalFact*pctDisp/100)+
+      '</div>';
+    }
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML='<div class="detail-section-title">Distribución</div><div style="color:#f87171;font-size:12px;">Error: '+e.message+'</div>';
+  }
 }
 
 async function _guardarVencimiento(id,fecha){

@@ -87,6 +87,7 @@ var APP_MODULES=[
   {id:'finanzas',label:'Flujo',icon:'🏦',color:'#6B6B6B',showPeriod:true},
   {id:'cotizaciones',label:'Cotizaciones',icon:'📄',color:'#E8192C',showPeriod:false},
   {id:'proyectos',label:'Proyectos',icon:'📋',color:'#B0B0B0',showPeriod:false},
+  {id:'rentabilidad',label:'Rentabilidad',icon:'📈',color:'#16a34a',showPeriod:false},
   {id:'clientes',label:'Empresas',icon:'🏢',color:'#E8192C',showPeriod:false},
   {id:'proveedores',label:'Proveedores',icon:'🛒',color:'#6B6B6B',showPeriod:false},
   {id:'contactos',label:'Contactos',icon:'👤',color:'#8B0000',showPeriod:false},

@@ -792,7 +792,7 @@ async function xmlConfirmarImport() {
         okVinculado++;
       } else {
         var numero = (parsed.serie ? parsed.serie + '-' : '') + (parsed.folio || '');
-        await DB.facturas.save({
+        await DB.facturas.upsert({
           id: parsed.uuid, uuid_sat: parsed.uuid,
           tipo: tipo,
           emisor_nombre: parsed.emisor_nombre, emisor_rfc: parsed.emisor_rfc,

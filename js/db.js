@@ -465,6 +465,13 @@ var DB = {
       return _dbQ('DB.facturas.save', op);
     },
 
+    // Upsert: INSERT si no existe, UPDATE si ya existe — para import XML
+    upsert: async function (data) {
+      return _dbQ('DB.facturas.upsert',
+        sb.from('facturas').upsert(data, { onConflict: 'id' })
+      );
+    },
+
     cancel: async function (id) {
       return _dbQArr('DB.facturas.cancel',
         sb.from('facturas').update({ estatus: 'cancelada' }).eq('id', id)

@@ -1649,12 +1649,24 @@
           <label>Notas adicionales</label>
           <textarea id="proj-notas" style="min-height:60px;margin-bottom:0;" placeholder="Observaciones, materiales, especificaciones..."></textarea>
         </div>
-        <div class="form-group">
-          <label>Contacto clave (opcional)</label>
-          <div class="ac-wrap">
-            <input type="text" id="proj-contacto-search" placeholder="Buscar contacto..." autocomplete="off">
-            <input type="hidden" id="proj-contacto-sel">
-            <div class="ac-dropdown" id="proj-contacto-dd"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Contacto de compras <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
+            <div class="ac-wrap">
+              <input type="text" id="proj-contacto-search" placeholder="Buscar contacto..." autocomplete="off">
+              <input type="hidden" id="proj-contacto-sel">
+              <div class="ac-dropdown" id="proj-contacto-dd"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:3px;">Quien nos contactó</div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label>Usuario <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
+            <div class="ac-wrap">
+              <input type="text" id="proj-usuario-search" placeholder="Buscar contacto..." autocomplete="off">
+              <input type="hidden" id="proj-usuario-sel">
+              <div class="ac-dropdown" id="proj-usuario-dd"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:3px;">Quien solicitó el servicio</div>
           </div>
         </div>
         <!-- Facturas SAT vinculadas — solo en edición -->

@@ -400,6 +400,11 @@ async function verDetalleProyecto(id){
       var {data:ct}=await sb.from('contactos').select('*').eq('id',p.contacto_id).maybeSingle();
       contactoClave=ct;
     }
+    var usuarioCliente=null;
+    if(p.usuario_cliente_id){
+      var {data:uct}=await sb.from('contactos').select('*').eq('id',p.usuario_cliente_id).maybeSingle();
+      usuarioCliente=uct;
+    }
 
     var body=
       '<div class="detail-section">'+
@@ -431,22 +436,27 @@ async function verDetalleProyecto(id){
           '</div>':
           '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">'+esc(p.nombre_cliente)+'</div>')+
       '</div>'+
-      // Contacto clave
-      '<div class="detail-section">'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'+
-          '<div class="detail-section-title" style="margin-bottom:0;">Contacto clave</div>'+
-          (empresa?'<button class="btn-sm" style="font-size:11px;" onclick="abrirNuevoContactoConVinculo(\'empresa\',\''+empresa.id+'\',\''+esc(empresa.nombre)+'\')" >+ Nuevo</button>':'')+ 
+      // Contactos del cliente
+      '<div class="detail-section"><div class="detail-section-title">Contactos del cliente</div>'+
+        '<div class="detail-grid">'+
+          // Contacto de compras
+          '<div class="detail-field">'+
+            '<div class="detail-field-label">Contacto de compras</div>'+
+            (contactoClave?
+              '<div class="detail-field-value">'+esc((contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:''))+'</div>'+
+              '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+(contactoClave.cargo||'')+(contactoClave.email?' · '+contactoClave.email:'')+'</div>':
+              '<div class="detail-field-value" style="color:var(--text-4);">—</div>')+
+          '</div>'+
+          // Usuario
+          '<div class="detail-field">'+
+            '<div class="detail-field-label">Usuario (solicitante)</div>'+
+            (usuarioCliente?
+              '<div class="detail-field-value">'+esc((usuarioCliente.nombre||'')+(usuarioCliente.apellido?' '+usuarioCliente.apellido:''))+'</div>'+
+              '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+(usuarioCliente.cargo||'')+(usuarioCliente.email?' · '+usuarioCliente.email:'')+'</div>':
+              '<div class="detail-field-value" style="color:var(--text-4);">—</div>')+
+          '</div>'+
         '</div>'+
-        (empresa?renderBuscarContactoHTML('empresa',empresa.id,empresa.nombre||''):'')+
-        '<div style="font-size:10px;color:var(--text-3);margin-bottom:6px;">'+
-          (empresa?'Busca un contacto de '+esc(empresa.nombre)+' para asignar como clave':'')+'</div>'+
-        (contactoClave?
-          '<div class="detail-list-item">'+
-            '<div><div style="font-size:13px;font-weight:500;color:var(--text-1);">'+(contactoClave.nombre||'')+(contactoClave.apellido?' '+contactoClave.apellido:'')+'</div>'+
-            '<div style="font-size:10px;color:var(--text-3);">'+(contactoClave.cargo||'')+(contactoClave.email?' · '+contactoClave.email:'')+'</div></div>'+
-            (contactoClave.telefono?'<span style="font-size:11px;color:var(--text-3);">'+esc(contactoClave.telefono)+'</span>':'')+
-          '</div>':
-          '<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin contacto clave asignado</div>')+
+        (empresa?'<div style="margin-top:8px;">'+renderBuscarContactoHTML('empresa',empresa.id,empresa.nombre||'')+'</div>':'')+
       '</div>'+
       // Entregas
       '<div class="detail-section">'+

@@ -1138,6 +1138,27 @@
     </div>
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"><span style="font-size:11px;color:var(--text-3);margin-right:2px;">Ordenar:</span><button onclick="sortProyectos('fecha_entrega')" id="proj-sort-fecha_entrega" style="display:inline-flex;align-items:center;padding:4px 10px;font-size:11px;font-weight:500;border:0.5px solid var(--border);border-radius:6px;background:;color:var(--text-3);cursor:pointer;font-family:inherit;transition:background .15s;">Entrega<span class="sort-arrow"></span></button><button onclick="sortProyectos('nombre_pedido')" id="proj-sort-nombre_pedido" style="display:inline-flex;align-items:center;padding:4px 10px;font-size:11px;font-weight:500;border:0.5px solid var(--border);border-radius:6px;background:;color:var(--text-3);cursor:pointer;font-family:inherit;transition:background .15s;">Pedido<span class="sort-arrow"></span></button><button onclick="sortProyectos('nombre_cliente')" id="proj-sort-nombre_cliente" style="display:inline-flex;align-items:center;padding:4px 10px;font-size:11px;font-weight:500;border:0.5px solid var(--border);border-radius:6px;background:;color:var(--text-3);cursor:pointer;font-family:inherit;transition:background .15s;">Cliente<span class="sort-arrow"></span></button><button onclick="sortProyectos('monto_total')" id="proj-sort-monto_total" style="display:inline-flex;align-items:center;padding:4px 10px;font-size:11px;font-weight:500;border:0.5px solid var(--border);border-radius:6px;background:;color:var(--text-3);cursor:pointer;font-family:inherit;transition:background .15s;">Monto<span class="sort-arrow"></span></button></div>
      <div id="proyectos-list"><div class="empty-state">Sin proyectos registrados</div></div>
+
+    <!-- Sección global de entregas -->
+    <div id="entregas-section" style="margin-top:2rem;">
+      <div class="mvmts-card" style="margin-bottom:1rem;">
+        <div class="mvmts-hdr">
+          <div class="sec-title" style="margin-bottom:0;">Últimas entregas</div>
+          <span style="font-size:11px;color:var(--text-3);" id="entregas-ultimas-count"></span>
+        </div>
+        <div id="entregas-ultimas-list"><div class="empty-state" style="font-size:12px;">Sin entregas registradas</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="mvmts-card">
+          <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Proyectos abiertos</div></div>
+          <div id="entregas-abiertos-list"><div class="empty-state" style="font-size:12px;">—</div></div>
+        </div>
+        <div class="mvmts-card">
+          <div class="mvmts-hdr"><div class="sec-title" style="margin-bottom:0;">Proyectos cerrados</div></div>
+          <div id="entregas-cerrados-list"><div class="empty-state" style="font-size:12px;">—</div></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tab Clientes -->

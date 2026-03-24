@@ -413,6 +413,70 @@ async function confirmarEntrega(){
   }catch(e){showError('Error al registrar entrega: '+e.message);}
 }
 
+// ── Render sección global de entregas ─────────────────────
+function renderEntregasSection(allProyectos, entregasByProyecto){
+  // Recopilar TODAS las entregas con referencia a su proyecto
+  var todas = [];
+  allProyectos.forEach(function(p){
+    var ents = entregasByProyecto[p.id]||[];
+    var entregadas = ents.reduce(function(a,e){return a+(parseFloat(e.piezas)||0);},0);
+    var est = estadoProyecto(p, entregadas);
+    ents.forEach(function(e){
+      todas.push({e:e, p:p, estado:est.lbl});
+    });
+  });
+  if(!todas.length){
+    ['entregas-ultimas-list','entregas-abiertos-list','entregas-cerrados-list'].forEach(function(id){
+      var el=document.getElementById(id); if(el) el.innerHTML='<div class="empty-state" style="font-size:12px;">Sin entregas registradas</div>';
+    });
+    var ct=document.getElementById('entregas-ultimas-count'); if(ct) ct.textContent='';
+    return;
+  }
+
+  function rowHTML(item, showProj){
+    var e=item.e, p=item.p;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border);font-size:12px;">'+
+      '<span style="color:var(--text-3);min-width:80px;">'+fmtDate(e.fecha)+'</span>'+
+      (showProj?'<span style="color:#60a5fa;font-weight:500;min-width:120px;cursor:pointer;" onclick="verDetalleProyecto(\''+p.id+'\')">'+esc(p.nombre_pedido)+'</span>':'')+
+      '<span style="font-weight:600;min-width:55px;">'+e.piezas+' pzs</span>'+
+      '<span style="color:#3B6D11;min-width:90px;">'+(e.factura_monto?fmt(parseFloat(e.factura_monto)||0):'—')+'</span>'+
+      '<span style="color:var(--text-3);">'+(e.factura_numero?esc(e.factura_numero):'')+(e.notas?' · '+esc(e.notas):'')+'</span>'+
+    '</div>';
+  }
+
+  function proyGrupoHTML(proyId, projNombre, ents){
+    return '<div style="margin-bottom:10px;">'+
+      '<div style="font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:4px;cursor:pointer;" onclick="verDetalleProyecto(\''+proyId+'\')">'+esc(projNombre)+'</div>'+
+      ents.map(function(item){ return rowHTML(item, false); }).join('')+
+    '</div>';
+  }
+
+  // Últimas entregas (todas, ordenadas por fecha desc, top 15)
+  var ultimas = todas.slice().sort(function(a,b){ return (b.e.fecha||'').localeCompare(a.e.fecha||''); }).slice(0,15);
+  var ulEl = document.getElementById('entregas-ultimas-list');
+  var ct = document.getElementById('entregas-ultimas-count');
+  if(ulEl) ulEl.innerHTML = ultimas.map(function(item){ return rowHTML(item, true); }).join('') || '<div class="empty-state" style="font-size:12px;">—</div>';
+  if(ct) ct.textContent = todas.length + ' entrega'+(todas.length!==1?'s':'');
+
+  // Abiertos = En proceso + Atrasado; Cerrados = Completado
+  var byProjAb={}, projOrderAb=[];
+  var byProjCe={}, projOrderCe=[];
+  todas.forEach(function(item){
+    var est=item.estado;
+    if(est==='Completado'){
+      if(!byProjCe[item.p.id]){byProjCe[item.p.id]=[];projOrderCe.push(item.p);}
+      byProjCe[item.p.id].push(item);
+    } else {
+      if(!byProjAb[item.p.id]){byProjAb[item.p.id]=[];projOrderAb.push(item.p);}
+      byProjAb[item.p.id].push(item);
+    }
+  });
+  var elAb=document.getElementById('entregas-abiertos-list');
+  var elCe=document.getElementById('entregas-cerrados-list');
+  if(elAb) elAb.innerHTML=projOrderAb.length?projOrderAb.map(function(p){ return proyGrupoHTML(p.id,p.nombre_pedido,byProjAb[p.id]); }).join(''):'<div class="empty-state" style="font-size:12px;">—</div>';
+  if(elCe) elCe.innerHTML=projOrderCe.length?projOrderCe.map(function(p){ return proyGrupoHTML(p.id,p.nombre_pedido,byProjCe[p.id]); }).join(''):'<div class="empty-state" style="font-size:12px;">—</div>';
+}
+
 // ── Proyectos KPIs + filtros ──────────────────────────────
 function initProjYearFilter(){
   var sel=document.getElementById('proj-year-filter');
@@ -498,6 +562,7 @@ async function loadProyectos(){
     document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
     proyectos=filtered; allProyectos=filtered;
     renderProyectos();
+    renderEntregasSection(all, entregasByProyecto);
     updateBadges();
   }catch(e){console.error('Proyectos:',e);}
 }

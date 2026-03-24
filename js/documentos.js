@@ -46,10 +46,8 @@ async function docsBuscar() {
 }
 
 async function _docsFetch(q, año, tipo, archivo) {
-  var sb2 = window.sb;
-
   function base() {
-    var qb = sb2.from('facturas')
+    var qb = sb.from('facturas')
       .select('id,uuid_sat,emisor_nombre,receptor_nombre,numero_factura,total,fecha,tipo,xml_path,pdf_path')
       .or('xml_path.not.is.null,pdf_path.not.is.null');
     if (año)     qb = qb.eq('year', parseInt(año));

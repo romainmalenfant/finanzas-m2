@@ -12,6 +12,10 @@ var RENT_CAT_LABELS = {
 
 // ── Carga principal ───────────────────────────────────────
 async function loadRentabilidad(){
+  // Reset al entrar al tab — colapsa cualquier proyecto abierto
+  _rentExpanded = null;
+  _rentProjCostos = [];
+  _rentLineasByProj = {};
   var el = document.getElementById('rent-list');
   if(!el) return;
   try{
@@ -103,6 +107,10 @@ function renderRentList(projs){
       '<span style="text-align:right;">%</span><span>Costos/Ingresos</span>'+
     '</div>'+
     (rows||'<div class="empty-state">Sin proyectos</div>');
+  // Si hay un proyecto expandido, inicializar sus líneas de captura
+  if(_rentExpanded){
+    setTimeout(function(){ _initRentExpand(_rentExpanded); }, 0);
+  }
 }
 
 // ── Expand inline ─────────────────────────────────────────
@@ -125,7 +133,10 @@ async function toggleRentProyecto(id){
       .select('*').eq('proyecto_id',id).order('semana',{ascending:false}).order('created_at',{ascending:false});
     _rentProjCostos=costos||[];
     var p=(allProyectos||[]).find(function(x){return x.id===id;});
-    if(expandEl&&p) expandEl.innerHTML=_buildExpand(p);
+    if(expandEl&&p){
+      expandEl.innerHTML=_buildExpand(p);
+      setTimeout(function(){ _initRentExpand(id); }, 0);
+    }
   }catch(e){ if(expandEl) expandEl.innerHTML='<div style="padding:12px;color:#f87171;font-size:12px;">Error: '+e.message+'</div>'; }
 }
 

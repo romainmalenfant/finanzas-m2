@@ -202,26 +202,9 @@ function docsPreviewClose() {
 // ── Upload / Drag & Drop ──────────────────────────────────
 function docsHandleFiles(files) {
   if (!files || !files.length) return;
-  var arr = Array.from(files);
-
-  var xmls = arr.filter(function(f){ return f.name.toLowerCase().endsWith('.xml'); });
-  var pdfs = arr.filter(function(f){ return f.name.toLowerCase().endsWith('.pdf'); });
-  var otros = arr.filter(function(f){
-    var n = f.name.toLowerCase();
-    return !n.endsWith('.xml') && !n.endsWith('.pdf');
-  });
-
-  if (otros.length) {
-    showError('Formato no soportado: ' + otros.map(function(f){ return f.name; }).join(', ') + '. Solo se aceptan XML y PDF.');
-  }
-  if (pdfs.length) {
-    showError('Los PDFs se adjuntan desde el detalle de cada factura.');
-  }
-  if (xmls.length) {
-    // Reusar el flujo de importarXMLsCFDI pasando los files directamente
-    var fakeInput = { files: xmls, value: '' };
-    importarXMLsCFDI(fakeInput);
-  }
+  // Pasar todos los archivos al flujo unificado — importarXMLsCFDI separa por extensión internamente
+  var fakeInput = { files: Array.from(files), value: '' };
+  importarXMLsCFDI(fakeInput);
 }
 
 var _docsDragTimeout = null;

@@ -141,6 +141,11 @@ function docsRender(rows) {
       ? '<span style="color:#34d399;font-size:13px;" title="Conciliada">✓</span>'
       : '<span style="color:#f59e0b;font-size:11px;">Pendiente</span>';
 
+    var uuid = r.uuid_sat || r.id || '';
+    var copyBtn = uuid
+      ? '<button onclick="docsCopiarUUID(\''+uuid+'\',this)" title="Copiar UUID" style="background:none;border:none;cursor:pointer;color:var(--text-3,#aaa);font-size:12px;padding:0 4px;opacity:.5;" onmouseenter="this.style.opacity=1" onmouseleave="this.style.opacity=.5">⧉</button>'
+      : '';
+
     var archivos = '';
     if (r.xml_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.xml_path+'\',\'xml\')">XML</button> ';
     if (r.pdf_path) archivos += '<button class="btn-sm" style="padding:3px 8px;font-size:11px;" onclick="docsAbrir(\''+r.pdf_path+'\',\'pdf\')">PDF</button>';
@@ -148,7 +153,7 @@ function docsRender(rows) {
     var rowStyle = 'border-bottom:1px solid var(--border);cursor:default;' + (cancelada ? 'opacity:.6;' : '');
     html += '<tr style="'+rowStyle+'" onmouseenter="this.style.background=\'var(--bg-card-2)\'" onmouseleave="this.style.background=\'\'">' +
       '<td style="padding:8px 8px;color:var(--text-1);">'+_docsEsc(empresa)+'</td>' +
-      '<td style="padding:8px 8px;color:var(--text-2);">'+_docsEsc(folio)+'</td>' +
+      '<td style="padding:8px 8px;color:var(--text-2);">'+_docsEsc(folio)+copyBtn+'</td>' +
       '<td style="padding:8px 8px;color:var(--text-3);">'+fecha+'</td>' +
       '<td style="padding:8px 8px;text-align:right;color:var(--text-1);">'+total+'</td>' +
       '<td style="padding:8px 8px;">'+tipoLabel+'</td>' +
@@ -196,4 +201,18 @@ function docsPreviewClose() {
 // ── Helpers ───────────────────────────────────────────────
 function _docsEsc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function docsCopiarUUID(uuid, btn) {
+  navigator.clipboard.writeText(uuid).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✓';
+    btn.style.color = '#34d399';
+    btn.style.opacity = '1';
+    setTimeout(function() {
+      btn.textContent = orig;
+      btn.style.color = '';
+      btn.style.opacity = '.5';
+    }, 1500);
+  });
 }

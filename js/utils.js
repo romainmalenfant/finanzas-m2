@@ -115,20 +115,13 @@ async function loadMovements(){
   try{
     // P1-a: load movimientos (cobranza/gasto/BBVA) AND ventas from facturas in parallel
     var todosLosMeses=(curMonth===-1);
-    var qMov=sb.from(TABLE).select('*').eq('year',curYear).in('origen',['manual','banco_abono','banco_cargo']);
-    if(!todosLosMeses)qMov=qMov.eq('month',curMonth+1);
-    var qFact=sb.from('facturas').select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
-      .eq('tipo','emitida').eq('year',curYear);
-    if(!todosLosMeses)qFact=qFact.eq('month',curMonth+1);
+    var mesFlujo = todosLosMeses ? 0 : curMonth+1;
     var results=await Promise.all([
-      qMov.order('fecha',{ascending:false}),
-      qFact.order('fecha',{ascending:false})
+      DB.movimientos.flujo(curYear, mesFlujo),
+      DB.facturas.emitidasFlujo(curYear, mesFlujo)
     ]);
-    if(results[0].error)throw results[0].error;
-    // Facturas query failure is non-fatal — degrade gracefully
-    movements=results[0].data||[];
-    ventasMes=results[1].error ? [] : (results[1].data||[]).filter(function(f){return f.estatus!=='cancelada';});
-    if(results[1].error) console.warn('loadMovements: facturas query failed:', results[1].error.message);
+    movements=results[0];
+    ventasMes=(results[1]||[]).filter(function(f){return f.estatus!=='cancelada';});
     setSyncState(true);
     render();
     loadYTD();
@@ -142,11 +135,11 @@ async function loadYTD(){
   try{
     // P1-a: ventas YTD from facturas, cobranza/gastos from movimientos_v2
     var results=await Promise.all([
-      sb.from(TABLE).select('categoria,monto').eq('year',curYear),
-      sb.from('facturas').select('total').eq('tipo','emitida').eq('year',curYear).neq('estatus','cancelada')
+      DB.movimientos.ytdKPIs(curYear),
+      DB.facturas.emitidasYTDTotal(curYear)
     ]);
-    var mvData=results[0].data||[];
-    var ventasYTD=(results[1].data||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
+    var mvData=results[0];
+    var ventasYTD=(results[1]||[]).reduce(function(a,f){return a+(parseFloat(f.total)||0);},0);
     var cobr=mvData.filter(function(m){return m.categoria==='cobranza';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var gastos=mvData.filter(function(m){return m.categoria==='gasto'||m.categoria==='compra';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
     var cxc=mvData.filter(function(m){return m.categoria==='cuenta_por_cobrar';}).reduce(function(a,m){return a+(parseFloat(m.monto)||0);},0);
@@ -161,10 +154,7 @@ async function loadYTD(){
   }catch(e){console.error('YTD error:',e);}
 }
 
-async function insertMovement(mv){
-  var {error}=await sb.from('movimientos_v2').insert([mv]);
-  if(error)throw error;
-}
+async function insertMovement(mv){ await DB.movimientos.save(mv); }
 
 
 // ── Autocomplete helper ───────────────────────────────────

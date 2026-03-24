@@ -890,6 +890,68 @@ var DB = {
         sb.from('facturas').select('total').eq('tipo', 'emitida').eq('sin_factura', true).eq('year', y)
       );
     },
+
+    /** Facturas emitidas para el tab Flujo (full cols, year + mes opcional). */
+    emitidasFlujo: async function (año, mes) {
+      var y = año || new Date().getFullYear();
+      var q = sb.from('facturas')
+        .select('id,fecha,total,receptor_nombre,cliente_id,concepto,numero_factura,sin_factura,numero_vta,metodo_pago,conciliado,estatus')
+        .eq('tipo', 'emitida').eq('year', y);
+      if (mes && mes > 0) q = q.eq('month', mes);
+      return _dbQArr('DB.facturas.emitidasFlujo', q.order('fecha', { ascending: false }));
+    },
+
+    /** Solo totales de emitidas para cálculo YTD en Flujo. */
+    emitidasYTDTotal: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.facturas.emitidasYTDTotal',
+        sb.from('facturas').select('total').eq('tipo', 'emitida').eq('year', y).neq('estatus', 'cancelada')
+      );
+    },
+
+    /** Todas las facturas pendientes de conciliación (sin filtro de tipo). */
+    pendientesConc: async function () {
+      return _dbQArr('DB.facturas.pendientesConc',
+        sb.from('facturas')
+          .select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .in('efecto_sat', ['Ingreso', 'ingreso'])
+      );
+    },
+
+    /** Facturas pendientes de conciliación de un tipo específico. */
+    pendientesConcTipo: async function (tipo) {
+      return _dbQArr('DB.facturas.pendientesConcTipo',
+        sb.from('facturas')
+          .select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
+          .eq('tipo', tipo)
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+      );
+    },
+
+    /** Facturas pendientes de conciliación en un rango de monto (±10%). */
+    pendientesConcRango: async function (tipo, min, max) {
+      return _dbQArr('DB.facturas.pendientesConcRango',
+        sb.from('facturas')
+          .select('id,receptor_nombre,emisor_nombre,numero_factura,fecha,total,metodo_pago,concepto')
+          .eq('tipo', tipo)
+          .eq('conciliado', false)
+          .neq('estatus', 'cancelada')
+          .gte('total', min)
+          .lte('total', max)
+      );
+    },
+
+    /** Cuenta facturas de venta directa (VTA-año-NNN) para generar siguiente número. */
+    contarVta: async function (año) {
+      var res = await sb.from('facturas')
+        .select('*', { count: 'exact', head: true })
+        .ilike('numero_vta', 'VTA-' + año + '-%');
+      if (res.error) throw new Error('[DB.facturas.contarVta] ' + res.error.message);
+      return res.count || 0;
+    },
   },
 
   // ── movimientos_v2 ─────────────────────────────────────────────────────
@@ -976,6 +1038,129 @@ var DB = {
       );
     },
 
+    /** Movimientos flujo (manual/banco) de un año, mes opcional. */
+    flujo: async function (año, mes) {
+      var y = año || new Date().getFullYear();
+      var q = sb.from('movimientos_v2').select('*')
+        .eq('year', y)
+        .in('origen', ['manual', 'banco_abono', 'banco_cargo']);
+      if (mes && mes > 0) q = q.eq('month', mes);
+      return _dbQArr('DB.movimientos.flujo', q.order('fecha', { ascending: false }));
+    },
+
+    /** KPIs YTD: categoria+monto para todo el año. */
+    ytdKPIs: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.movimientos.ytdKPIs',
+        sb.from('movimientos_v2').select('categoria,monto').eq('year', y)
+      );
+    },
+
+    /** Todos los movimientos de un mes (sin filtro de origen, para reportes). */
+    porMes: async function (año, mes) {
+      return _dbQArr('DB.movimientos.porMes',
+        sb.from('movimientos_v2').select('*').eq('year', año).eq('month', mes).order('fecha', { ascending: true })
+      );
+    },
+
+    /** Ventas YTD por cliente (contraparte,monto) para KPIs de empresas. */
+    ventasYTD: async function (año) {
+      var y = año || new Date().getFullYear();
+      return _dbQArr('DB.movimientos.ventasYTD',
+        sb.from('movimientos_v2').select('contraparte,monto').eq('categoria', 'venta').eq('year', y)
+      );
+    },
+
+    /** Movimientos SAT emitida vinculados a un proyecto. */
+    satLinkedProyecto: async function (proyId) {
+      return _dbQArr('DB.movimientos.satLinkedProyecto',
+        sb.from('movimientos_v2')
+          .select('id,fecha,monto,numero_factura,conciliado')
+          .eq('origen', 'sat_emitida')
+          .eq('proyecto_id', proyId)
+      );
+    },
+
+    /** Movimientos SAT emitida disponibles para un cliente (sin proyecto asignado). */
+    satDisponiblesProyecto: async function (clienteId) {
+      return _dbQArr('DB.movimientos.satDisponiblesProyecto',
+        sb.from('movimientos_v2')
+          .select('id,fecha,monto,numero_factura,contraparte')
+          .eq('origen', 'sat_emitida')
+          .eq('cliente_id', clienteId)
+          .is('proyecto_id', null)
+      );
+    },
+
+    /** Asigna o desasigna un proyecto a un movimiento. */
+    setProyecto: async function (id, proyId) {
+      return _dbQArr('DB.movimientos.setProyecto',
+        sb.from('movimientos_v2').update({ proyecto_id: proyId || null }).eq('id', id)
+      );
+    },
+
+    /** SAT emitidas pendientes de conciliación para un cliente (por id o RFC). */
+    satPendientesCliente: async function (clienteId, rfc) {
+      var cols = 'id,descripcion,monto,fecha,moneda,numero_factura,tipo_cambio,contraparte,rfc_contraparte';
+      var r1 = clienteId
+        ? await _dbQArr('DB.movimientos.satPendientesCliente:id',
+            sb.from('movimientos_v2').select(cols).eq('origen', 'sat_emitida').eq('conciliado', false).eq('cliente_id', clienteId))
+        : [];
+      var r2 = rfc
+        ? await _dbQArr('DB.movimientos.satPendientesCliente:rfc',
+            sb.from('movimientos_v2').select(cols).eq('origen', 'sat_emitida').eq('conciliado', false).eq('rfc_contraparte', rfc))
+        : [];
+      var seen = {};
+      return r1.concat(r2).filter(function (m) {
+        if (seen[m.id]) return false; return (seen[m.id] = true);
+      });
+    },
+
+    /** Vincula un movimiento SAT a otro como movimiento relacionado. */
+    linkRelacionado: async function (id, relId) {
+      return _dbQArr('DB.movimientos.linkRelacionado',
+        sb.from('movimientos_v2').update({ conciliado: true, movimiento_relacionado_id: relId }).eq('id', id)
+      );
+    },
+
+    /** Último saldo registrado desde importaciones banco (banco_abono/banco_cargo). */
+    ultimoSaldoBanco: async function () {
+      return _dbQ('DB.movimientos.ultimoSaldoBanco',
+        sb.from('movimientos_v2').select('saldo,fecha')
+          .in('origen', ['banco_abono', 'banco_cargo'])
+          .order('fecha', { ascending: false })
+          .order('orden', { ascending: false })
+          .limit(1).maybeSingle()
+      );
+    },
+
+    /** Verifica cuáles IDs ya existen en la tabla. */
+    checkExistentes: async function (ids) {
+      if (!ids || !ids.length) return [];
+      return _dbQArr('DB.movimientos.checkExistentes',
+        sb.from('movimientos_v2').select('id').in('id', ids)
+      );
+    },
+
+    /** Movimientos banco (banco_abono/banco_cargo) para un año, mes opcional. */
+    bancoCargos: async function (año, mes) {
+      var y = año || new Date().getFullYear();
+      var q = sb.from('movimientos_v2').select('*')
+        .eq('year', y)
+        .in('origen', ['banco_abono', 'banco_cargo']);
+      if (mes && mes > 0) q = q.eq('month', mes);
+      return _dbQArr('DB.movimientos.bancoCargos',
+        q.order('fecha', { ascending: false }).order('orden', { ascending: false })
+      );
+    },
+
+    /** Actualiza la categoría de un movimiento. */
+    updateCategoria: async function (id, cat) {
+      return _dbQArr('DB.movimientos.updateCategoria',
+        sb.from('movimientos_v2').update({ categoria: cat }).eq('id', id)
+      );
+    },
+
     /** Movimientos vinculados a un conjunto de facturas (para complementos). */
     byFacturas: async function (ids) {
       if (!ids || !ids.length) return [];
@@ -1046,8 +1231,8 @@ var DB = {
         sb.from('proyecto_costos')
           .select('*')
           .eq('proyecto_id', id)
-          .order('semana')
-          .order('created_at')
+          .order('semana', { ascending: false })
+          .order('created_at', { ascending: false })
       );
     },
 

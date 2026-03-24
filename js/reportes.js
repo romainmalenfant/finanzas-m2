@@ -44,9 +44,7 @@ async function generarReporte(){
 }
 
 async function fetchMes(año,mes){
-  var {data,error}=await sb.from(TABLE).select('*').eq('year',año).eq('month',mes).order('fecha',{ascending:true});
-  if(error)throw error;
-  return data||[];
+  return await DB.movimientos.porMes(año, mes);
 }
 
 function calcMetrics(mvts){

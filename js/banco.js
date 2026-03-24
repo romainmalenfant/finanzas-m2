@@ -123,9 +123,7 @@ async function mostrarPreviewBanco(movs,fileName){
   // Continuidad con mes anterior
   var continuityHtml='';
   try{
-    var {data:last}=await sb.from('movimientos_v2').select('saldo,fecha')
-      .in('origen',['banco_abono','banco_cargo'])
-      .order('fecha',{ascending:false}).order('orden',{ascending:false}).limit(1).maybeSingle();
+    var last=await DB.movimientos.ultimoSaldoBanco();
     if(last&&last.saldo!=null){
       var saldoAntes = firstMov.saldo+firstMov.cargo-firstMov.abono;
       var diff=Math.abs((parseFloat(last.saldo)||0)-saldoAntes);
@@ -218,8 +216,7 @@ async function confirmarImportBanco(){
     var ids=allRows.map(function(r){return r.id;});
 
     // Consultar cuáles IDs ya existen en BD
-    var {data:existing,error:qErr}=await sb.from('movimientos_v2').select('id').in('id',ids);
-    if(qErr) throw qErr;
+    var existing=await DB.movimientos.checkExistentes(ids);
 
     var existingSet=new Set((existing||[]).map(function(r){return r.id;}));
     var newRows=allRows.filter(function(r){return !existingSet.has(r.id);});
@@ -276,8 +273,7 @@ async function _ejecutarImportBanco(){
   try{
     var rows=_rowsPendingImport;
     if(!rows||!rows.length){cerrarSATPreview();return;}
-    var {error}=await sb.from('movimientos_v2').upsert(rows,{onConflict:'id',ignoreDuplicates:false});
-    if(error) throw error;
+    await DB.movimientos.upsertBanco(rows);
     var cntA=rows.filter(function(r){return r.tipo==='ingreso';}).length;
     var cntC=rows.filter(function(r){return r.tipo==='egreso';}).length;
     cerrarSATPreview();
@@ -309,11 +305,7 @@ async function loadBanco(){
       });
     }
     var mes=monthSel?parseInt(monthSel.value||0):0;
-    var q=sb.from('movimientos_v2').select('*').eq('year',año).in('origen',['banco_abono','banco_cargo']);
-    if(mes>0)q=q.eq('month',mes);
-    var {data,error}=await q.order('fecha',{ascending:false}).order('orden',{ascending:false});
-    if(error) throw error;
-    _bancoData=data||[];
+    _bancoData=await DB.movimientos.bancoCargos(año, mes);
     _renderBancoKPIs(_bancoData);
     _renderMovsBanco(_bancoData);
   }catch(e){console.error('loadBanco:',e);}
@@ -353,7 +345,7 @@ function _catSelect(id, current){
 }
 async function _cambiarCategoria(id, cat){
   try{
-    await sb.from('movimientos_v2').update({categoria:cat}).eq('id',id);
+    await DB.movimientos.updateCategoria(id, cat);
     var mi=_bancoData.findIndex(function(m){return m.id===id;});
     if(mi>=0) _bancoData[mi].categoria=cat;
     _renderMovsBanco(_bancoData);
@@ -400,9 +392,7 @@ async function conciliarMes(){
   if(!toMatch.length){showStatus('No hay movimientos pendientes de conciliar.');return;}
   showStatus('Buscando matches…',0);
   try{
-    var {data:facts}=await sb.from('facturas').select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
-      .eq('conciliado',false).neq('estatus','cancelada').in('efecto_sat',['Ingreso','ingreso']);
-    var fl=facts||[];
+    var fl=await DB.facturas.pendientesConc();
     _todasFacturasConc=fl;
     var matches=toMatch.map(function(m){
       var monto=parseFloat(m.abono||m.cargo)||0;
@@ -423,9 +413,7 @@ async function abrirConciliacion(movId){
   var monto=parseFloat(m.abono||m.cargo)||0;
   var esAbono=(m.abono||0)>0;
   try{
-    var {data:facts}=await sb.from('facturas').select('id,tipo,receptor_nombre,emisor_nombre,total,fecha')
-      .eq('tipo',esAbono?'emitida':'recibida').eq('conciliado',false).neq('estatus','cancelada');
-    _todasFacturasConc=facts||[];
+    _todasFacturasConc=await DB.facturas.pendientesConcTipo(esAbono?'emitida':'recibida');
     var candidatos=_todasFacturasConc.filter(function(f){return Math.abs((parseFloat(f.total)||0)-monto)<=1.0;});
     _mostrarModalConciliacion([{mov:m,candidatos:candidatos}]);
   }catch(e){showError('Error: '+e.message);}
@@ -521,8 +509,8 @@ async function _confirmarConcMatch(xi){
   radios.forEach(function(r){if(r.checked)factId=r.value;});
   if(!factId)return;
   try{
-    await sb.from('facturas').update({conciliado:true}).eq('id',factId);
-    await sb.from('movimientos_v2').update({conciliado:true,factura_id:factId}).eq('id',x.mov.id);
+    await DB.facturas.conciliar(factId);
+    await DB.movimientos.conciliar(x.mov.id, factId);
     var mi=_bancoData.findIndex(function(m){return m.id===x.mov.id;});
     if(mi>=0){_bancoData[mi].conciliado=true;_bancoData[mi].factura_id=factId;}
     _concMatches.splice(xi,1);
@@ -536,7 +524,7 @@ async function _confirmarConcMatch(xi){
 async function _forzarConciliacion(xi){
   var x=_concMatches[xi];if(!x)return;
   try{
-    await sb.from('movimientos_v2').update({conciliado:true}).eq('id',x.mov.id);
+    await DB.movimientos.conciliar(x.mov.id);
     var mi=_bancoData.findIndex(function(m){return m.id===x.mov.id;});
     if(mi>=0){_bancoData[mi].conciliado=true;}
     _concMatches.splice(xi,1);

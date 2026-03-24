@@ -37,8 +37,7 @@ function updateBadges(){
 
 function invalidateMovementCache(){cacheInvalidate('ytd_'+new Date().getFullYear());_ytdMvmts=null;_cxcRows=null;_cxpRows=null;}
 async function deleteRow(id){
-  var {error}=await sb.from(TABLE).delete().eq('id',id);
-  if(error)throw error;
+  await DB.movimientos.delete(id);
 }
 
 // ── Proyectos DB ─────────────────────────────────────────
@@ -47,40 +46,25 @@ async function deleteRow(id){
 // ── Clientes DB ──────────────────────────────────────────
 async function loadClientes(){
   try{
-    var {data,error}=await sb.from('clientes').select('*').order('nombre',{ascending:true});
-    if(error)throw error;
-    clientes=data||[];
+    clientes=await DB.clientes.list();
     renderClientes();
   }catch(e){console.error('Clientes error:',e);}
 }
 
-async function upsertCliente(c){
-  var {error}=await sb.from('clientes').upsert([c]);
-  if(error)throw error;
-}
+async function upsertCliente(c){ await DB.clientes.save(c); }
 
-async function deleteCliente(id){
-  var {error}=await sb.from('clientes').delete().eq('id',id);
-  if(error)throw error;
-}
+async function deleteCliente(id){ await DB.clientes.softDelete(id); }
 
 
 
-async function upsertProyecto(proj){
-  var {error}=await sb.from('proyectos').upsert([proj]);
-  if(error)throw error;
-}
+async function upsertProyecto(proj){ await DB.proyectos.save(proj); }
 
 async function deleteProyecto(id){
-  var {error}=await sb.from('proyectos').delete().eq('id',id);
-  if(error)throw error;
-  await sb.from('entregas').delete().eq('proyecto_id',id);
+  await DB.proyectos.softDelete(id);
+  await DB.entregas.softDeleteByProyecto(id);
 }
 
-async function insertEntrega(entrega){
-  var {error}=await sb.from('entregas').insert([entrega]);
-  if(error)throw error;
-}
+async function insertEntrega(entrega){ await DB.entregas.insert(entrega); }
 
 // ── Navigation ───────────────────────────────────────────
 function handleKey(e){if(e.ctrlKey&&e.key==='Enter')processMovement();}

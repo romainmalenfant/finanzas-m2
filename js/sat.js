@@ -352,7 +352,7 @@ async function confirmarImportSAT(){
     var rfcsE=[...new Set(satPendingEmitidas.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
     var rfcToClienteId={};
     if(rfcsE.length){
-      var {data:cliMatch}=await sb.from('clientes').select('id,rfc').in('rfc',rfcsE);
+      var cliMatch=await DB.clientes.byRFC(rfcsE);
       (cliMatch||[]).forEach(function(c){rfcToClienteId[c.rfc]=c.id;});
     }
 
@@ -360,7 +360,7 @@ async function confirmarImportSAT(){
     var rfcsR=[...new Set(satPendingRecibidas.map(function(f){return f.rfc_emisor;}).filter(Boolean))];
     var rfcToProvId={};
     if(rfcsR.length){
-      var {data:provMatch}=await sb.from('proveedores').select('id,rfc').in('rfc',rfcsR);
+      var provMatch=await DB.proveedores.byRFC(rfcsR);
       (provMatch||[]).forEach(function(p){rfcToProvId[p.rfc]=p.id;});
     }
 
@@ -424,8 +424,7 @@ async function confirmarImportSAT(){
     });
 
     if(factRows.length){
-      var {error}=await sb.from('facturas').upsert(factRows,{onConflict:'uuid_sat',ignoreDuplicates:true});
-      if(error)throw error;
+      await DB.facturas.upsertSAT(factRows);
     }
 
     // Auto-crear clientes
@@ -434,23 +433,23 @@ async function confirmarImportSAT(){
       var emitidasParaClientes=satPendingEmitidas.filter(function(f){var ef=(f.efecto||'').toLowerCase();return ef!=='nómina'&&ef!=='nomina'&&ef!=='pago';});
       var rfcsE=[...new Set(emitidasParaClientes.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
       if(rfcsE.length){
-        var {data:cEx}=await sb.from('clientes').select('rfc').in('rfc',rfcsE);
+        var cEx=await DB.clientes.byRFC(rfcsE);
         var rfcsExist=new Set((cEx||[]).map(function(c){return c.rfc;}));
         var nc={};
         emitidasParaClientes.forEach(function(f){if(!f.rfc_receptor||rfcsExist.has(f.rfc_receptor)||nc[f.rfc_receptor])return;nc[f.rfc_receptor]={id:'cli_'+f.rfc_receptor.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,16),nombre:f.nombre_receptor||f.rfc_receptor,rfc:f.rfc_receptor,condiciones_pago:'30'};});
         var ncArr=Object.values(nc);
-        if(ncArr.length){await sb.from('clientes').upsert(ncArr,{onConflict:'rfc',ignoreDuplicates:true});clientesNuevos=ncArr.length;}
+        if(ncArr.length){await DB.clientes.upsertBulk(ncArr);clientesNuevos=ncArr.length;}
       }
     }
     if(satPendingRecibidas.length){
       var rfcsR=[...new Set(satPendingRecibidas.map(function(f){return f.rfc_emisor;}).filter(Boolean))];
       if(rfcsR.length){
-        var {data:pEx}=await sb.from('proveedores').select('rfc').in('rfc',rfcsR);
+        var pEx=await DB.proveedores.byRFC(rfcsR);
         var rfcsPEx=new Set((pEx||[]).map(function(p){return p.rfc;}));
         var np={};
         satPendingRecibidas.forEach(function(f){if(!f.rfc_emisor||rfcsPEx.has(f.rfc_emisor)||np[f.rfc_emisor])return;np[f.rfc_emisor]={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),nombre:f.nombre_emisor||f.rfc_emisor,rfc:f.rfc_emisor,condiciones_pago:'30',tipo:'general'};});
         var npArr=Object.values(np);
-        if(npArr.length){await sb.from('proveedores').upsert(npArr,{onConflict:'rfc',ignoreDuplicates:true});proveedoresNuevos=npArr.length;}
+        if(npArr.length){await DB.proveedores.upsertBulk(npArr);proveedoresNuevos=npArr.length;}
       }
     }
     // Auto-crear/asociar empleados de registros Nómina
@@ -459,7 +458,7 @@ async function confirmarImportSAT(){
     if(nominaRows.length){
       var rfcsNom=[...new Set(nominaRows.map(function(f){return f.rfc_receptor;}).filter(Boolean))];
       if(rfcsNom.length){
-        var {data:empEx}=await sb.from('empleados').select('rfc').in('rfc',rfcsNom);
+        var empEx=await DB.empleados.byRFC(rfcsNom);
         var rfcsEmpExist=new Set((empEx||[]).map(function(e){return e.rfc;}));
         var ne=[];
         nominaRows.forEach(function(f){
@@ -467,7 +466,7 @@ async function confirmarImportSAT(){
           var partes=(f.nombre_receptor||'').trim().split(/\s+/);
           ne.push({nombre:partes[0]||f.rfc_receptor,apellido:partes.length>1?partes.slice(1).join(' '):null,rfc:f.rfc_receptor,estatus:'Activo',activo:true});
         });
-        if(ne.length){await sb.from('empleados').insert(ne);empleadosNuevos=ne.length;}
+        if(ne.length){await DB.empleados.insertBulk(ne);empleadosNuevos=ne.length;}
       }
     }
     var cntE=satPendingEmitidas.length,cntR=satPendingRecibidas.length;

@@ -241,11 +241,7 @@ async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
   linkedEl.innerHTML = '<div style="font-size:11px;color:var(--text-3);">Cargando...</div>';
   try{
     // Linked invoices
-    var {data:linked} = await sb.from('movimientos_v2')
-      .select('id,fecha,monto,numero_factura,conciliado')
-      .eq('origen','sat_emitida')
-      .eq('proyecto_id', proyId);
-    linked = linked||[];
+    var linked = await DB.movimientos.satLinkedProyecto(proyId);
 
     if(linked.length){
       linkedEl.innerHTML = linked.map(function(f){
@@ -267,12 +263,7 @@ async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
 
     // Available unlinked invoices for this client
     if(clienteId){
-      var {data:avail} = await sb.from('movimientos_v2')
-        .select('id,fecha,monto,numero_factura,contraparte')
-        .eq('origen','sat_emitida')
-        .eq('cliente_id', clienteId)
-        .is('proyecto_id', null);
-      avail = avail||[];
+      var avail = await DB.movimientos.satDisponiblesProyecto(clienteId);
       if(avail.length){
         availWrap.style.display = 'block';
         availEl.innerHTML = avail.map(function(f){
@@ -297,7 +288,7 @@ async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
 
 async function vincularFactModalProyecto(factId, proyId, clienteId, nombreCliente){
   try{
-    await sb.from('movimientos_v2').update({proyecto_id:proyId}).eq('id',factId);
+    await DB.movimientos.setProyecto(factId, proyId);
     showStatus('✓ Factura vinculada');
     cargarFacturasEnModal(proyId, clienteId, nombreCliente);
   }catch(e){showError('Error: '+e.message);}
@@ -306,7 +297,7 @@ async function vincularFactModalProyecto(factId, proyId, clienteId, nombreClient
 async function desvincularFactModalProyecto(factId, proyId){
   var p = proyectos.find(function(x){return x.id===proyId;});
   try{
-    await sb.from('movimientos_v2').update({proyecto_id:null}).eq('id',factId);
+    await DB.movimientos.setProyecto(factId, null);
     showStatus('Factura desvinculada');
     cargarFacturasEnModal(proyId, p&&p.cliente_id||null, p&&p.nombre_cliente||null);
   }catch(e){showError('Error: '+e.message);}

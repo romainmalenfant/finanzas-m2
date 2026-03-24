@@ -249,7 +249,7 @@ async function loadClientesKPIs(){
     document.getElementById('cli-k-activos') && (document.getElementById('cli-k-activos').textContent=activosSet.size);
 
     // Top 5 por ventas YTD
-    var {data:ytdVentas}=await sb.from('movimientos_v2').select('contraparte,monto').eq('categoria','venta').eq('year',año);
+    var ytdVentas=await DB.movimientos.ventasYTD(año);
     var byCliente={};
     (ytdVentas||[]).forEach(function(m){
       var k=(m.contraparte||'Sin nombre').trim();

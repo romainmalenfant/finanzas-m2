@@ -187,29 +187,18 @@ async function cargarFacturasPendientes(clienteId){
   facturasPendientesCache=[];
   if(!clienteId||tipoMovActual!=='cobranza')return;
   try{
-    var {data}=await sb.from('movimientos_v2')
-      .select('id,descripcion,monto,fecha,moneda,numero_factura,tipo_cambio,contraparte,rfc_contraparte')
-      .eq('origen','sat_emitida').eq('conciliado',false)
-      .eq('cliente_id',clienteId);
     var cliente=clientes.find(function(c){return c.id===clienteId;});
-    if(cliente&&cliente.rfc){
-      var {data:d2}=await sb.from('movimientos_v2')
-        .select('id,descripcion,monto,fecha,moneda,numero_factura,tipo_cambio,contraparte,rfc_contraparte')
-        .eq('origen','sat_emitida').eq('conciliado',false)
-        .eq('rfc_contraparte',cliente.rfc);
-      data=(data||[]).concat(d2||[]);
-      var seen={}; data=data.filter(function(r){if(seen[r.id])return false;seen[r.id]=true;return true;});
-    }
-    if(data&&data.length){
+    var satPend = await DB.movimientos.satPendientesCliente(clienteId, cliente&&cliente.rfc||null);
+    if(satPend&&satPend.length){
       // Sort by folio then date
-      data.sort(function(a,b){
+      satPend.sort(function(a,b){
         var fa=a.numero_factura||''; var fb=b.numero_factura||'';
         if(fa&&fb)return fa.localeCompare(fb);
         return new Date(b.fecha)-new Date(a.fecha);
       });
-      facturasPendientesCache=data;
+      facturasPendientesCache=satPend;
       document.getElementById('campo-facturas-pendientes').style.display='block';
-      renderDropdownFacturas(data);
+      renderDropdownFacturas(satPend);
     }
   }catch(e){console.error('Facturas pendientes:',e);}
 }
@@ -353,8 +342,7 @@ async function guardarFormMovimiento(){
         etiqueta:(tipoMovActual==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
         year:fechaBase.getFullYear(), month:fechaBase.getMonth()+1
       };
-      var {error:ue}=await sb.from('movimientos_v2').update(updObj).eq('id',_editMovId);
-      if(ue) throw ue;
+      await DB.movimientos.save(Object.assign({id:_editMovId}, updObj));
       cerrarFormMovimiento();
       showStatus('Movimiento actualizado');
       await loadMovements();
@@ -373,8 +361,7 @@ async function guardarFormMovimiento(){
       }
       var numeroVta=null;
       if(sinFact){
-        var {count}=await sb.from('facturas').select('*',{count:'exact',head:true})
-          .ilike('numero_vta','VTA-'+fechaD.getFullYear()+'-%');
+        var count=await DB.facturas.contarVta(fechaD.getFullYear());
         numeroVta='VTA-'+fechaD.getFullYear()+'-'+String((count||0)+1).padStart(3,'0');
       }
       var factRow={
@@ -394,13 +381,12 @@ async function guardarFormMovimiento(){
         origen:'manual',
         year:fechaD.getFullYear(), month:fechaD.getMonth()+1
       };
-      var {error:fe}=await sb.from('facturas').insert([factRow]);
-      if(fe)throw fe;
+      await DB.facturas.save(factRow);
     } else {
       // Cobranza y gasto siguen en movimientos_v2
       await insertMovement(mv);
       if(facturaVinculadaId&&tipoMovActual==='cobranza'){
-        await sb.from('movimientos_v2').update({conciliado:true,movimiento_relacionado_id:mv.id}).eq('id',facturaVinculadaId);
+        await DB.movimientos.linkRelacionado(facturaVinculadaId, mv.id);
       }
     }
     cerrarFormMovimiento();
@@ -500,11 +486,7 @@ async function _ofrecerConciliacionManual(movId, monto, esIngreso){
     var tipo = esIngreso ? 'emitida' : 'recibida';
     var min = Math.round(monto*0.90*100)/100;
     var max = Math.round(monto*1.10*100)/100;
-    var {data:facts} = await sb.from('facturas')
-      .select('id,receptor_nombre,emisor_nombre,numero_factura,fecha,total,metodo_pago,concepto')
-      .eq('tipo',tipo).eq('conciliado',false).neq('estatus','cancelada')
-      .gte('total',min).lte('total',max)
-      .order('fecha',{ascending:false}).limit(10);
+    var facts = await DB.facturas.pendientesConcRango(tipo, min, max);
     if(!facts||!facts.length) return; // sin candidatos, no mostrar
     var modal = document.getElementById('modal-conc-manual');
     var titleEl = document.getElementById('conc-manual-title');
@@ -535,10 +517,7 @@ async function _confirmarConcManual(){
   var btn = document.getElementById('conc-manual-btn');
   btn.disabled=true; btn.textContent='Guardando...';
   try{
-    await Promise.all([
-      sb.from('movimientos_v2').update({conciliado:true,factura_id:_concManualFactId}).eq('id',_concManualMovId),
-      sb.from('facturas').update({conciliado:true}).eq('id',_concManualFactId)
-    ]);
+    await Promise.all([DB.movimientos.conciliar(_concManualMovId, _concManualFactId), DB.facturas.conciliar(_concManualFactId)]);
     document.getElementById('modal-conc-manual').style.display='none';
     showStatus('Conciliado correctamente');
     if(typeof loadFacturas==='function') loadFacturas();

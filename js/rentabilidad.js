@@ -31,12 +31,8 @@ async function loadRentabilidad(){
     var projs = allProyectos||[];
     if(!projs.length){ el.innerHTML='<div class="empty-state">Sin proyectos</div>'; return; }
     var ids = projs.map(function(p){return p.id;});
-    var {data:costos} = await sb.from('proyecto_costos')
-      .select('id,proyecto_id,monto,categoria').in('proyecto_id', ids);
-    _rentAllCostos = costos||[];
-    var {data:asig} = await sb.from('factura_asignaciones')
-      .select('id,proyecto_id,monto').in('proyecto_id', ids);
-    _rentAllAsig = asig||[];
+    _rentAllCostos = await DB.costos.byProyectos(ids);
+    _rentAllAsig = await DB.asignaciones.byProyectos(ids);
     filtrarRentabilidad(document.getElementById('rent-search').value||'');
   }catch(e){ if(el) el.innerHTML='<div style="color:#f87171;font-size:12px;padding:8px;">Error: '+e.message+'</div>'; }
 }
@@ -143,12 +139,12 @@ async function toggleRentProyecto(id){
   if(expandEl) expandEl.innerHTML='<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>';
 
   try{
-    var [{data:costos},{data:asig}] = await Promise.all([
-      sb.from('proyecto_costos').select('*').eq('proyecto_id',id).order('semana',{ascending:false}).order('created_at',{ascending:false}),
-      sb.from('factura_asignaciones').select('*').eq('proyecto_id',id).order('created_at',{ascending:false})
+    var [costos,asig] = await Promise.all([
+      DB.costos.byProyecto(id),
+      DB.asignaciones.byProyecto(id)
     ]);
-    _rentProjCostos=costos||[];
-    _rentProjAsig=asig||[];
+    _rentProjCostos=costos;
+    _rentProjAsig=asig;
     var p=(allProyectos||[]).find(function(x){return x.id===id;});
     if(expandEl&&p){
       expandEl.innerHTML=_buildExpand(p);
@@ -391,17 +387,12 @@ async function rentGuardar(projId){
   if(subcat) guardarSubcat(cat, subcat);
 
   try{
-    var {error}=await sb.from('proyecto_costos').insert(rows);
-    if(error) throw error;
+    await DB.costos.insert(rows);
     _rentLineasByProj[projId]=[];
     showStatus('✓ '+rows.length+' costo'+(rows.length!==1?'s':'')+' registrado'+(rows.length!==1?'s':''));
     // Recargar costos globales y del proyecto expandido
-    var {data:costos}=await sb.from('proyecto_costos')
-      .select('*').eq('proyecto_id',projId).order('semana',{ascending:false}).order('created_at',{ascending:false});
-    _rentProjCostos=costos||[];
-    var {data:allC}=await sb.from('proyecto_costos').select('id,proyecto_id,monto,categoria')
-      .in('proyecto_id',(allProyectos||[]).map(function(p){return p.id;}));
-    _rentAllCostos=allC||[];
+    _rentProjCostos=await DB.costos.byProyecto(projId);
+    _rentAllCostos=await DB.costos.byProyectos((allProyectos||[]).map(function(p){return p.id;}));
     filtrarRentabilidad(document.getElementById('rent-search').value||'');
   }catch(e){ showError('Error: '+e.message); }
 }
@@ -409,7 +400,7 @@ async function rentGuardar(projId){
 async function eliminarCosto(id, projId){
   if(!confirm('¿Eliminar este costo?')) return;
   try{
-    await sb.from('proyecto_costos').delete().eq('id',id);
+    await DB.costos.delete(id);
     _rentProjCostos=_rentProjCostos.filter(function(c){return c.id!==id;});
     _rentAllCostos=_rentAllCostos.filter(function(c){return c.id!==id;});
     var p=(allProyectos||[]).find(function(x){return x.id===projId;});
@@ -476,11 +467,7 @@ function rentBuscarFactura(projId, q){
   clearTimeout(_rentFactTimer[projId]);
   _rentFactTimer[projId]=setTimeout(async function(){
     try{
-      var {data}=await sb.from('facturas')
-        .select('id,emisor_nombre,numero_factura,total,fecha,concepto')
-        .eq('tipo','recibida')
-        .or('emisor_nombre.ilike.%'+q+'%,numero_factura.ilike.%'+q+'%,concepto.ilike.%'+q+'%')
-        .order('fecha',{ascending:false}).limit(8);
+      var data=await DB.facturas.buscarRecibidas(q, new Date().getFullYear());
       if(!dd) return;
       if(!(data&&data.length)){
         dd.innerHTML='<div style="padding:8px 12px;font-size:12px;color:var(--text-3);">Sin resultados</div>';
@@ -512,8 +499,7 @@ async function rentSelFactura(projId, factId){
   infoEl.innerHTML='<div style="font-size:12px;color:var(--text-3);">Cargando disponibilidad...</div>';
   infoEl.style.display='block';
   // Cargar % ya asignado de esta factura
-  var {data:prevAsigs}=await sb.from('factura_asignaciones').select('proyecto_id,porcentaje,monto').eq('factura_id',factId);
-  var pctUsado=(prevAsigs||[]).reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
+  var pctUsado = await DB.asignaciones.usadoPorFactura(factId);
   var pctDisp=Math.max(0,100-pctUsado);
   var totalFact=parseFloat(f.total)||0;
   infoEl.innerHTML=
@@ -572,13 +558,12 @@ async function rentGuardarAsig(projId){
   var monto=totalFact*pct/100;
   var notas=((document.getElementById('rent-fact-notas-'+projId)||{}).value||'').trim()||null;
   // Validar que no exceda 100%
-  var {data:prevAsigs}=await sb.from('factura_asignaciones').select('porcentaje').eq('factura_id',f.id);
-  var pctUsado=(prevAsigs||[]).reduce(function(a,x){return a+(parseFloat(x.porcentaje)||0);},0);
+  var pctUsado = await DB.asignaciones.usadoPorFactura(f.id);
   if(pctUsado+pct>100.001){
     showError('Excede el 100%. Disponible: '+(100-pctUsado).toFixed(1)+'%'); return;
   }
   try{
-    var {error}=await sb.from('factura_asignaciones').insert({
+    await DB.asignaciones.insert({
       factura_id:f.id, proyecto_id:projId,
       porcentaje:pct, monto:monto,
       emisor_nombre:f.emisor_nombre||null,
@@ -586,7 +571,6 @@ async function rentGuardarAsig(projId){
       total_factura:totalFact||null,
       notas:notas
     });
-    if(error) throw error;
     showStatus('✓ '+fmt(monto)+' asignado ('+pct+'% de factura)');
     delete _rentFactSelData[projId];
     // Actualizar listas en memoria y re-renderizar
@@ -601,7 +585,7 @@ async function rentGuardarAsig(projId){
 async function eliminarAsig(id, projId){
   if(!confirm('¿Eliminar esta asignación?')) return;
   try{
-    await sb.from('factura_asignaciones').delete().eq('id',id);
+    await DB.asignaciones.delete(id);
     _rentProjAsig=_rentProjAsig.filter(function(a){return a.id!==id;});
     _rentAllAsig=_rentAllAsig.filter(function(a){return a.id!==id;});
     showStatus('Asignación eliminada');

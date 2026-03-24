@@ -423,10 +423,16 @@ function toggleVistaProyectos(vista){
 
 // ── Pills de estado de proyectos ──────────────────────────
 function setProjStatusPill(val){
+  var map={'':'all','En proceso':'proceso','Atrasado':'atrasado','Completado':'completado'};
   ['','En proceso','Atrasado','Completado'].forEach(function(v){
-    var map={'':'all','En proceso':'proceso','Atrasado':'atrasado','Completado':'completado'};
     var btn=document.getElementById('proj-pill-'+map[v]);
-    if(btn) btn.classList.toggle('active', v===val);
+    if(!btn)return;
+    btn.classList.toggle('active', v===val);
+    // Mantener color semántico en atrasado/completado cuando no activo
+    if(v==='Atrasado'&&v!==val)  btn.style.cssText='color:#dc2626;border-color:#fca5a5;';
+    else if(v==='Atrasado')       btn.style.cssText='';
+    if(v==='Completado'&&v!==val) btn.style.cssText='color:#16a34a;border-color:#86efac;';
+    else if(v==='Completado')     btn.style.cssText='';
   });
   document.getElementById('proj-status-filter').value=val;
   filtrarProyectos(document.getElementById('proj-search').value);

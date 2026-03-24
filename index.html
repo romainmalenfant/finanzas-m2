@@ -1130,26 +1130,23 @@
 
     <!-- Toggle principal: Proyectos / Entregas -->
     <div class="mvmts-card" style="margin-bottom:1.5rem;">
-      <div class="mvmts-hdr" style="flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:6px;">
-          <button id="btn-vista-proyectos" class="btn-sm active" onclick="toggleVistaProyectos('proyectos')"
-            style="font-size:11px;">Proyectos · <span id="vista-proj-count">—</span></button>
-          <button id="btn-vista-entregas" class="btn-sm" onclick="toggleVistaProyectos('entregas')"
-            style="font-size:11px;">Entregas · <span id="vista-ent-count">—</span></button>
+      <div class="mvmts-hdr">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button id="btn-vista-proyectos" class="btn-sm active" onclick="toggleVistaProyectos('proyectos')">Proyectos · <span id="vista-proj-count">—</span></button>
+          <button id="btn-vista-entregas"  class="btn-sm"        onclick="toggleVistaProyectos('entregas')">Entregas · <span id="vista-ent-count">—</span></button>
         </div>
-        <!-- Año: siempre visible -->
         <select id="proj-year-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)"
-          style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;margin-left:auto;"></select>
+          style="width:auto;padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
       </div>
 
       <!-- Panel: Proyectos -->
       <div id="panel-vista-proyectos">
         <!-- Pills de estado + conteo -->
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap;border-top:.5px solid var(--border);padding-top:12px;">
-          <button id="proj-pill-all"        class="btn-sm active" onclick="setProjStatusPill('')"           style="font-size:11px;">Todos</button>
-          <button id="proj-pill-proceso"    class="btn-sm"        onclick="setProjStatusPill('En proceso')" style="font-size:11px;">En proceso</button>
-          <button id="proj-pill-atrasado"   class="btn-sm"        onclick="setProjStatusPill('Atrasado')"   style="font-size:11px;color:#dc2626;border-color:#fca5a5;">Atrasados</button>
-          <button id="proj-pill-completado" class="btn-sm"        onclick="setProjStatusPill('Completado')" style="font-size:11px;color:#16a34a;border-color:#86efac;">Completados</button>
+          <button id="proj-pill-all"        class="btn-sm btn-pill-filter active" onclick="setProjStatusPill('')"           >Todos</button>
+          <button id="proj-pill-proceso"    class="btn-sm btn-pill-filter"        onclick="setProjStatusPill('En proceso')" >En proceso</button>
+          <button id="proj-pill-atrasado"   class="btn-sm btn-pill-filter"        onclick="setProjStatusPill('Atrasado')"   style="color:#dc2626;border-color:#fca5a5;">Atrasados</button>
+          <button id="proj-pill-completado" class="btn-sm btn-pill-filter"        onclick="setProjStatusPill('Completado')" style="color:#16a34a;border-color:#86efac;">Completados</button>
           <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="proj-count">0 proyectos</span>
         </div>
         <!-- Sort -->

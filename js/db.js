@@ -638,29 +638,31 @@ var DB = {
         .order('fecha', { ascending: false })
         .limit(50);
       if (!q) return _dbQArr('DB.facturas.buscarRecibidas', sel);
-      // Búsqueda por texto (proveedor, folio, concepto, UUID)
+      var base2 = function() {
+        return sb.from('facturas')
+          .select('id,emisor_nombre,numero_factura,total,fecha,concepto,efecto_sat')
+          .eq('tipo', 'recibida').not('efecto_sat', 'ilike', '%nómin%')
+          .eq('year', y).order('fecha', { ascending: false }).limit(20);
+      };
+      // Texto: proveedor, folio, concepto (solo columnas text — sin id UUID)
       var textQ = sel.or(
         'emisor_nombre.ilike.%' + q + '%' +
         ',numero_factura.ilike.%' + q + '%' +
-        ',concepto.ilike.%' + q + '%' +
-        ',id.ilike.%' + q + '%'
+        ',concepto.ilike.%' + q + '%'
       );
       var rows = await _dbQArr('DB.facturas.buscarRecibidas', textQ);
-      // Búsqueda por monto — query separada solo si q es puramente numérico
+      var seen = {}; rows.forEach(function(r){ seen[r.id] = true; });
+      function _merge(arr){ arr.forEach(function(r){ if(!seen[r.id]){ rows.push(r); seen[r.id]=true; } }); }
+      // UUID: query separada con cast explícito (id::text)
+      var uuidRows = await _dbQArr('DB.facturas.buscarRecibidas:uuid',
+        base2().filter('id::text', 'ilike', '%' + q + '%'));
+      _merge(uuidRows);
+      // Monto: query separada solo si q es puramente numérico
       var numQ = parseFloat(q.replace(/[$,\s]/g, ''));
       if (/^[$\d,.\s]+$/.test(q) && !isNaN(numQ) && numQ > 0) {
-        var amountQ = sb.from('facturas')
-          .select('id,emisor_nombre,numero_factura,total,fecha,concepto,efecto_sat')
-          .eq('tipo', 'recibida')
-          .not('efecto_sat', 'ilike', '%nómin%')
-          .eq('year', y)
-          .gte('total', numQ * 0.995)
-          .lte('total', numQ * 1.005)
-          .order('fecha', { ascending: false })
-          .limit(20);
-        var amountRows = await _dbQArr('DB.facturas.buscarRecibidas:monto', amountQ);
-        var seen = {}; rows.forEach(function(r){ seen[r.id]=true; });
-        amountRows.forEach(function(r){ if(!seen[r.id]){ rows.push(r); } });
+        var amountRows = await _dbQArr('DB.facturas.buscarRecibidas:monto',
+          base2().gte('total', numQ * 0.995).lte('total', numQ * 1.005));
+        _merge(amountRows);
       }
       return rows;
     },

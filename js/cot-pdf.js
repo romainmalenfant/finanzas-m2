@@ -1,26 +1,26 @@
-﻿// â”€â”€ Empresa config (editar aquÃ­) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Empresa config (editar aquí) ─────────────────────────
 var EMPRESA_CONFIG = {
   nombre:    'Grupo M2',
   slogan:    'Maquinados Industriales',
   direcciones: [
-    'Cam, Carr. Pie de Gallo Km 0.10 L3, 76220 Santa Rosa JÃ¡uregui, QuerÃ©taro',
+    'Cam, Carr. Pie de Gallo Km 0.10 L3, 76220 Santa Rosa Jáuregui, Querétaro',
     'Priv. Chairel 100 A, 89359, Tampico, Tamaulipas'
   ],
   web:       'www.grupom2.com.mx',
   tel:       '+52 56 5035 8701',
   email:     'contacto@grupom2.com.mx',
-  banco:     'BBVA Â· CLABE: 012680001205003565 Â· Cuenta: 0120500356',
-  legal:     'Precios en MXN + IVA. Vigencia segÃºn cotizaciÃ³n. Pedido sujeto a confirmaciÃ³n por escrito. ' +
+  banco:     'BBVA · CLABE: 012680001205003565 · Cuenta: 0120500356',
+  legal:     'Precios en MXN + IVA. Vigencia según cotización. Pedido sujeto a confirmación por escrito. ' +
              'No incluye maniobras de carga/descarga salvo acuerdo. Pagos anticipados no son reembolsables.',
   logo:      null,
   firma_nombre: 'Ing. [Nombre]',
   firma_cargo:  'Director General'
 };
 
-// â”€â”€ PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── PDF ───────────────────────────────────────────────────
 async function generarPDFCotizacion(id){
   var c = await DB.cotizaciones.get(id);
-  if(!c){ showError('CotizaciÃ³n no encontrada'); return; }
+  if(!c){ showError('Cotización no encontrada'); return; }
 
   var items = await DB.cotizacionItems.byCotizacion(id);
   items = items||[];
@@ -29,14 +29,14 @@ async function generarPDFCotizacion(id){
   if(c.contacto_id){
     try{
       var ctPdf = await DB.contactos.get(c.contacto_id);
-      if(ctPdf) contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' Â· '+ctPdf.cargo:'');
+      if(ctPdf) contactoNombre = (ctPdf.nombre||'')+(ctPdf.apellido?' '+ctPdf.apellido:'')+(ctPdf.cargo?' · '+ctPdf.cargo:'');
     }catch(e){}
   }
   var usuarioNombre = '';
   if(c.usuario_cliente_id){
     try{
       var usuPdf = await DB.contactos.get(c.usuario_cliente_id);
-      if(usuPdf) usuarioNombre = (usuPdf.nombre||'')+(usuPdf.apellido?' '+usuPdf.apellido:'')+(usuPdf.cargo?' Â· '+usuPdf.cargo:'');
+      if(usuPdf) usuarioNombre = (usuPdf.nombre||'')+(usuPdf.apellido?' '+usuPdf.apellido:'')+(usuPdf.cargo?' · '+usuPdf.cargo:'');
     }catch(e){}
   }
 
@@ -55,25 +55,25 @@ async function generarPDFCotizacion(id){
       bgPage:  [248,248,246],
       red:     [232,25,44],
       carbon:  [51,51,51],       // #333333 brand carbon (header/footer)
-      dark2:   [80,80,80],       // table header â€” entre carbon y brand gray
+      dark2:   [80,80,80],       // table header — entre carbon y brand gray
       gray1:   [245,244,242],    // alternating row
       gray2:   [210,210,210],    // secondary text en header (legible sobre #333)
       gray3:   [170,170,170],    // tertiary text
       text:    [26,26,26],       // main text #1a1a1a
     };
 
-    var fmtDateFull = function(d){ if(!d) return 'â€”'; try{ var dt=new Date(d+'T12:00'); return dt.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}); }catch(e){return d;} };
+    var fmtDateFull = function(d){ if(!d) return '—'; try{ var dt=new Date(d+'T12:00'); return dt.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}); }catch(e){return d;} };
 
-    // â”€â”€ Background â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Background ────────────────────────────────────────
     doc.setFillColor(...C.bgPage);
     doc.rect(0,0,pw,ph,'F');
 
-    // â”€â”€ HEADER: dark full-width bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── HEADER: dark full-width bar ───────────────────────
     var headerH = 38;
     doc.setFillColor(...C.carbon);
     doc.rect(0,0,pw,headerH,'F');
 
-    // Logo â€” red background square + logo image
+    // Logo — red background square + logo image
     doc.setFillColor(...C.red);
     doc.rect(0,0,headerH,headerH,'F');
     if(logoDataUrl){
@@ -89,23 +89,23 @@ async function generarPDFCotizacion(id){
     doc.text(EMPRESA_CONFIG.nombre, logoRight, 15);
     doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2);
     doc.text(EMPRESA_CONFIG.slogan || '', logoRight, 22);
-    doc.text((EMPRESA_CONFIG.web||'') + '  Â·  ' + (EMPRESA_CONFIG.tel||''), logoRight, 29);
+    doc.text((EMPRESA_CONFIG.web||'') + '  ·  ' + (EMPRESA_CONFIG.tel||''), logoRight, 29);
 
     // Quote number (right side of header)
     var vLabel = (c.version && c.version > 1) ? ' v' + c.version : '';
     doc.setFontSize(22); doc.setFont('helvetica','bold'); doc.setTextColor(...C.red);
-    doc.text((c.numero||'COTIZACIÃ“N')+vLabel, pw-12, 18, {align:'right'});
+    doc.text((c.numero||'COTIZACIÓN')+vLabel, pw-12, 18, {align:'right'});
     doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2);
     doc.text('Fecha: ' + fmtDateFull(c.fecha), pw-12, 26, {align:'right'});
-    doc.text('Vigencia: ' + (c.vigencia_dias||15) + ' dÃ­as hÃ¡biles', pw-12, 33, {align:'right'});
+    doc.text('Vigencia: ' + (c.vigencia_dias||15) + ' días hábiles', pw-12, 33, {align:'right'});
 
     var y = headerH + 10;
 
-    // â”€â”€ Thin red accent line below header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Thin red accent line below header ─────────────────
     doc.setFillColor(...C.red);
     doc.rect(0,headerH,pw,1.5,'F');
 
-    // â”€â”€ CLIENT BLOCK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── CLIENT BLOCK ──────────────────────────────────────
     var extraRows = (contactoNombre ? 1 : 0) + (usuarioNombre ? 1 : 0);
     var clientH = 16 + extraRows * 7;
     doc.setFillColor(...C.white);
@@ -113,7 +113,7 @@ async function generarPDFCotizacion(id){
     doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...C.red);
     doc.text('DIRIGIDO A', 18, y+6);
     doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...C.text);
-    doc.text(c.cliente_nombre||'â€”', 18, y+13);
+    doc.text(c.cliente_nombre||'—', 18, y+13);
     var clientY = y + 13;
     if(contactoNombre){
       clientY += 7;
@@ -149,7 +149,7 @@ async function generarPDFCotizacion(id){
 
     y = headerH + clientH + 14;
 
-    // â”€â”€ ITEMS TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── ITEMS TABLE ───────────────────────────────────────
     var tableData = items.map(function(item){
       var tipoLabel = item.tipo==='maquinado'?'Maquinado':item.tipo==='servicio'?'Servicio':'Producto';
       var desc = (item.descripcion||'');
@@ -165,7 +165,7 @@ async function generarPDFCotizacion(id){
     });
 
     doc.autoTable({
-      head:[[ 'DescripciÃ³n', 'Tipo', 'Cant.', 'P. Unitario', 'Subtotal' ]],
+      head:[[ 'Descripción', 'Tipo', 'Cant.', 'P. Unitario', 'Subtotal' ]],
       body: tableData,
       startY: y,
       margin:{ left:12, right:12 },
@@ -184,7 +184,7 @@ async function generarPDFCotizacion(id){
 
     var finalY = doc.lastAutoTable.finalY + 8;
 
-    // â”€â”€ TOTALS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── TOTALS ────────────────────────────────────────────
     var tx = pw - 14;
     doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3);
     doc.text('Subtotal:', tx-40, finalY); doc.setTextColor(...C.text); doc.text(fmt(c.subtotal||0), tx, finalY, {align:'right'});
@@ -192,7 +192,7 @@ async function generarPDFCotizacion(id){
     doc.setTextColor(...C.gray3); doc.text('IVA (16%):', tx-40, finalY); doc.setTextColor(...C.text); doc.text(fmt(c.iva||0), tx, finalY, {align:'right'});
     finalY += 7;
 
-    // Total â€” lÃ­nea separadora + texto bold rojo
+    // Total — línea separadora + texto bold rojo
     doc.setDrawColor(...C.red); doc.setLineWidth(0.6);
     doc.line(tx-60, finalY-2, tx, finalY-2);
     doc.setFontSize(10); doc.setFont('helvetica','bold');
@@ -200,7 +200,7 @@ async function generarPDFCotizacion(id){
     doc.setTextColor(...C.red); doc.setFontSize(12);
     doc.text(fmt(c.total||0), tx, finalY+5, {align:'right'});
 
-    // â”€â”€ CONDITIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── CONDITIONS ────────────────────────────────────────
     var condIds = Array.isArray(c.condiciones) ? c.condiciones : [];
     if(condIds.length){
       finalY += 18;
@@ -211,12 +211,12 @@ async function generarPDFCotizacion(id){
         finalY += 5;
         doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray2); doc.setFontSize(7);
         condTexts.forEach(function(ct, i){
-          doc.text('â€¢ ' + ct, 12, finalY + (i * 5));
+          doc.text('• ' + ct, 12, finalY + (i * 5));
         });
       }
     }
 
-    // â”€â”€ Signature â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Signature ─────────────────────────────────────────
     var firmaY = Math.min(finalY + (condIds.length ? condIds.length*5+8 : 18), ph - 38);
     var firmaX = pw - 80;
     doc.setDrawColor(...C.gray2); doc.setLineWidth(0.4);
@@ -226,7 +226,7 @@ async function generarPDFCotizacion(id){
     doc.setFont('helvetica','normal'); doc.setTextColor(...C.gray3); doc.setFontSize(7.5);
     doc.text(EMPRESA_CONFIG.firma_cargo, firmaX+30, firmaY+10, {align:'center'});
 
-    // â”€â”€ FOOTER: dark bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── FOOTER: dark bar ──────────────────────────────────
     var footerH = 22;
     var footerY = ph - footerH;
     doc.setFillColor(...C.carbon);
@@ -247,7 +247,7 @@ async function generarPDFCotizacion(id){
     if(EMPRESA_CONFIG.banco) doc.text(EMPRESA_CONFIG.banco, pw/2, footerY+17, {align:'center'});
 
 
-    // â”€â”€ Guardar en storage (siempre sobreescribe) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Guardar en storage (siempre sobreescribe) ─────────
     var vSuffix = 'v' + (c.version || 1);
     var fileName = (c.numero||'cotizacion') + '.' + vSuffix + '.pdf';
     try{
@@ -260,7 +260,7 @@ async function generarPDFCotizacion(id){
     }catch(storageErr){ console.warn('No se pudo guardar PDF en storage:', storageErr); }
 
     doc.save(fileName);
-    showStatus('âœ“ PDF generado y guardado');
+    showStatus('✓ PDF generado y guardado');
   }catch(e){
     console.error('PDF error:',e);
     showError('Error generando PDF: '+e.message);

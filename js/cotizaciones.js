@@ -1615,14 +1615,14 @@ async function generarPDFCotizacion(id){
 
     var C = {
       white:   [255,255,255],
-      bgPage:  [248,248,250],
+      bgPage:  [248,248,246],
       red:     [232,25,44],
-      carbon:  [17,24,39],       // #111827 dark header/footer
-      dark2:   [30,41,59],       // #1e293b table header
-      gray1:   [241,245,249],    // alternating row
-      gray2:   [190,200,215],    // secondary text — light
-      gray3:   [130,145,165],    // tertiary
-      text:    [15,23,42],       // main text
+      carbon:  [51,51,51],       // #333333 brand carbon (header/footer)
+      dark2:   [80,80,80],       // table header — entre carbon y brand gray
+      gray1:   [245,244,242],    // alternating row
+      gray2:   [210,210,210],    // secondary text en header (legible sobre #333)
+      gray3:   [170,170,170],    // tertiary text
+      text:    [26,26,26],       // main text #1a1a1a
     };
 
     var fmtDateFull = function(d){ if(!d) return '—'; try{ var dt=new Date(d+'T12:00'); return dt.toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'}); }catch(e){return d;} };

@@ -171,7 +171,7 @@ async function _docsFetch(q, año, tipo, archivo) {
     if (tipo)    qb = qb.eq('tipo', tipo);
     if (archivo === 'xml') qb = qb.not('xml_path', 'is', null);
     if (archivo === 'pdf') qb = qb.not('pdf_path', 'is', null);
-    return qb.order('fecha', { ascending: false }).limit(10);
+    return qb.order('fecha', { ascending: false }).limit(500);
   }
 
   var rows = [];
@@ -219,13 +219,13 @@ async function _docsFetch(q, año, tipo, archivo) {
   var orphans = [];
   try {
     // PDFs sin vincular
-    var oqb = sb.from('documentos').select('*').is('factura_id', null).order('created_at', { ascending: false }).limit(10);
+    var oqb = sb.from('documentos').select('*').is('factura_id', null).order('created_at', { ascending: false }).limit(500);
     if (q) oqb = oqb.ilike('nombre', '%' + q + '%');
     var oRes = await oqb;
     orphans = (oRes.data || []).map(function(d){ return Object.assign({}, d, { _orphan: true }); });
 
     // Complementos y cancelaciones (tienen factura_id o tipo especial)
-    var cqb = sb.from('documentos').select('*').in('tipo', ['complemento','cancelacion']).order('created_at', { ascending: false }).limit(20);
+    var cqb = sb.from('documentos').select('*').in('tipo', ['complemento','cancelacion']).order('created_at', { ascending: false }).limit(500);
     if (q) cqb = cqb.ilike('nombre', '%' + q + '%');
     var cRes = await cqb;
     var seenIds = new Set(orphans.map(function(o){ return o.id; }));

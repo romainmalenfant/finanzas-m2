@@ -225,7 +225,10 @@ document.addEventListener('keydown',function(e){
     if(kb&&kb.style.display==='flex'){cerrarKBar();return;}
     // Close detail modal
     var dm=document.getElementById('detail-modal');
-    if(dm&&dm.style.display==='flex'){dm.style.display='none';return;}
+    if(dm&&dm.style.display==='flex'){cerrarDetail();return;}
+    // Close version picker (dynamic overlay)
+    var vp=document.getElementById('version-picker-overlay');
+    if(vp){vp.remove();return;}
     // Close any open modal (flex = open)
     var modals=['cot-modal','conv-modal','form-mvmt-modal','proj-modal',
                 'cliente-modal','prov-modal','contacto-modal','empleado-modal',

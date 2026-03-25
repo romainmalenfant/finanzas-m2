@@ -386,12 +386,11 @@ function _renderMovsBanco(movs){
 async function conciliarMes(){
   // Excluir categorías que no se concilian contra facturas (auto-aprobadas o préstamos)
   var _noConc={nomina:1,obligacion_patronal:1,impuesto:1,prestamo:1};
-  var toMatch=_bancoData.filter(function(m){
-    return !m.conciliado&&!_noConc[m.categoria||''];
-  });
-  if(!toMatch.length){showStatus('No hay movimientos pendientes de conciliar.');return;}
-  showStatus('Buscando matches…',0);
+  showStatus('Buscando movimientos…',0);
   try{
+    var todos=await DB.movimientos.pendientesConc();
+    var toMatch=todos.filter(function(m){return !_noConc[m.categoria||''];});
+    if(!toMatch.length){showStatus('No hay movimientos pendientes de conciliar.');return;}
     var fl=await DB.facturas.pendientesConc();
     _todasFacturasConc=fl;
     var matches=toMatch.map(function(m){

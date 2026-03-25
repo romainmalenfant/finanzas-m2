@@ -1233,6 +1233,16 @@ var DB = {
       );
     },
 
+    /** Todos los movimientos bancarios sin conciliar (sin filtro de fecha). */
+    pendientesConc: async function () {
+      return _dbQArr('DB.movimientos.pendientesConc',
+        sb.from('movimientos_v2').select('*')
+          .in('origen', ['banco_abono', 'banco_cargo'])
+          .eq('conciliado', false)
+          .order('fecha', { ascending: false })
+      );
+    },
+
     /** Actualiza la categoría de un movimiento. */
     updateCategoria: async function (id, cat) {
       return _dbQArr('DB.movimientos.updateCategoria',

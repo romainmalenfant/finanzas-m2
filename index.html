@@ -312,7 +312,8 @@
         style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
       <select id="fact-month-filter" onchange="facturasMonthFilter=parseInt(this.value);filtrarFacturas(document.getElementById('fact-search').value||'');"
         style="padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
-      <span style="font-size:11px;color:var(--text-3);margin-left:auto;" id="fact-count">0 facturas</span>
+      <button class="btn-primary" onclick="conciliarMes()" style="flex-shrink:0;margin-left:auto;">&#x26A1; Conciliar</button>
+      <span style="font-size:11px;color:var(--text-3);" id="fact-count">0 facturas</span>
     </div>
     <!-- Lista -->
     <div class="mvmts-card">

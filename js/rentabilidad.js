@@ -8,6 +8,7 @@ var _rentProjAsig    = [];    // factura_asignaciones del proyecto expandido
 var _rentFactSelData = {};    // {projId: facturaData seleccionada}
 var _rentFactOpts    = {};    // {projId: {factId: factData}} para evitar escaping
 var _rentFactTimer   = {};    // debounce por projId
+var _rentAllFacturas = [];    // facturas emitidas vinculadas a proyectos (para % facturado)
 
 var RENT_CAT_LABELS = {
   mano_obra:'Mano de obra', materiales:'Materiales',
@@ -33,6 +34,7 @@ async function loadRentabilidad(){
     var ids = projs.map(function(p){return p.id;});
     _rentAllCostos = await DB.costos.byProyectos(ids);
     _rentAllAsig = await DB.asignaciones.byProyectos(ids);
+    _rentAllFacturas = await DB.facturas.porProyectos(ids);
     filtrarRentabilidad(document.getElementById('rent-search').value||'');
   }catch(e){ if(el) el.innerHTML='<div style="color:#f87171;font-size:12px;padding:8px;">Error: '+e.message+'</div>'; }
 }
@@ -57,6 +59,13 @@ function renderRentList(projs){
   _rentAllAsig.forEach(function(a){
     if(a.proyecto_id) costosByProj[a.proyecto_id]=(costosByProj[a.proyecto_id]||0)+(parseFloat(a.monto)||0);
   });
+
+  var factsByProj = {};
+  _rentAllFacturas.forEach(function(f){
+    if(f.proyecto_id) factsByProj[f.proyecto_id]=(factsByProj[f.proyecto_id]||0)+(parseFloat(f.total)||0);
+  });
+
+  renderRentRanking(projs, costosByProj, factsByProj);
 
   var totalIng=0, totalCos=0;
 
@@ -322,6 +331,83 @@ function _miniKpi(label, val, color){
     '<div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">'+label+'</div>'+
     '<div style="font-size:15px;font-weight:700;color:'+color+';">'+val+'</div>'+
   '</div>';
+}
+
+// ── Ranking de proyectos por margen neto ───────────────────
+function _rentSemaforoColor(pct){
+  if(pct===null||pct===undefined) return '#6b7280';
+  if(pct>=40) return '#16a34a';
+  if(pct>=15) return '#d97706';
+  return '#dc2626';
+}
+
+function renderRentRanking(projs, costosByProj, factsByProj){
+  var el = document.getElementById('rent-ranking');
+  if(!el) return;
+
+  // Enriquecer y ordenar por % margen desc (null al final)
+  var sorted = projs.slice().map(function(p){
+    var ing = parseFloat(p.monto_total)||0;
+    var cos = costosByProj[p.id]||0;
+    var mar = ing - cos;
+    var pct = ing>0 ? (mar/ing)*100 : null;
+    var factTotal = factsByProj[p.id]||0;
+    var pctFact = ing>0 ? Math.round((factTotal/ing)*100) : null;
+    return {p:p, ing:ing, cos:cos, mar:mar, pct:pct, pctFact:pctFact};
+  }).sort(function(a,b){
+    if(a.pct===null && b.pct===null) return 0;
+    if(a.pct===null) return 1;
+    if(b.pct===null) return -1;
+    return b.pct - a.pct;
+  });
+
+  var RANK_COLORS = ['#f59e0b','#94a3b8','#b45309'];
+
+  var rows = sorted.map(function(item, i){
+    var rank = i+1;
+    var sc = _rentSemaforoColor(item.pct);
+    var pctStr = item.pct!==null ? Math.round(item.pct)+'%' : '\u2014';
+    var pctFactStr = item.pctFact!==null ? item.pctFact+'%' : '\u2014';
+    var rankBg = RANK_COLORS[i] || 'var(--bg-hover)';
+    var rankTxt = (i<3) ? '#fff' : 'var(--text-3)';
+    return '<div style="display:grid;grid-template-columns:30px 1fr 100px 100px 76px 72px;'+
+      'gap:8px;align-items:center;padding:8px 14px;border-bottom:.5px solid var(--border);'+
+      'transition:background .1s;" onmouseenter="this.style.background=\'var(--bg-hover)\'" onmouseleave="this.style.background=\'\'">'+
+      '<div style="width:22px;height:22px;border-radius:50%;background:'+rankBg+';'+
+        'display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:'+rankTxt+';flex-shrink:0;">'+rank+'</div>'+
+      '<div>'+
+        '<div style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(item.p.nombre_pedido)+
+          (item.p.cerrado?'<span style="margin-left:6px;font-size:9px;font-weight:700;color:#6b7280;background:var(--bg-hover);border-radius:4px;padding:1px 5px;text-transform:uppercase;">Cerrado</span>':'')+
+        '</div>'+
+        '<div style="font-size:11px;color:var(--text-3);">'+esc(item.p.nombre_cliente||'')+'</div>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--text-2);text-align:right;">'+fmt(item.ing)+'</div>'+
+      '<div style="font-size:12px;font-weight:600;color:'+sc+';text-align:right;">'+fmt(item.mar)+'</div>'+
+      '<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;">'+
+        '<div style="width:7px;height:7px;border-radius:50%;background:'+sc+';flex-shrink:0;"></div>'+
+        '<span style="font-size:12px;font-weight:700;color:'+sc+';">'+pctStr+'</span>'+
+      '</div>'+
+      '<div style="font-size:12px;color:var(--text-2);text-align:right;font-weight:'+(item.pctFact!==null&&item.pctFact>=100?'700':'400')+';'+
+        'color:'+(item.pctFact!==null&&item.pctFact>=100?'#16a34a':'var(--text-2)')+';">'+pctFactStr+'</div>'+
+    '</div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="mvmts-card" style="padding:0;overflow:hidden;">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:.5px solid var(--border);">'+
+        '<div class="sec-title" style="margin:0;">Ranking \u00b7 margen neto</div>'+
+        '<span style="font-size:11px;color:var(--text-3);">'+sorted.length+' proyecto'+(sorted.length!==1?'s':'')+'</span>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:30px 1fr 100px 100px 76px 72px;gap:8px;'+
+        'padding:5px 14px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;border-bottom:.5px solid var(--border);">'+
+        '<span></span><span>Proyecto</span>'+
+        '<span style="text-align:right;">Ingresos</span>'+
+        '<span style="text-align:right;">Margen neto</span>'+
+        '<span style="text-align:right;">%</span>'+
+        '<span style="text-align:right;">% Fact.</span>'+
+      '</div>'+
+      (rows||'<div class="empty-state" style="padding:16px;">Sin proyectos</div>')+
+    '</div>';
 }
 
 // ── Form inline por proyecto ───────────────────────────────

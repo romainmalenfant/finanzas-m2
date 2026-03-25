@@ -831,6 +831,17 @@ var DB = {
       );
     },
 
+    /** Facturas emitidas vinculadas a varios proyectos (para ranking de rentabilidad). */
+    porProyectos: async function (ids) {
+      if(!ids||!ids.length) return [];
+      return _dbQArr('DB.facturas.porProyectos',
+        sb.from('facturas')
+          .select('id,total,tipo,proyecto_id')
+          .in('proyecto_id', ids)
+          .eq('tipo','emitida')
+      );
+    },
+
     /** Facturas emitidas de un cliente sin proyecto asignado (para vincular). */
     porClienteSinProyecto: async function (clienteId) {
       return _dbQArr('DB.facturas.porClienteSinProyecto',

@@ -1046,10 +1046,9 @@ var DB = {
     },
 
     save: async function (data) {
-      var op = data.id
-        ? sb.from('movimientos_v2').update(data).eq('id', data.id).select().single()
-        : sb.from('movimientos_v2').insert([data]).select().single();
-      return _dbQ('DB.movimientos.save', op);
+      return _dbQ('DB.movimientos.save',
+        sb.from('movimientos_v2').upsert(data).select().single()
+      );
     },
 
     delete: async function (id) {

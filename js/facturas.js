@@ -1212,7 +1212,7 @@ function calcFactIvaDebounced(){
 function initFactACs(){
   if(!clientes.length)loadClientes();
   if(!proveedores.length)loadProveedores();
-  if(!allProyectos.length)loadProyectos();
+  if(!allProyectos||!allProyectos.length)loadProyectos();
 
   // When client is selected, pre-populate project dropdown
   var cliHid = document.getElementById('fact-cliente-id');

@@ -3,6 +3,8 @@
 
 var _docsResults = [];
 var _docsSearchTimer = null;
+var _docsPage = 1;
+var _docsPageSize = 10;
 
 function docsInit() {
   var el = document.getElementById('docs-search');
@@ -128,6 +130,7 @@ function docsOnInput() {
 }
 
 async function docsBuscar() {
+  _docsPage = 1; // reset a primera página en cada nueva búsqueda
   var q       = (document.getElementById('docs-search')     || {}).value || '';
   var año     = (document.getElementById('docs-year')       || {}).value || '';
   var tipo    = (document.getElementById('docs-tipo')       || {}).value || '';
@@ -239,6 +242,20 @@ async function _docsFetch(q, año, tipo, archivo) {
   return rows.concat(orphans);
 }
 
+// ── Paginación ────────────────────────────────────────────
+function docsGoPage(n) {
+  var totalPages = Math.ceil(_docsResults.length / _docsPageSize);
+  if (n < 1 || n > totalPages) return;
+  _docsPage = n;
+  docsRender(_docsResults);
+}
+
+function docsSetPageSize(n) {
+  _docsPageSize = n;
+  _docsPage = 1;
+  docsRender(_docsResults);
+}
+
 // ── Render ────────────────────────────────────────────────
 function docsRender(rows) {
   var wrap = document.getElementById('docs-results');
@@ -250,9 +267,17 @@ function docsRender(rows) {
   }
   document.getElementById('docs-empty').style.display = 'none';
 
+  // ── Paginación: slicear filas de la página actual ──────
+  var total = rows.length;
+  var totalPages = Math.max(1, Math.ceil(total / _docsPageSize));
+  if (_docsPage > totalPages) _docsPage = totalPages;
+  var start = (_docsPage - 1) * _docsPageSize;
+  var end   = Math.min(start + _docsPageSize, total);
+  var pageRows = rows.slice(start, end);
+
   var html = '<div style="display:flex;flex-direction:column;gap:8px;">';
 
-  rows.forEach(function(r) {
+  pageRows.forEach(function(r) {
 
     // ── Tarjeta huérfana ──────────────────────────────────
     if (r._orphan) {
@@ -362,7 +387,28 @@ function docsRender(rows) {
   });
 
   html += '</div>';
-  wrap.innerHTML = html;
+
+  // ── Footer de paginación ──────────────────────────────
+  var btnBase = 'padding:3px 10px;border-radius:4px;border:1px solid var(--border);background:none;color:var(--text-2);font-size:12px;cursor:pointer;';
+  var pager =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);gap:8px;flex-wrap:wrap;">' +
+      // Izq: selector de tamaño de página
+      '<div style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text-3);">Ver&nbsp;' +
+        [10,20,50].map(function(n){
+          var act = n === _docsPageSize;
+          return '<button onclick="docsSetPageSize('+n+')" style="padding:2px 8px;border-radius:4px;border:1px solid '+(act?'var(--text-2)':'var(--border)')+';background:'+(act?'var(--text-1)':'none')+';color:'+(act?'#fff':'var(--text-2)')+';font-size:12px;cursor:pointer;font-weight:'+(act?'600':'400')+';">'+n+'</button>';
+        }).join('') +
+      '</div>' +
+      // Centro: rango
+      '<div style="font-size:12px;color:var(--text-3);">' + (start+1) + '–' + end + ' de ' + total + '</div>' +
+      // Der: anterior / siguiente
+      '<div style="display:flex;gap:6px;">' +
+        '<button onclick="docsGoPage('+(_docsPage-1)+')" '+(_docsPage<=1?'disabled':'')+' style="'+btnBase+(_docsPage<=1?'opacity:.35;cursor:default;':'')+'">← Ant.</button>' +
+        '<button onclick="docsGoPage('+(_docsPage+1)+')" '+(_docsPage>=totalPages?'disabled':'')+' style="'+btnBase+(_docsPage>=totalPages?'opacity:.35;cursor:default;':'')+'">Sig. →</button>' +
+      '</div>' +
+    '</div>';
+
+  wrap.innerHTML = html + pager;
 }
 
 // ── Preview / descarga ─────────────────────────────────────

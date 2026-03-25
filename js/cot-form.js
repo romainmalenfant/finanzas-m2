@@ -1,5 +1,5 @@
-﻿
-// â”€â”€ Cliente select â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// ÔöÇÔöÇ Cliente select ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function poblarClientesCot(clienteIdActual){
   var inp = document.getElementById('cot-cliente-search');
   var hid = document.getElementById('cot-cliente-id');
@@ -18,7 +18,7 @@ function poblarClientesCot(clienteIdActual){
   );
 }
 
-// â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Form ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function renderHistorialCotizaciones(wrap, list){
   var existing = document.getElementById('cot-historial-section');
   if(existing) existing.remove();
@@ -33,11 +33,11 @@ function renderHistorialCotizaciones(wrap, list){
 
   var hdrLabel = document.createElement('span');
   hdrLabel.style.cssText = 'font-size:12px;font-weight:600;color:var(--text-3);';
-  hdrLabel.textContent = 'ðŸ“¦ Historial archivado (>90 dÃ­as) â€” '+list.length+' cotizaci'+(list.length===1?'Ã³n':'ones');
+  hdrLabel.textContent = '­ƒôª Historial archivado (>90 d├¡as) ÔÇö '+list.length+' cotizaci'+(list.length===1?'├│n':'ones');
   var arrow = document.createElement('span');
   arrow.id = 'hst-arrow';
   arrow.style.cssText = 'font-size:10px;color:var(--text-3);';
-  arrow.textContent = cotHistorialOpen ? 'â–²' : 'â–¼';
+  arrow.textContent = cotHistorialOpen ? 'Ôû▓' : 'Ôû╝';
   hdr.appendChild(hdrLabel);
   hdr.appendChild(arrow);
 
@@ -54,7 +54,7 @@ function renderHistorialCotizaciones(wrap, list){
     cotHistorialOpen = !cotHistorialOpen;
     body.style.display = cotHistorialOpen ? 'block' : 'none';
     var ar = document.getElementById('hst-arrow');
-    if(ar) ar.textContent = cotHistorialOpen ? 'â–²' : 'â–¼';
+    if(ar) ar.textContent = cotHistorialOpen ? 'Ôû▓' : 'Ôû╝';
   });
 
   section.appendChild(hdr);
@@ -91,7 +91,7 @@ function _abrirNuevaCotizacion(){
   cotEditId = null;
   cotItemsTemp = [];
   document.getElementById('cot-id-edit').value = '';
-  document.getElementById('cot-modal-title').textContent = 'Nueva cotizaciÃ³n';
+  document.getElementById('cot-modal-title').textContent = 'Nueva cotizaci├│n';
   poblarClientesCot(null);
   var _ct=document.getElementById('cot-titulo'); if(_ct) _ct.value='';
   document.getElementById('cot-cliente-id').value = '';
@@ -100,7 +100,7 @@ function _abrirNuevaCotizacion(){
   document.getElementById('cot-vigencia').value = '15';
   document.getElementById('cot-notas').value = '';
   var _cr=document.getElementById('cot-requisicion'); if(_cr) _cr.value='';
-  // Limpiar contacto completamente al abrir nueva cotizaciÃ³n
+  // Limpiar contacto completamente al abrir nueva cotizaci├│n
   var _ci = document.getElementById('cot-contacto-id');
   var _cs = document.getElementById('cot-contacto-search');
   var _cd = document.getElementById('cot-contacto-dd');
@@ -113,7 +113,7 @@ function _abrirNuevaCotizacion(){
   var btnNV = document.getElementById('btn-nueva-version-cot');
   if (btnNV) btnNV.style.display = 'none';
   cotVersionFlag = false;
-  // BUG-04: z-index explÃ­cito para superar el detail panel (z-index:500)
+  // BUG-04: z-index expl├¡cito para superar el detail panel (z-index:500)
   var _cotM = document.getElementById('cot-modal');
   _cotM.style.zIndex = '700';
   _cotM.style.display = 'flex';
@@ -125,11 +125,11 @@ async function editarCotizacion(id){
   try{
     c = cotizaciones.find(function(x){return x.id===id;});
     if(!c) c = await DB.cotizaciones.get(id);
-  }catch(e){ showError('Error cargando cotizaciÃ³n: '+e.message); return; }
-  if(!c){ showError('CotizaciÃ³n no encontrada'); return; }
+  }catch(e){ showError('Error cargando cotizaci├│n: '+e.message); return; }
+  if(!c){ showError('Cotizaci├│n no encontrada'); return; }
   cotEditId = id;
   document.getElementById('cot-id-edit').value = id;
-  document.getElementById('cot-modal-title').textContent = 'Editar cotizaciÃ³n';
+  document.getElementById('cot-modal-title').textContent = 'Editar cotizaci├│n';
   if(!clientes.length) loadClientes().then(function(){poblarClientesCot(c.cliente_id||null);});
   else poblarClientesCot(c.cliente_id||null);
   var _ct2=document.getElementById('cot-titulo'); if(_ct2) _ct2.value=c.titulo||'';
@@ -195,7 +195,7 @@ async function editarCotizacion(id){
   cotVersionFlag = false;
   var condSel = (c.condiciones && Array.isArray(c.condiciones)) ? c.condiciones : COT_CONDICIONES_DEFAULT;
   renderCondicionesCot(condSel);
-  // BUG-04: z-index explÃ­cito para superar el detail panel (z-index:500)
+  // BUG-04: z-index expl├¡cito para superar el detail panel (z-index:500)
   var _cotM2 = document.getElementById('cot-modal');
   _cotM2.style.zIndex = '700';
   _cotM2.style.display = 'flex';
@@ -223,7 +223,7 @@ function cerrarCotModal(){
   document.getElementById('cot-modal').style.display = 'none';
 }
 
-// â”€â”€ Items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Items ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function agregarCotItem(tipo){
   cotItemsTemp.push({
     _tempId: Date.now(),
@@ -281,7 +281,7 @@ function recalcCotTotal(){
   el('cot-total', fmt(total));
 }
 
-// â”€â”€ Cliente autocomplete in cot form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Cliente autocomplete in cot form ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function buscarClienteCot(q){
   var dd = document.getElementById('cot-cliente-dropdown');
   if(!q.trim()){dd.style.display='none';return;}
@@ -317,7 +317,7 @@ function buscarClienteCot(q){
 function selClienteCot(id, nombre){
   document.getElementById('cot-cliente-id').value = id;
   document.getElementById('cot-cliente-search').value = nombre;
-  document.getElementById('cot-cliente-selected').textContent = 'âœ“ '+nombre;
+  document.getElementById('cot-cliente-selected').textContent = 'Ô£ô '+nombre;
   document.getElementById('cot-cliente-selected').style.display = 'block';
   document.getElementById('cot-cliente-dropdown').style.display = 'none';
 }
@@ -334,8 +334,8 @@ document.addEventListener('click',function(e){
   }
 });
 
-// â”€â”€ Guardar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// â”€â”€ Contactos vinculados al cliente en cotizaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Guardar ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ÔöÇÔöÇ Contactos vinculados al cliente en cotizaci├│n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
 /**
  * Pre-populates the contact dropdown with contacts
@@ -343,7 +343,7 @@ document.addEventListener('click',function(e){
  * Called when client changes.
  */
 function precargarContactosCot(){
-  // Called on client change â€” reset contact field and reload dropdown
+  // Called on client change ÔÇö reset contact field and reload dropdown
   var inp = document.getElementById('cot-contacto-search');
   var hid = document.getElementById('cot-contacto-id');
   if(inp) inp.value = '';
@@ -353,7 +353,7 @@ function precargarContactosCot(){
 }
 
 function mostrarContactosCot(){
-  // Called on focus â€” show contacts for selected client without resetting the field
+  // Called on focus ÔÇö show contacts for selected client without resetting the field
   var clienteId = document.getElementById('cot-cliente-id').value;
   var dd = document.getElementById('cot-contacto-dd');
   if(!dd) return;
@@ -405,7 +405,7 @@ function _renderContactoCotDD(list, dd){
     nameEl.textContent = nombre;
     var subEl = document.createElement('div');
     subEl.style.cssText = 'font-size:10px;color:var(--text-3);';
-    subEl.textContent = (c.cargo||'') + (c.email ? ' Â· '+c.email : '');
+    subEl.textContent = (c.cargo||'') + (c.email ? ' ┬À '+c.email : '');
     item.appendChild(nameEl);
     item.appendChild(subEl);
     item.addEventListener('mousedown', function(){
@@ -459,7 +459,7 @@ function _renderUsuarioCotDD(list, dd){
     nameEl.textContent = nombre;
     var subEl = document.createElement('div');
     subEl.style.cssText = 'font-size:10px;color:var(--text-3);';
-    subEl.textContent = (c.cargo||'')+(c.email?' Â· '+c.email:'');
+    subEl.textContent = (c.cargo||'')+(c.email?' ┬À '+c.email:'');
     item.appendChild(nameEl);
     item.appendChild(subEl);
     item.addEventListener('mousedown', function(){
@@ -491,7 +491,7 @@ async function guardarCotizacion(){
   var iva = subtotal*0.16;
   var total = subtotal+iva;
   var fecha = document.getElementById('cot-fecha').value;
-  var aÃ±o = new Date(fecha+'T12:00').getFullYear();
+  var a├▒o = new Date(fecha+'T12:00').getFullYear();
 
   try{
     var btn = document.getElementById('btn-save-cot');
@@ -530,8 +530,8 @@ async function guardarCotizacion(){
       cotData.id = cotEditId;
       savedCot = await DB.cotizaciones.save(cotData);
     } else {
-      var count = await DB.cotizaciones.countPeriodo('COT-'+aÃ±o+'-');
-      cotData.numero = 'COT-'+aÃ±o+'-'+String(count+1).padStart(3,'0');
+      var count = await DB.cotizaciones.countPeriodo('COT-'+a├▒o+'-');
+      cotData.numero = 'COT-'+a├▒o+'-'+String(count+1).padStart(3,'0');
       savedCot = await DB.cotizaciones.save(cotData);
     }
 
@@ -554,7 +554,7 @@ async function guardarCotizacion(){
 
     cerrarCotModal();
     await loadCotizaciones();
-    showStatus('âœ“ CotizaciÃ³n guardada');
+    showStatus('Ô£ô Cotizaci├│n guardada');
     verDetalleCotizacion(savedCot.id);
   }catch(e){
     console.error('guardarCotizacion:',e);
@@ -566,7 +566,7 @@ async function guardarCotizacion(){
   }
 }
 
-// â”€â”€ Cambiar estatus â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Cambiar estatus ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 async function cambiarEstatusCot(id, estatus){
   try{
     if(estatus === 'cerrada'){
@@ -587,7 +587,7 @@ async function cambiarEstatusCot(id, estatus){
       await loadCotizaciones();
       if(cotView==='kanban') renderKanban();
       cerrarDetail();
-      showStatus('âœ“ CotizaciÃ³n actualizada');
+      showStatus('Ô£ô Cotizaci├│n actualizada');
     }
   }catch(e){showError('Error: '+e.message);}
 }
@@ -605,8 +605,8 @@ var _versionPickerSelectedId = null;
 function mostrarPickerVersiones(versiones, currentId){
   var sorted = versiones.slice().sort(function(a,b){ return (b.version||1)-(a.version||1); });
   var last4 = sorted.slice(0,4);
-  var fmt2 = function(n){ return n!=null ? '$'+parseFloat(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'â€”'; };
-  var fmtEst = function(e){ return {borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociaciÃ³n',cerrada:'Cerrada',perdida:'Perdida'}[e]||e; };
+  var fmt2 = function(n){ return n!=null ? '$'+parseFloat(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'ÔÇö'; };
+  var fmtEst = function(e){ return {borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociaci├│n',cerrada:'Cerrada',perdida:'Perdida'}[e]||e; };
 
   var existing = document.getElementById('version-picker-overlay');
   if(existing) existing.remove();
@@ -616,16 +616,16 @@ function mostrarPickerVersiones(versiones, currentId){
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:950;display:flex;align-items:center;justify-content:center;padding:16px;';
   overlay.innerHTML =
     '<div style="background:var(--bg-card);border:.5px solid var(--border);border-radius:14px;width:100%;max-width:440px;padding:24px;box-shadow:0 8px 40px var(--shadow);">'+
-      '<div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">Â¿QuÃ© versiÃ³n se aprobÃ³?</div>'+
-      '<div style="font-size:12px;color:var(--text-3);margin-bottom:18px;">'+(last4[0]&&last4[0].numero||'')+' Â· Elige la versiÃ³n ganadora</div>'+
+      '<div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px;">┬┐Qu├® versi├│n se aprob├│?</div>'+
+      '<div style="font-size:12px;color:var(--text-3);margin-bottom:18px;">'+(last4[0]&&last4[0].numero||'')+' ┬À Elige la versi├│n ganadora</div>'+
       '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">'+
         last4.map(function(v,i){
           var isLatest = i===0;
           return '<div onclick="versionPickerSelect(\''+v.id+'\')" id="vpick-'+v.id+'" style="padding:12px 14px;border-radius:8px;border:1.5px solid '+(isLatest?'#E8192C':'var(--border)')+';cursor:pointer;display:flex;justify-content:space-between;align-items:center;background:'+(isLatest?'rgba(232,25,44,.07)':'var(--bg-card-2)')+';transition:all .15s;">'+
             '<div>'+
               '<span style="font-size:13px;font-weight:700;color:'+(isLatest?'#E8192C':'var(--text-1)')+';">v'+(v.version||1)+'</span>'+
-              (isLatest ? '<span style="font-size:10px;color:#E8192C;margin-left:6px;">mÃ¡s reciente</span>' : '')+
-              '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+(v.fecha||'')+(v.estatus?' Â· '+fmtEst(v.estatus):'')+'</div>'+
+              (isLatest ? '<span style="font-size:10px;color:#E8192C;margin-left:6px;">m├ís reciente</span>' : '')+
+              '<div style="font-size:11px;color:var(--text-3);margin-top:2px;">'+(v.fecha||'')+(v.estatus?' ┬À '+fmtEst(v.estatus):'')+'</div>'+
             '</div>'+
             '<span style="font-size:13px;font-weight:700;color:var(--text-1);">'+fmt2(v.total)+'</span>'+
           '</div>';
@@ -633,7 +633,7 @@ function mostrarPickerVersiones(versiones, currentId){
       '</div>'+
       '<div style="display:flex;gap:10px;justify-content:flex-end;">'+
         '<button onclick="document.getElementById(\'version-picker-overlay\').remove()" style="padding:8px 18px;border:.5px solid var(--border);border-radius:8px;background:none;color:var(--text-2);cursor:pointer;font-size:13px;">Cancelar</button>'+
-        '<button id="btn-vpick-ok" onclick="versionPickerConfirm()" style="padding:8px 22px;border-radius:8px;background:#E8192C;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Aprobar versiÃ³n</button>'+
+        '<button id="btn-vpick-ok" onclick="versionPickerConfirm()" style="padding:8px 22px;border-radius:8px;background:#E8192C;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Aprobar versi├│n</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(overlay);
@@ -664,7 +664,7 @@ var PERDIDA_MOTIVOS = [
   'Precio muy alto',
   'Se fue con la competencia',
   'Proyecto cancelado por cliente',
-  'Sin respuesta / cliente desapareciÃ³',
+  'Sin respuesta / cliente desapareci├│',
   'Fuera de presupuesto',
   'Tiempos de entrega',
   'Otro'
@@ -692,13 +692,13 @@ function marcarPerdida(id){
         '<textarea id="perdida-modal-notas" rows="2" placeholder="Detalles..." style="width:100%;margin-top:6px;padding:8px 10px;border:.5px solid var(--border);border-radius:8px;background:var(--bg-card-2);color:var(--text-1);font-size:12px;resize:vertical;box-sizing:border-box;"></textarea>'+
         '<div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end;">'+
           '<button onclick="cerrarModalPerdida()" style="padding:8px 18px;border:.5px solid var(--border);border-radius:8px;background:none;color:var(--text-2);cursor:pointer;font-size:13px;">Cancelar</button>'+
-          '<button onclick="confirmarPerdida()" style="padding:8px 20px;border-radius:8px;background:#f87171;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Confirmar pÃ©rdida</button>'+
+          '<button onclick="confirmarPerdida()" style="padding:8px 20px;border-radius:8px;background:#f87171;color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;">Confirmar p├®rdida</button>'+
         '</div>'+
       '</div>';
     document.body.appendChild(overlay);
   }
   var sub = document.getElementById('perdida-modal-sub');
-  if(sub) sub.textContent = cot ? (cot.numero||'')+' Â· '+(cot.cliente_nombre||'') : '';
+  if(sub) sub.textContent = cot ? (cot.numero||'')+' ┬À '+(cot.cliente_nombre||'') : '';
   // Reset state
   var notas = document.getElementById('perdida-modal-notas');
   if(notas) notas.value = '';
@@ -726,18 +726,18 @@ async function confirmarPerdida(){
   var selBtn = overlay ? overlay.querySelector('button[data-sel]') : null;
   var motivo = selBtn ? selBtn.textContent : '';
   var notas = ((document.getElementById('perdida-modal-notas')||{}).value||'').trim();
-  var motivoFinal = motivo + (notas ? (motivo ? ' â€” ' : '') + notas : '');
+  var motivoFinal = motivo + (notas ? (motivo ? ' ÔÇö ' : '') + notas : '');
   var id = _perdidaId;
   cerrarModalPerdida();
   try{
     await DB.cotizaciones.updateEstatus(id,'perdida',{motivo_perdida:motivoFinal||null,fecha_cierre:new Date().toISOString().split('T')[0]});
     loadCotizaciones();
     cerrarDetail();
-    showStatus('CotizaciÃ³n marcada como perdida');
+    showStatus('Cotizaci├│n marcada como perdida');
   }catch(e){showError('Error: '+e.message);}
 }
 
-// â”€â”€ Cerrar cotizaciÃ³n â†’ crear proyecto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Cerrar cotizaci├│n ÔåÆ crear proyecto ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 async function convertirACotizacionCerrada(cotId){
   var cot = cotizaciones.find(function(c){return c.id===cotId;}) ||
     await DB.cotizaciones.get(cotId);
@@ -753,7 +753,7 @@ async function convertirACotizacionCerrada(cotId){
 
   // Build description from all items
   var allDescs = items.map(function(i){return i.descripcion;}).filter(Boolean);
-  var tipoPieza = allDescs.slice(0,2).join(', ')+(allDescs.length>2?' y mÃ¡s':'');
+  var tipoPieza = allDescs.slice(0,2).join(', ')+(allDescs.length>2?' y m├ís':'');
 
   // Build unidad from dominant type
   var unidad = maquinados.length ? (maquinados[0].unidad||'pzas') :
@@ -761,9 +761,9 @@ async function convertirACotizacionCerrada(cotId){
 
   // Build items summary HTML
   var summaryHTML = items.length ?
-    '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Items de la cotizaciÃ³n</div>'+
+    '<div style="font-size:11px;color:var(--text-3);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;">Items de la cotizaci├│n</div>'+
     items.map(function(i){
-      var badge = i.tipo==='maquinado'?'ðŸ”§':i.tipo==='servicio'?'âš™ï¸':'ðŸ“¦';
+      var badge = i.tipo==='maquinado'?'­ƒöº':i.tipo==='servicio'?'ÔÜÖ´©Å':'­ƒôª';
       return '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:0.5px solid var(--border-light);">'+
         '<span>'+badge+' '+esc(i.descripcion||'')+(i.material?' <span style="color:var(--text-3);">('+esc(i.material)+')</span>':'')+'</span>'+
         '<span style="color:var(--text-2);">'+fmt(parseFloat(i.subtotal)||0)+'</span>'+
@@ -807,7 +807,7 @@ async function confirmarConversion(){
     var btn = document.getElementById('btn-confirmar-conv');
     btn.disabled=true; btn.textContent='Creando proyecto...';
 
-    var aÃ±o = new Date().getFullYear();
+    var a├▒o = new Date().getFullYear();
     var proyData = {
       nombre_cliente: cot.cliente_nombre,
       cliente_id: cot.cliente_id||null,
@@ -817,7 +817,7 @@ async function confirmarConversion(){
       monto_total: cot.total,
       fecha_pedido: new Date().toISOString().split('T')[0],
       fecha_entrega: fechaEntrega,
-      year: aÃ±o,
+      year: a├▒o,
       cotizacion_id: cotId,
       activo: true
     };
@@ -830,7 +830,7 @@ async function confirmarConversion(){
     document.getElementById('conv-modal').style.display='none';
     cerrarDetail();
     loadCotizaciones();
-    showStatus('âœ“ Proyecto creado: '+nombrePedido);
+    showStatus('Ô£ô Proyecto creado: '+nombrePedido);
     setTimeout(function(){
       switchTab('proyectos', document.getElementById('sb-proyectos'));
       setTimeout(function(){verDetalleProyecto(proj.id);},600);
@@ -843,7 +843,7 @@ async function confirmarConversion(){
   }
 }
 
-// â”€â”€ Detalle cotizaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Detalle cotizaci├│n ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 async function verDetalleCotizacion(id){
   // Siempre re-fetch para tener fecha_cierre y numero_requisicion actualizados
   var cFresh = await DB.cotizaciones.get(id);
@@ -854,7 +854,7 @@ async function verDetalleCotizacion(id){
   var color = EST_COLORS[c.estatus]||'#475569';
   var label = EST_LABELS[c.estatus]||c.estatus;
 
-  abrirDetail(c.numero||'CotizaciÃ³n', c.cliente_nombre, ini,
+  abrirDetail(c.numero||'Cotizaci├│n', c.cliente_nombre, ini,
     '<div style="padding:16px;color:var(--text-3);font-size:12px;">Cargando...</div>',
     function(){editarCotizacion(id);}
   );
@@ -867,18 +867,18 @@ async function verDetalleCotizacion(id){
       acciones =
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
           (c.estatus==='borrador'?'<button class="btn-primary" onclick="cambiarEstatusCot(\''+id+'\',\'enviada\')">Marcar enviada</button>':'')+
-          (c.estatus==='enviada'?'<button class="btn-sm" onclick="cambiarEstatusCot(\''+id+'\',\'en_negociacion\')" style="color:#a78bfa;border-color:#a78bfa;">ðŸ’¬ En negociaciÃ³n</button>':'')+
-          '<button class="btn-primary" style="background:#34d399;color:#0b0e17;" onclick="cambiarEstatusCot(\''+id+'\',\'cerrada\')">âœ“ Cerrar (ganada)</button>'+
+          (c.estatus==='enviada'?'<button class="btn-sm" onclick="cambiarEstatusCot(\''+id+'\',\'en_negociacion\')" style="color:#a78bfa;border-color:#a78bfa;">­ƒÆ¼ En negociaci├│n</button>':'')+
+          '<button class="btn-primary" style="background:#34d399;color:#0b0e17;" onclick="cambiarEstatusCot(\''+id+'\',\'cerrada\')">Ô£ô Cerrar (ganada)</button>'+
           '<button class="btn-sm" style="color:#f87171;" onclick="marcarPerdida(\''+id+'\')">Marcar perdida</button>'+
-          '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">ðŸ“„ PDF</button>'+
+          '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">­ƒôä PDF</button>'+
         '</div>';
     } else if(c.estatus==='cerrada'){
       acciones = '<div style="display:flex;gap:8px;">'+
-        '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">ðŸ“„ PDF</button>'+
-        (c.proyecto_id?'<button class="btn-sm" onclick="cerrarDetail();switchTab(\'proyectos\',document.getElementById(\'sb-proyectos\'));setTimeout(function(){verDetalleProyecto(\''+c.proyecto_id+'\');},600);">Ver proyecto â†’</button>':'')+
+        '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">­ƒôä PDF</button>'+
+        (c.proyecto_id?'<button class="btn-sm" onclick="cerrarDetail();switchTab(\'proyectos\',document.getElementById(\'sb-proyectos\'));setTimeout(function(){verDetalleProyecto(\''+c.proyecto_id+'\');},600);">Ver proyecto ÔåÆ</button>':'')+
       '</div>';
     } else {
-      acciones = '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">ðŸ“„ PDF</button>';
+      acciones = '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">­ƒôä PDF</button>';
     }
 
     var itemsHTML = items.map(function(item){
@@ -914,8 +914,8 @@ async function verDetalleCotizacion(id){
       // Info
       '<div class="detail-section"><div class="detail-grid">'+
         '<div class="detail-field"><div class="detail-field-label">Fecha</div><div class="detail-field-value">'+fmtDateFull(c.fecha)+'</div></div>'+
-        '<div class="detail-field"><div class="detail-field-label">Vigencia</div><div class="detail-field-value">'+(c.vigencia_dias||15)+' dÃ­as</div></div>'+
-        (c.numero_requisicion?'<div class="detail-field"><div class="detail-field-label">No. RequisiciÃ³n</div><div class="detail-field-value" style="font-family:monospace;">'+esc(c.numero_requisicion)+'</div></div>':'')+
+        '<div class="detail-field"><div class="detail-field-label">Vigencia</div><div class="detail-field-value">'+(c.vigencia_dias||15)+' d├¡as</div></div>'+
+        (c.numero_requisicion?'<div class="detail-field"><div class="detail-field-label">No. Requisici├│n</div><div class="detail-field-value" style="font-family:monospace;">'+esc(c.numero_requisicion)+'</div></div>':'')+
         (c.fecha_cierre?'<div class="detail-field"><div class="detail-field-label">Fecha cierre</div><div class="detail-field-value">'+fmtDateFull(c.fecha_cierre)+'</div></div>':'')+
         (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(c.notas)+'</div></div>':'')+
       '</div></div>'+
@@ -924,7 +924,7 @@ async function verDetalleCotizacion(id){
         '<div class="detail-section-title">Items ('+items.length+')</div>'+
         '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">'+
           '<thead><tr>'+
-            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">DescripciÃ³n</th>'+
+            '<th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Descripci├│n</th>'+
             '<th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Tipo</th>'+
             '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">Cant.</th>'+
             '<th style="padding:8px 12px;text-align:right;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;border-bottom:0.5px solid var(--border);">P.U.</th>'+
@@ -934,7 +934,7 @@ async function verDetalleCotizacion(id){
         '</table></div>'+
       '</div>';
 
-    // Contacto vinculado a esta cotizaciÃ³n especÃ­ficamente
+    // Contacto vinculado a esta cotizaci├│n espec├¡ficamente
     var contactoHTML = '';
     if(c.contacto_id){
       var cotCont=await DB.contactos.get(c.contacto_id);
@@ -945,24 +945,24 @@ async function verDetalleCotizacion(id){
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
             '<div class="detail-section-title" style="margin-bottom:0;">Contacto vinculado</div>'+
             '<button class="btn-sm" style="font-size:11px;color:var(--text-3);" '+
-              'onclick="quitarContactoCot(\''+id+'\')" title="Quitar contacto de esta cotizaciÃ³n">Ã— Quitar</button>'+
+              'onclick="quitarContactoCot(\''+id+'\')" title="Quitar contacto de esta cotizaci├│n">├ù Quitar</button>'+
           '</div>'+
           '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+cotCont.id+'\')">'+ 
             '<div>'+
               '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(ctNombre)+'</div>'+
-              '<div style="font-size:11px;color:var(--text-3);">'+(cotCont.cargo||'')+(cotCont.email?' Â· '+cotCont.email:'')+'</div>'+
+              '<div style="font-size:11px;color:var(--text-3);">'+(cotCont.cargo||'')+(cotCont.email?' ┬À '+cotCont.email:'')+'</div>'+
               (cotCont.telefono?'<div style="font-size:11px;color:var(--text-3);">'+esc(cotCont.telefono)+'</div>':'')+
             '</div>'+
-            '<span style="font-size:11px;color:var(--text-3);">â†’</span>'+
+            '<span style="font-size:11px;color:var(--text-3);">ÔåÆ</span>'+
           '</div>'+
           '</div>';
       }
     } else if(c.cliente_id){
-      // No contact linked yet â€” offer to set one from this company's contacts
+      // No contact linked yet ÔÇö offer to set one from this company's contacts
       contactoHTML=
         '<div class="detail-section">'+
         '<div class="detail-section-title">Contacto vinculado</div>'+
-        '<div style="color:var(--text-4);font-size:12px;padding:4px 0 10px;">Sin contacto vinculado a esta cotizaciÃ³n</div>'+
+        '<div style="color:var(--text-4);font-size:12px;padding:4px 0 10px;">Sin contacto vinculado a esta cotizaci├│n</div>'+
         '<button class="btn-sm" style="font-size:11px;" '+
           'onclick="vincularContactoCot(\''+id+'\',\''+c.cliente_id+'\')">+ Vincular contacto</button>'+
         '</div>';
@@ -980,9 +980,9 @@ async function verDetalleCotizacion(id){
           '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleContacto(\''+cotUsu.id+'\')">'+
             '<div>'+
               '<div style="font-size:13px;font-weight:500;color:var(--text-1);">'+esc(usuNombre)+'</div>'+
-              '<div style="font-size:11px;color:var(--text-3);">'+(cotUsu.cargo||'')+(cotUsu.email?' Â· '+cotUsu.email:'')+'</div>'+
+              '<div style="font-size:11px;color:var(--text-3);">'+(cotUsu.cargo||'')+(cotUsu.email?' ┬À '+cotUsu.email:'')+'</div>'+
             '</div>'+
-            '<span style="font-size:11px;color:var(--text-3);">â†’</span>'+
+            '<span style="font-size:11px;color:var(--text-3);">ÔåÆ</span>'+
           '</div>'+
           '</div>';
       }
@@ -996,7 +996,7 @@ async function verDetalleCotizacion(id){
 }
 
 
-// â”€â”€ Vincular contacto a cotizaciÃ³n desde detalle â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Vincular contacto a cotizaci├│n desde detalle ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function vincularContactoCot(cotId, clienteId){
   var uid = 'cot_' + cotId;
   var secId = 'vinc-cont-sec-' + uid;
@@ -1029,8 +1029,8 @@ function vincularContactoCot(cotId, clienteId){
       item.innerHTML =
         '<div style="font-weight:500;color:var(--text-1);">' + esc(nombre) + '</div>' +
         '<div style="font-size:10px;color:var(--text-3);">' + esc(c.cargo||'') +
-          (c.email ? ' Â· '+esc(c.email) : '') +
-          (yaAsignado ? ' Â· <span style="color:#f87171;">Ya tiene empresa</span>' : '') +
+          (c.email ? ' ┬À '+esc(c.email) : '') +
+          (yaAsignado ? ' ┬À <span style="color:#f87171;">Ya tiene empresa</span>' : '') +
         '</div>';
       if(!yaAsignado){
         item.addEventListener('mousedown', function(){
@@ -1075,7 +1075,7 @@ function vincularContactoCot(cotId, clienteId){
 async function seleccionarContactoCot(cotId, contactoId, nombre){
   try{
     await DB.cotizaciones.linkContact(cotId, contactoId);
-    showStatus('âœ“ Contacto vinculado: ' + nombre);
+    showStatus('Ô£ô Contacto vinculado: ' + nombre);
     verDetalleCotizacion(cotId);
   }catch(e){ showError('Error: ' + e.message); }
 }

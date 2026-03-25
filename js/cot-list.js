@@ -1,4 +1,4 @@
-﻿// â”€â”€ Cotizaciones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Cotizaciones ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 var cotizaciones = [], allCotizaciones = [];
 // [F7] Sort state
 var cotSort = { col: 'fecha', dir: 'desc' };
@@ -18,7 +18,7 @@ function updateCotSortUI(){
       btn.style.background = 'var(--bg-card-2)';
       btn.style.color = 'var(--text-1)';
       btn.style.borderColor = 'var(--text-3)';
-      btn.querySelector('span.sort-arrow').textContent = cotSort.dir==='asc' ? ' â†‘' : ' â†“';
+      btn.querySelector('span.sort-arrow').textContent = cotSort.dir==='asc' ? ' Ôåæ' : ' Ôåô';
     } else {
       btn.style.background = '';
       btn.style.color = 'var(--text-3)';
@@ -44,20 +44,20 @@ var cotYearFilter = new Date().getFullYear();
 var cotHistorialOpen = false;
 var cotItemsTemp = []; // items in current form
 var cotEditId = null;
-var cotVersionFlag = false; // true = crear nueva versiÃ³n al guardar
+var cotVersionFlag = false; // true = crear nueva versi├│n al guardar
 
 var COT_CONDICIONES = [
-  { id: 1, texto: 'Precios expresados en MXN, mÃ¡s IVA' },
-  { id: 2, texto: 'Vigencia segÃºn los dÃ­as indicados en el documento' },
+  { id: 1, texto: 'Precios expresados en MXN, m├ís IVA' },
+  { id: 2, texto: 'Vigencia seg├║n los d├¡as indicados en el documento' },
   { id: 3, texto: 'Forma de pago: 50% de anticipo, 50% contra entrega' },
-  { id: 4, texto: 'Tiempo de entrega sujeto a confirmaciÃ³n de agenda de producciÃ³n' },
+  { id: 4, texto: 'Tiempo de entrega sujeto a confirmaci├│n de agenda de producci├│n' },
   { id: 5, texto: 'Los precios no incluyen flete ni maniobras de entrega' },
-  { id: 6, texto: 'Se requiere plano tÃ©cnico o muestra fÃ­sica para iniciar producciÃ³n' },
+  { id: 6, texto: 'Se requiere plano t├®cnico o muestra f├¡sica para iniciar producci├│n' },
   { id: 7, texto: 'Cambios en especificaciones o material pueden afectar precio y tiempo de entrega' },
 ];
 var COT_CONDICIONES_DEFAULT = [1, 2, 3];
 
-// â”€â”€ Load & Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Load & Render ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 async function loadCotizaciones(){
   try{
     cotizaciones = await DB.cotizaciones.list();
@@ -65,11 +65,11 @@ async function loadCotizaciones(){
     // Init year filter
     var yearSel = document.getElementById('cot-year-filter');
     if(yearSel && yearSel.options.length===0){
-      var aÃ±os = [...new Set(cotizaciones.map(function(c){return new Date(c.fecha||c.created_at).getFullYear();}))];
+      var a├▒os = [...new Set(cotizaciones.map(function(c){return new Date(c.fecha||c.created_at).getFullYear();}))];
       var currentYear = new Date().getFullYear();
-      if(!aÃ±os.includes(currentYear)) aÃ±os.push(currentYear);
-      aÃ±os.sort(function(a,b){return b-a;});
-      aÃ±os.forEach(function(y){
+      if(!a├▒os.includes(currentYear)) a├▒os.push(currentYear);
+      a├▒os.sort(function(a,b){return b-a;});
+      a├▒os.forEach(function(y){
         var o=document.createElement('option');
         o.value=y; o.textContent=y;
         if(y===cotYearFilter)o.selected=true;
@@ -93,7 +93,7 @@ function renderCotizacionesKPIs(){
     .reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
   var totalPerdidas = cotizaciones.filter(function(c){return c.estatus==='perdida';})
     .reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
-  // FEAT-02: Win Rate â€” cerradas / (cerradas + perdidas)
+  // FEAT-02: Win Rate ÔÇö cerradas / (cerradas + perdidas)
   var disputadas = cerradas + perdidas;
   var winRate = disputadas > 0 ? Math.round((cerradas / disputadas) * 100) : null;
 
@@ -103,25 +103,25 @@ function renderCotizacionesKPIs(){
   el('cot-k-cerradas', cerradas);
   el('cot-k-perdidas', perdidas);
   el('cot-k-pipeline', fmt(pipeline));
-  // FEAT-01: montos â€” inyecciÃ³n defensiva
+  // FEAT-01: montos ÔÇö inyecci├│n defensiva
   el('cot-k-cerradas-monto', fmt(totalCerradas));
   el('cot-k-perdidas-monto', fmt(totalPerdidas));
   // FEAT-02: win rate
   var elWR = document.getElementById('cot-k-winrate');
-  if(elWR) elWR.textContent = winRate !== null ? winRate+'%' : 'â€”';
+  if(elWR) elWR.textContent = winRate !== null ? winRate+'%' : 'ÔÇö';
 
-  // FEAT-D1: DÃ­as promedio de cierre
+  // FEAT-D1: D├¡as promedio de cierre
   var cotCerradas = cotizaciones.filter(function(c){return c.estatus==='cerrada'&&c.fecha_cierre&&(c.created_at||c.fecha);});
   var diasProm = cotCerradas.length ? Math.round(cotCerradas.reduce(function(a,c){
     return a+Math.max(0,(new Date(c.fecha_cierre)-new Date(c.created_at||c.fecha))/864e5);
   },0)/cotCerradas.length) : null;
-  el('cot-k-dias', diasProm!==null ? diasProm+'d' : 'â€”');
+  el('cot-k-dias', diasProm!==null ? diasProm+'d' : 'ÔÇö');
 
   // FEAT-D2: Ticket promedio cerradas
   var ticketProm = cerradas>0 ? totalCerradas/cerradas : null;
-  el('cot-k-ticket', ticketProm!==null ? fmt(ticketProm) : 'â€”');
+  el('cot-k-ticket', ticketProm!==null ? fmt(ticketProm) : 'ÔÇö');
 
-  // FEAT-D3: En riesgo (abiertas > 30 dÃ­as)
+  // FEAT-D3: En riesgo (abiertas > 30 d├¡as)
   var hoy=new Date();
   var enRiesgo=cotizaciones.filter(function(c){
     if(c.estatus!=='borrador'&&c.estatus!=='enviada'&&c.estatus!=='en_negociacion') return false;
@@ -139,7 +139,7 @@ function renderCotizacionesKPIs(){
   var mejorCliente=Object.entries(byClienteMonto).sort(function(a,b){return b[1]-a[1];})[0]||null;
   var elMejor=document.getElementById('cot-k-mejor');
   var elMejorSub=document.getElementById('cot-k-mejor-monto');
-  if(elMejor) elMejor.textContent=mejorCliente?mejorCliente[0].split(' ')[0]:'â€”';
+  if(elMejor) elMejor.textContent=mejorCliente?mejorCliente[0].split(' ')[0]:'ÔÇö';
   if(elMejorSub) elMejorSub.textContent=mejorCliente?fmt(mejorCliente[1]):'';
 
   // Paneles de insights
@@ -147,7 +147,7 @@ function renderCotizacionesKPIs(){
 }
 
 function renderInsightsCotizaciones(){
-  // â”€â”€ Top conversiÃ³n por cliente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ÔöÇÔöÇ Top conversi├│n por cliente ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   var byCliente={};
   cotizaciones.forEach(function(c){
     var k=(c.cliente_nombre||'Sin cliente').trim();
@@ -172,7 +172,7 @@ function renderInsightsCotizaciones(){
     }).join(''):'<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Sin datos suficientes</div>';
   }
 
-  // â”€â”€ Cotizan pero nunca cierran â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ÔöÇÔöÇ Cotizan pero nunca cierran ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
   var sinCerrar=Object.entries(byCliente)
     .filter(function(e){return e[1].cerradas===0&&e[1].total>=2;})
     .map(function(e){return {nombre:e[0],total:e[1].total};})
@@ -182,9 +182,9 @@ function renderInsightsCotizaciones(){
     elSin.innerHTML=sinCerrar.length?sinCerrar.map(function(r){
       return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:.5px solid var(--border);">'+
         '<div style="flex:1;font-size:12px;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.nombre)+'</div>'+
-        '<div style="font-size:11px;color:#f87171;font-weight:600;">'+r.total+' cot Â· 0 âœ“</div>'+
+        '<div style="font-size:11px;color:#f87171;font-weight:600;">'+r.total+' cot ┬À 0 Ô£ô</div>'+
       '</div>';
-    }).join(''):'<div style="font-size:12px;color:var(--text-3);padding:8px 0;">âœ“ Todos han cerrado al menos una</div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text-3);padding:8px 0;">Ô£ô Todos han cerrado al menos una</div>';
   }
 }
 
@@ -205,7 +205,7 @@ function filtrarCotizaciones(q){
            (c.cliente_nombre||'').toLowerCase().includes(ql);
   });
 
-  // Split: activas = borrador/enviada/en_negociacion OR cerradas/perdidas <90 dÃ­as
+  // Split: activas = borrador/enviada/en_negociacion OR cerradas/perdidas <90 d├¡as
   var activas = filtered.filter(function(c){
     if(c.estatus==='borrador'||c.estatus==='enviada'||c.estatus==='en_negociacion') return true;
     var d = new Date(c.fecha||c.created_at);
@@ -221,7 +221,7 @@ function filtrarCotizaciones(q){
   renderCotizacionesList(applyCotSort(activas), applyCotSort(historial));
 }
 
-var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociaciÃ³n', cerrada:'Cerrada âœ“', perdida:'Perdida'};
+var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociaci├│n', cerrada:'Cerrada Ô£ô', perdida:'Perdida'};
 var EST_COLORS = {borrador:'#64748b', enviada:'#60a5fa', en_negociacion:'#a78bfa', cerrada:'#34d399', perdida:'#f87171'};
 
 // -- T6: Pure render functions --
@@ -249,7 +249,7 @@ function renderCotizacionCard(c, variant){
   var cliente = document.createElement('div');
   cliente.className = 'proj-cliente';
   if(variant==='active'){
-    cliente.textContent = (c.cliente_nombre||'Sin cliente') + ' Â· Vigencia: '+(c.vigencia_dias||15)+' dÃ­as';
+    cliente.textContent = (c.cliente_nombre||'Sin cliente') + ' ┬À Vigencia: '+(c.vigencia_dias||15)+' d├¡as';
   } else {
     cliente.textContent = c.cliente_nombre||'';
   }
@@ -358,7 +358,7 @@ function renderKanbanCard(c, col, hoy){
     btn.className = 'btn-sm';
     btn.style.cssText = 'font-size:10px;padding:2px 6px;flex:1;'+(align==='right'?'text-align:right;':'');
     btn.title = 'Mover a '+targetCol.label;
-    btn.textContent = align==='right' ? targetCol.label+' â†’' : 'â† '+targetCol.label;
+    btn.textContent = align==='right' ? targetCol.label+' ÔåÆ' : 'ÔåÉ '+targetCol.label;
     btn.addEventListener('click', function(e){ kanbanMoveCard(e, c.id, col.key, targetCol.key); });
     return btn;
   }
@@ -385,10 +385,10 @@ function renderCotItemRow(item){
   hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
   var typeLabel = document.createElement('span');
   typeLabel.style.cssText = 'font-size:10px;font-weight:600;color:var(--brand-red);text-transform:uppercase;';
-  typeLabel.textContent = isMaq?'ðŸ”© Maquinado':isSvc?'âš™ï¸ Servicio':'ðŸ“¦ Producto';
+  typeLabel.textContent = isMaq?'­ƒö® Maquinado':isSvc?'ÔÜÖ´©Å Servicio':'­ƒôª Producto';
   var delBtn = document.createElement('button');
   delBtn.style.cssText = 'background:none;border:none;color:#f87171;cursor:pointer;font-size:14px;';
-  delBtn.textContent = 'Ã—';
+  delBtn.textContent = '├ù';
   delBtn.addEventListener('click', function(){ eliminarCotItem(tid); });
   hdr.appendChild(typeLabel);
   hdr.appendChild(delBtn);
@@ -423,8 +423,8 @@ function renderCotItemRow(item){
   // Row 1: descripcion + material (if maquinado)
   var row1 = document.createElement('div');
   row1.className = 'form-row';
-  var descPlaceholder = isMaq?'Nombre de pieza':isSvc?'Tipo de servicio':'DescripciÃ³n';
-  row1.appendChild(makeField('DescripciÃ³n *', textInput(item.descripcion||'', descPlaceholder, 'descripcion'), '2'));
+  var descPlaceholder = isMaq?'Nombre de pieza':isSvc?'Tipo de servicio':'Descripci├│n';
+  row1.appendChild(makeField('Descripci├│n *', textInput(item.descripcion||'', descPlaceholder, 'descripcion'), '2'));
   if(isMaq) row1.appendChild(makeField('Material', textInput(item.material||'', 'Acero, aluminio...', 'material')));
   wrap.appendChild(row1);
 
@@ -463,7 +463,7 @@ function renderCotizacionesList(list, historial){
   }
   var ct = document.getElementById('cot-count');
   var total = list.length + (historial?historial.length:0);
-  if(ct) ct.textContent = total + ' cotizaci' + (total===1?'Ã³n':'ones');
+  if(ct) ct.textContent = total + ' cotizaci' + (total===1?'├│n':'ones');
   el.innerHTML = '';
   if(!list.length && !(historial&&historial.length)){
     var empty = document.createElement('div');
@@ -479,7 +479,7 @@ function renderCotizacionesList(list, historial){
   renderHistorialCotizaciones(wrap, historial||[]);
 }
 
-// â”€â”€ View toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ View toggle ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 function toggleCotView(view){
   cotView = view;
   document.getElementById('btn-view-lista').classList.toggle('active', view==='lista');
@@ -489,17 +489,17 @@ function toggleCotView(view){
   if(view==='kanban') renderKanban();
 }
 
-// â”€â”€ Kanban â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Kanban ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 var KANBAN_COLS = [
-  {key:'borrador',     label:'Borrador',         icon:'ðŸ“'},
-  {key:'enviada',      label:'Enviada',           icon:'ðŸ“¤'},
-  {key:'en_negociacion',label:'En negociaciÃ³n',   icon:'ðŸ’¬'},
-  {key:'cerrada',      label:'Cerrada âœ“',         icon:'âœ…', limit90:true},
-  {key:'perdida',      label:'Perdida',           icon:'âŒ', limit90:true}
+  {key:'borrador',     label:'Borrador',         icon:'­ƒôØ'},
+  {key:'enviada',      label:'Enviada',           icon:'­ƒôñ'},
+  {key:'en_negociacion',label:'En negociaci├│n',   icon:'­ƒÆ¼'},
+  {key:'cerrada',      label:'Cerrada Ô£ô',         icon:'Ô£à', limit90:true},
+  {key:'perdida',      label:'Perdida',           icon:'ÔØî', limit90:true}
 ];
 
-// â”€â”€ U6: Kanban touch/mobile support â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Mueve una card entre columnas â€” funciona en touch Y desktop
+// ÔöÇÔöÇ U6: Kanban touch/mobile support ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// Mueve una card entre columnas ÔÇö funciona en touch Y desktop
 async function kanbanMoveCard(e, cotId, fromEstatus, toEstatus){
   e.stopPropagation();
   if(fromEstatus===toEstatus) return;
@@ -513,7 +513,7 @@ async function kanbanMoveCard(e, cotId, fromEstatus, toEstatus){
   }
   try{
     await DB.cotizaciones.updateEstatus(cotId, toEstatus);
-    showStatus('âœ“ Movida a '+EST_LABELS[toEstatus]);
+    showStatus('Ô£ô Movida a '+EST_LABELS[toEstatus]);
     await loadCotizaciones();
     if(cotView==='kanban') renderKanban();
   }catch(err){showError('Error: '+err.message);}
@@ -591,7 +591,7 @@ function renderKanban(){
   el.appendChild(board);
 }
 
-// â”€â”€ Drag & drop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ÔöÇÔöÇ Drag & drop ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 var _dragId = null;
 function kanbanDragStart(e, id){ _dragId = id; e.dataTransfer.effectAllowed='move'; }
 
@@ -601,13 +601,13 @@ async function kanbanDrop(e, newEstatus){
   var cot = allCotizaciones.find(function(c){return c.id===_dragId;});
   if(!cot || cot.estatus===newEstatus){ _dragId=null; return; }
 
-  // Special handling for cerrada â€” triggers project creation
+  // Special handling for cerrada ÔÇö triggers project creation
   if(newEstatus==='cerrada'){
     _dragId=null;
     await cambiarEstatusCot(cot.id,'cerrada');
     return;
   }
-  // Special handling for perdida â€” show reason modal
+  // Special handling for perdida ÔÇö show reason modal
   if(newEstatus==='perdida'){
     _dragId=null;
     marcarPerdida(cot.id);
@@ -615,7 +615,7 @@ async function kanbanDrop(e, newEstatus){
   }
   try{
     await DB.cotizaciones.updateEstatus(cot.id, newEstatus);
-    showStatus('âœ“ Movida a '+EST_LABELS[newEstatus]);
+    showStatus('Ô£ô Movida a '+EST_LABELS[newEstatus]);
     // Reload from DB to ensure sync
     await loadCotizaciones();
     if(cotView==='kanban') renderKanban();

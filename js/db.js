@@ -426,8 +426,8 @@ var DB = {
 
     /** Cotizaciones de un cliente — busca por cliente_id o por nombre ilike. */
     byCliente: async function (clienteId, nombre) {
-      var cols = 'id,numero,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre,usuario_cliente_id';
-      var q = sb.from('cotizaciones').select(cols).order('fecha', { ascending: false }).limit(10);
+      var cols = 'id,numero,version,estatus,total,fecha,cliente_nombre,numero_requisicion,fecha_cierre,usuario_cliente_id,pdf_path,cotizacion_base_id';
+      var q = sb.from('cotizaciones').select(cols).order('fecha', { ascending: false }).limit(50);
       if (clienteId) q = q.eq('cliente_id', clienteId);
       else if (nombre) q = q.ilike('cliente_nombre', '%' + nombre + '%');
       return _dbQArr('DB.cotizaciones.byCliente', q);

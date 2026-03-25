@@ -447,18 +447,29 @@ async function verDetalleProyecto(id){
         ?(cots).map(function(cot){
             var ec=EST_COLORS_LOCAL[cot.estatus]||'#64748b';
             var el=EST_LABELS_LOCAL[cot.estatus]||cot.estatus;
-            return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleCotizacion(\''+cot.id+'\')">'+ 
-              '<div>'+
+            var vLabel=(cot.version&&cot.version>1)?' <span style="font-size:9px;color:var(--text-3);">v'+cot.version+'</span>':'';
+            // Botón PDF — ver si ya existe o generar
+            var pdfBtn='';
+            if(cot.pdf_path){
+              pdfBtn='<button onclick="event.stopPropagation();docsAbrir(\''+cot.pdf_path+'\',\'pdf\')" style="display:inline-flex;align-items:center;gap:3px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:600;color:#dc2626;cursor:pointer;white-space:nowrap;" title="Ver PDF de cotización">📄 PDF</button>';
+            } else if(cot.estatus==='cerrada'){
+              pdfBtn='<button onclick="event.stopPropagation();generarPDFCotizacion(\''+cot.id+'\')" style="display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:4px;padding:3px 8px;font-size:11px;color:#64748b;cursor:pointer;white-space:nowrap;" title="Generar PDF">↓ PDF</button>';
+            }
+            return '<div class="detail-list-item" style="cursor:pointer;" onclick="verDetalleCotizacion(\''+cot.id+'\')">'+
+              '<div style="flex:1;min-width:0;">'+
                 '<div style="display:flex;align-items:center;gap:6px;">'+
-                  '<span style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(cot.numero||'COT')+'</span>'+
+                  '<span style="font-size:12px;font-weight:500;color:var(--text-1);">'+esc(cot.numero||'COT')+'</span>'+vLabel+
                   '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:'+ec+'22;color:'+ec+';">'+esc(el)+'</span>'+
                 '</div>'+
                 '<div style="font-size:10px;color:var(--text-3);margin-top:2px;">'+fmtDateFull(cot.fecha)+
                   (cot.numero_requisicion?' · <span style="font-family:monospace;color:var(--text-2);">REQ: '+esc(cot.numero_requisicion)+'</span>':'')+
-                  (cot.usuario_cliente_id?(function(){ var u=(contactos||[]).find(function(x){return x.id===cot.usuario_cliente_id;}); return u?' · <span style="color:var(--text-3);">Usuario: '+esc((u.nombre||'')+(u.apellido?' '+u.apellido:''))+'</span>':''; })():'')+
+                  (cot.usuario_cliente_id?(function(){ var u=(contactos||[]).find(function(x){return x.id===cot.usuario_cliente_id;}); return u?' · <span style="color:var(--text-3);">'+esc((u.nombre||'')+(u.apellido?' '+u.apellido:''))+'</span>':''; })():'')+
                 '</div>'+
               '</div>'+
-              '<span style="font-weight:600;color:var(--text-1);">'+fmt(cot.total||0)+'</span>'+
+              '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'+
+                '<span style="font-weight:600;color:var(--text-1);">'+fmt(cot.total||0)+'</span>'+
+                pdfBtn+
+              '</div>'+
             '</div>';
           }).join('')
         :'<div style="color:var(--text-4);font-size:12px;padding:8px 0;">Sin cotizaciones vinculadas</div>')+

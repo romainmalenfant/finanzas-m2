@@ -196,6 +196,7 @@ function abrirNuevoContacto(){
   document.getElementById('contacto-cargo').value='';
   document.getElementById('contacto-email').value='';
   document.getElementById('contacto-tel').value='';
+  document.getElementById('contacto-tel2').value='';
   document.getElementById('contacto-notas').value='';
   document.getElementById('contacto-cliente-sel').value='';
   var empInp=document.getElementById('contacto-empresa-search');
@@ -358,6 +359,7 @@ function editarContacto(id){
   document.getElementById('contacto-cargo').value=c.cargo||'';
   document.getElementById('contacto-email').value=c.email||'';
   document.getElementById('contacto-tel').value=c.telefono||'';
+  document.getElementById('contacto-tel2').value=c.telefono2||'';
   document.getElementById('contacto-notas').value=c.notas||'';
   // Populate select then set value
   var sel=document.getElementById('contacto-cliente-sel');
@@ -417,6 +419,7 @@ async function guardarContacto(){
     cargo:document.getElementById('contacto-cargo').value.trim()||null,
     email:document.getElementById('contacto-email').value.trim()||null,
     telefono:document.getElementById('contacto-tel').value.trim()||null,
+    telefono2:document.getElementById('contacto-tel2').value.trim()||null,
     notas:document.getElementById('contacto-notas').value.trim()||null,
     cliente_id:document.getElementById('contacto-cliente-sel').value||null,
     proveedor_id:document.getElementById('contacto-proveedor-sel')&&document.getElementById('contacto-proveedor-sel').value||null,

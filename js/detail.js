@@ -280,7 +280,8 @@ async function verDetalleContacto(id){
         : '<div class="detail-field-value">'+esc(empresa)+'</div>')+
       '</div>'+
       '<div class="detail-field"><div class="detail-field-label">Email</div><div class="detail-field-value">'+(c.email?'<a href="mailto:'+esc(c.email)+'" style="color:#60a5fa;">'+esc(c.email)+'</a>'+copyBtn(c.email):'—')+'</div></div>'+
-      '<div class="detail-field"><div class="detail-field-label">Teléfono</div><div class="detail-field-value">'+(c.telefono||'—')+(c.telefono?copyBtn(c.telefono):'')+'</div></div>'+
+      '<div class="detail-field"><div class="detail-field-label">Tel\u00e9fono</div><div class="detail-field-value">'+(c.telefono||'—')+(c.telefono?copyBtn(c.telefono):'')+'</div></div>'+
+      (c.telefono2?'<div class="detail-field"><div class="detail-field-label">Tel\u00e9fono 2</div><div class="detail-field-value">'+esc(c.telefono2)+copyBtn(c.telefono2)+'</div></div>':'')+
       '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activo':'Inactivo')+'</div></div>'+
       (c.notas?'<div class="detail-field" style="grid-column:span 2;"><div class="detail-field-label">Notas</div><div class="detail-field-value">'+esc(c.notas)+'</div></div>':'')+''+
     '</div></div>';

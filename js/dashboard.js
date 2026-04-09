@@ -164,6 +164,44 @@ async function responderConsulta(){
       return c.nombre+(c.rfc?' | RFC:'+c.rfc:'')+(c.ciudad?' | '+c.ciudad:'')+(c.condiciones_pago?' | pago:'+c.condiciones_pago+'d':'');
     }).join('\n');
 
+    // Cotizaciones — fetch directo para no depender del tab de cotizaciones
+    var cotRows=await (async function(){
+      try{
+        var {data}=await sb.from('cotizaciones')
+          .select('numero,version,estatus,cliente_nombre,total,fecha,fecha_cierre,titulo,notas,numero_requisicion')
+          .order('created_at',{ascending:false}).limit(200);
+        return data||[];
+      }catch(e){return[];}
+    })();
+    var cotDetalle=cotRows.length ? cotRows.map(function(c){
+      return (c.numero||'COT')+(c.version>1?' v'+c.version:'')+
+        ' | '+( c.cliente_nombre||'?')+
+        ' | estatus:'+( c.estatus||'borrador')+
+        ' | $'+Math.round(c.total||0).toLocaleString('es-MX')+
+        ' | fecha:'+( c.fecha||'?')+
+        (c.fecha_cierre?' | cierre:'+c.fecha_cierre:'')+
+        (c.titulo?' | titulo:'+c.titulo:'')+
+        (c.numero_requisicion?' | req:'+c.numero_requisicion:'');
+    }).join('\n') : 'Sin cotizaciones';
+
+    // Proveedores
+    var provRows=proveedores.length ? proveedores : await (async function(){
+      try{var {data}=await sb.from('proveedores').select('nombre,rfc,ciudad,tipo,activo').eq('activo',true).limit(200);return data||[];}catch(e){return[];}
+    })();
+    var provDetalle=provRows.map(function(p){
+      return p.nombre+(p.rfc?' | RFC:'+p.rfc:'')+(p.ciudad?' | '+p.ciudad:'')+(p.tipo?' | '+p.tipo:'');
+    }).join('\n');
+
+    // Contactos
+    var contRows=allContactos.length ? allContactos : await (async function(){
+      try{var {data}=await sb.from('contactos').select('nombre,apellido,cargo,email,telefono,clientes(nombre),proveedores(nombre)').eq('activo',true).limit(200);return data||[];}catch(e){return[];}
+    })();
+    var contDetalle=contRows.map(function(c){
+      var nombre=(c.nombre||'')+(c.apellido?' '+c.apellido:'');
+      var empresa=(c.clientes&&c.clientes.nombre)||(c.proveedores&&c.proveedores.nombre)||'Sin empresa';
+      return nombre+(c.cargo?' | '+c.cargo:'')+' | '+empresa+(c.email?' | '+c.email:'')+(c.telefono?' | '+c.telefono:'');
+    }).join('\n');
+
     // Construir prompt compacto
     var contextStr=
       'Empresa: Grupo M2 — Maquinado Industrial, Querétaro, México.\n'+
@@ -194,16 +232,13 @@ async function responderConsulta(){
 
       '## PROYECTOS '+año+'\n'+(proyectosDetalle||'Sin proyectos')+'\n\n'+
 
-      '## COTIZACIONES\n'+(
-        (cotizaciones||[]).length ?
-        (cotizaciones||[]).slice(0,20).map(function(c){
-          return (c.numero||'COT')+' | '+( c.cliente_nombre||'?')+' | '+
-            (c.estatus||'borrador')+' | $'+Math.round(c.total||0).toLocaleString('es-MX');
-        }).join('\n') :
-        'Sin cotizaciones'
-      )+'\n\n'+
+      '## COTIZACIONES ('+cotRows.length+')\n'+cotDetalle+'\n\n'+
 
-      '## CLIENTES REGISTRADOS\n'+clientesDetalle;
+      '## CLIENTES REGISTRADOS ('+clientes.length+')\n'+clientesDetalle+'\n\n'+
+
+      '## PROVEEDORES ('+provRows.length+')\n'+provDetalle+'\n\n'+
+
+      '## CONTACTOS ('+contRows.length+')\n'+contDetalle;
 
 
     var apiResp=await fetch('https://iycqlbvywwogcfftciil.supabase.co/functions/v1/hyper-api',{

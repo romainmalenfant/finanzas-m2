@@ -52,6 +52,39 @@ function setContactoEmpresa(id, nombre){
   if(inp) inp.value=nombre||'';
   if(hid) hid.value=id||'';
 }
+// ── Contactos sort ───────────────────────────────────────
+var contactosSort = { col: 'nombre', dir: 'asc' };
+
+function sortContactos(col){
+  if(contactosSort.col===col){ contactosSort.dir=contactosSort.dir==='asc'?'desc':'asc'; }
+  else { contactosSort.col=col; contactosSort.dir=col==='created_at'?'desc':'asc'; }
+  updateContactosSortUI();
+  filtrarContactos(document.getElementById('contactos-search')?document.getElementById('contactos-search').value:'');
+}
+
+function updateContactosSortUI(){
+  ['nombre','cargo','created_at'].forEach(function(c){
+    var btn=document.getElementById('cont-sort-'+c);
+    if(!btn)return;
+    if(c===contactosSort.col){
+      btn.style.background='var(--bg-card-2)'; btn.style.color='var(--text-1)'; btn.style.borderColor='var(--text-3)';
+      btn.querySelector('span.sort-arrow').textContent=contactosSort.dir==='asc'?' \u2191':' \u2193';
+    } else {
+      btn.style.background=''; btn.style.color='var(--text-3)'; btn.style.borderColor='var(--border)';
+      btn.querySelector('span.sort-arrow').textContent='';
+    }
+  });
+}
+
+function applyContactosSort(arr){
+  var col=contactosSort.col, dir=contactosSort.dir;
+  return arr.slice().sort(function(a,b){
+    var va=a[col]||'', vb=b[col]||'';
+    var r = col==='created_at' ? (va<vb?-1:va>vb?1:0) : (va+'').toLowerCase().localeCompare((vb+'').toLowerCase(),'es');
+    return dir==='asc'?r:-r;
+  });
+}
+
 // ── Contactos ─────────────────────────────────────────────
 var contactos=[], allContactos=[];
 
@@ -184,7 +217,7 @@ function renderContactosList(list){
     return;
   }
   var frag = document.createDocumentFragment();
-  list.forEach(function(c){ frag.appendChild(renderContactoCard(c)); });
+  applyContactosSort(list).forEach(function(c){ frag.appendChild(renderContactoCard(c)); });
   el.appendChild(frag);
 }
 

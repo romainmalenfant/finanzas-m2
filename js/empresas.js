@@ -18,7 +18,7 @@ function sortClientes(col){
 }
 
 function updateClientesSortUI(){
-  ['nombre','ciudad','condiciones_pago'].forEach(function(c){
+  ['nombre','ciudad','condiciones_pago','created_at'].forEach(function(c){
     var btn = document.getElementById('cli-sort-'+c);
     if(!btn) return;
     if(c === clientesSort.col){
@@ -34,8 +34,8 @@ function updateClientesSortUI(){
 function applyClientesSort(arr){
   var col = clientesSort.col, dir = clientesSort.dir;
   return arr.slice().sort(function(a,b){
-    var va=(a[col]||'').toLowerCase(), vb=(b[col]||'').toLowerCase();
-    var r=va.localeCompare(vb,'es');
+    var va=a[col]||'', vb=b[col]||'';
+    var r = col==='created_at' ? (va<vb?-1:va>vb?1:0) : (va+'').toLowerCase().localeCompare((vb+'').toLowerCase(),'es');
     return dir==='asc'?r:-r;
   });
 }

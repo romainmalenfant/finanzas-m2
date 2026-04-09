@@ -166,6 +166,7 @@ function abrirNuevoCliente(fromForm){
   document.getElementById('cliente-nombre').value='';
   document.getElementById('cliente-rfc').value='';
   document.getElementById('cliente-ciudad').value='';
+  document.getElementById('cliente-web').value='';
   document.getElementById('cliente-pago').value='30';
   document.getElementById('cliente-modal').style.display='flex';
 }
@@ -179,6 +180,7 @@ function editarCliente(id){
   document.getElementById('cliente-nombre').value=c.nombre||'';
   document.getElementById('cliente-rfc').value=c.rfc||'';
   document.getElementById('cliente-ciudad').value=c.ciudad||'';
+  document.getElementById('cliente-web').value=c.web||'';
   document.getElementById('cliente-pago').value=c.condiciones_pago||'30';
   document.getElementById('cliente-modal').style.display='flex';
 }
@@ -193,13 +195,13 @@ async function guardarCliente(){
   var btn=document.getElementById('btn-save-cliente');
   btn.disabled=true; btn.textContent='Guardando...';
   var id=document.getElementById('cliente-id-edit').value||Date.now().toString()+Math.random().toString(36).slice(2,5);
-  var rfcVal = document.getElementById('cliente-rfc').value.trim().toUpperCase();
-  if(!rfcVal){ showError('El RFC es obligatorio.'); btn.disabled=false; btn.textContent='Guardar cliente'; return; }
-  if(!validarRFC(rfcVal)){ showError('RFC inválido. Debe tener 12 caracteres (persona moral) o 13 (persona física).'); btn.disabled=false; btn.textContent='Guardar cliente'; return; }
+  var rfcVal = document.getElementById('cliente-rfc').value.trim().toUpperCase()||null;
+  if(rfcVal && !validarRFC(rfcVal)){ showError('RFC inv\u00e1lido. Debe tener 12 caracteres (persona moral) o 13 (persona f\u00edsica).'); btn.disabled=false; btn.textContent='Guardar cliente'; return; }
   var c={
     id:id, nombre:nombre,
     rfc:rfcVal,
     ciudad:document.getElementById('cliente-ciudad').value.trim()||null,
+    web:document.getElementById('cliente-web').value.trim()||null,
     condiciones_pago:document.getElementById('cliente-pago').value,
     activo:(document.getElementById('cliente-activo')||{checked:true}).checked
   };

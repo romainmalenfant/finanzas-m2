@@ -157,6 +157,7 @@ function abrirNuevoProveedor(){
   document.getElementById('prov-nombre').value='';
   document.getElementById('prov-rfc').value='';
   document.getElementById('prov-ciudad').value='';
+  document.getElementById('prov-web').value='';
   document.getElementById('prov-tipo').value='general';
   document.getElementById('prov-pago').value='30';
   document.getElementById('prov-clabe').value='';
@@ -176,6 +177,7 @@ function editarProveedor(id){
   document.getElementById('prov-nombre').value=p.nombre||'';
   document.getElementById('prov-rfc').value=p.rfc||'';
   document.getElementById('prov-ciudad').value=p.ciudad||'';
+  document.getElementById('prov-web').value=p.web||'';
   document.getElementById('prov-tipo').value=p.tipo||'general';
   document.getElementById('prov-pago').value=p.condiciones_pago||'30';
   document.getElementById('prov-clabe').value=p.clabe||'';
@@ -194,13 +196,13 @@ async function guardarProveedor(){
   var btn=document.getElementById('btn-save-prov');
   btn.disabled=true; btn.textContent='Guardando...';
   var id=document.getElementById('prov-id-edit').value||Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  var rfcVal = document.getElementById('prov-rfc').value.trim().toUpperCase();
-  if(!rfcVal){ showError('El RFC es obligatorio.'); btn.disabled=false; btn.textContent='Guardar'; return; }
-  if(!validarRFC(rfcVal)){ showError('RFC inválido. Debe tener 12 caracteres (persona moral) o 13 (persona física).'); btn.disabled=false; btn.textContent='Guardar'; return; }
+  var rfcVal = document.getElementById('prov-rfc').value.trim().toUpperCase()||null;
+  if(rfcVal && !validarRFC(rfcVal)){ showError('RFC inv\u00e1lido. Debe tener 12 caracteres (persona moral) o 13 (persona f\u00edsica).'); btn.disabled=false; btn.textContent='Guardar'; return; }
   var p={
     id:id, nombre:nombre,
     rfc:rfcVal,
     ciudad:document.getElementById('prov-ciudad').value.trim()||null,
+    web:document.getElementById('prov-web').value.trim()||null,
     tipo:document.getElementById('prov-tipo').value,
     condiciones_pago:document.getElementById('prov-pago').value,
     clabe:document.getElementById('prov-clabe').value.trim()||null,

@@ -125,6 +125,7 @@ async function verDetalleEmpresa(id){
           '<div class="detail-field"><div class="detail-field-label">Ciudad</div><div class="detail-field-value">'+(c.ciudad||'—')+'</div></div>'+
           '<div class="detail-field"><div class="detail-field-label">Condiciones de pago</div><div class="detail-field-value">'+(condLabels[c.condiciones_pago]||'—')+'</div></div>'+
           '<div class="detail-field"><div class="detail-field-label">Estatus</div><div class="detail-field-value" style="color:'+(c.activo!==false?'#34d399':'#f87171')+'">'+(c.activo!==false?'Activa':'Inactiva')+'</div></div>'+
+          (c.web?'<div class="detail-field" style="grid-column:1/-1;"><div class="detail-field-label">P\u00e1gina Web</div><div class="detail-field-value"><a href="'+(c.web.startsWith('http')?'':'https://')+esc(c.web)+'" target="_blank" style="color:#3B82F6;">'+esc(c.web)+'</a></div></div>':'')+
         '</div>'+
       '</div>'+
       (cxcFacturas.length?'<div class="detail-section"><div class="detail-section-title">Facturas por cobrar ('+cxcFacturas.length+')</div>'+
@@ -209,7 +210,8 @@ async function verDetalleProveedor(id){
         '<div class="detail-field"><div class="detail-field-label">Categoría</div><div class="detail-field-value">'+(p.categoria?p.categoria.charAt(0).toUpperCase()+p.categoria.slice(1):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">Calificación</div><div class="detail-field-value">'+(p.calificacion?'⭐'.repeat(p.calificacion):'—')+'</div></div>'+
         '<div class="detail-field"><div class="detail-field-label">CLABE</div><div class="detail-field-value">'+(p.clabe||'—')+(p.clabe?copyBtn(p.clabe):'')+'</div></div>'+
-        '<div class="detail-field"><div class="detail-field-label">Límite crédito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+
+        '<div class="detail-field"><div class="detail-field-label">L\u00edmite cr\u00e9dito</div><div class="detail-field-value">'+(p.limite_credito?fmt(p.limite_credito):'—')+'</div></div>'+
+        (p.web?'<div class="detail-field" style="grid-column:1/-1;"><div class="detail-field-label">P\u00e1gina Web</div><div class="detail-field-value"><a href="'+(p.web.startsWith('http')?'':'https://')+esc(p.web)+'" target="_blank" style="color:#3B82F6;">'+esc(p.web)+'</a></div></div>':'')+
       '</div>'+
       (p.notas?'<div class="detail-field" style="margin-top:8px;"><div class="detail-field-label">Notas</div><div class="detail-field-value" style="color:var(--text-2);">'+esc(p.notas)+'</div></div>':'')+
       (cxp.length?'<div class="detail-section"><div class="detail-section-title">Facturas por pagar</div>'+

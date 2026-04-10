@@ -352,6 +352,16 @@ function precargarContactosCot(){
   mostrarContactosCot();
 }
 
+function precargarProyectosCot(){
+  // Called on client change — reset project field (don't auto-select, just clear)
+  var inp = document.getElementById('cot-proj-search');
+  var hid = document.getElementById('cot-proj-id');
+  var dd  = document.getElementById('cot-proj-dd');
+  if(inp) inp.value = '';
+  if(hid) hid.value = '';
+  if(dd)  { dd.innerHTML=''; dd.style.display='none'; }
+}
+
 function mostrarContactosCot(){
   // Called on focus — show contacts for selected client without resetting the field
   var clienteId = document.getElementById('cot-cliente-id').value;

@@ -118,6 +118,7 @@ function _abrirNuevaCotizacion(){
   _cotM.style.zIndex = '700';
   _cotM.style.display = 'flex';
   if(!clientes.length) loadClientes();
+  if(!contactos.length) loadContactos();
 }
 
 async function editarCotizacion(id){
@@ -132,6 +133,7 @@ async function editarCotizacion(id){
   document.getElementById('cot-modal-title').textContent = 'Editar cotización';
   if(!clientes.length) loadClientes().then(function(){poblarClientesCot(c.cliente_id||null);});
   else poblarClientesCot(c.cliente_id||null);
+  if(!contactos.length) loadContactos();
   var _ct2=document.getElementById('cot-titulo'); if(_ct2) _ct2.value=c.titulo||'';
   document.getElementById('cot-cliente-id').value = c.cliente_id||'';
   document.getElementById('cot-cliente-search').value = c.cliente_nombre||'';

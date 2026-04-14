@@ -107,6 +107,15 @@ function _abrirNuevaCotizacion(){
   if(_ci) _ci.value = '';
   if(_cs) _cs.value = '';
   if(_cd) { _cd.innerHTML = ''; _cd.style.display = 'none'; }
+  // Limpiar usuario del cliente al abrir nueva cotización
+  var _ui = document.getElementById('cot-usuario-id');
+  var _us = document.getElementById('cot-usuario-search');
+  var _ud = document.getElementById('cot-usuario-dd');
+  var _uc = document.getElementById('cot-usuario-clear');
+  if(_ui) _ui.value = '';
+  if(_us) _us.value = '';
+  if(_ud) { _ud.innerHTML = ''; _ud.style.display = 'none'; }
+  if(_uc) _uc.style.display = 'none';
   renderCotItemsForm();
   recalcCotTotal();
   renderCondicionesCot(COT_CONDICIONES_DEFAULT);

@@ -91,7 +91,7 @@ function _abrirNuevaCotizacion(){
   cotEditId = null;
   cotItemsTemp = [];
   document.getElementById('cot-id-edit').value = '';
-  document.getElementById('cot-modal-title').textContent = 'Nueva cotización';
+  document.getElementById('cot-editor-title').textContent = 'Nueva cotización';
   poblarClientesCot(null);
   var _ct=document.getElementById('cot-titulo'); if(_ct) _ct.value='';
   document.getElementById('cot-cliente-id').value = '';
@@ -122,10 +122,7 @@ function _abrirNuevaCotizacion(){
   var btnNV = document.getElementById('btn-nueva-version-cot');
   if (btnNV) btnNV.style.display = 'none';
   cotVersionFlag = false;
-  // BUG-04: z-index explícito para superar el detail panel (z-index:500)
-  var _cotM = document.getElementById('cot-modal');
-  _cotM.style.zIndex = '700';
-  _cotM.style.display = 'flex';
+  mostrarCotEditor();
   if(!clientes.length) loadClientes();
   if(!contactos.length) loadContactos();
 }
@@ -139,7 +136,7 @@ async function editarCotizacion(id){
   if(!c){ showError('Cotización no encontrada'); return; }
   cotEditId = id;
   document.getElementById('cot-id-edit').value = id;
-  document.getElementById('cot-modal-title').textContent = 'Editar cotización';
+  document.getElementById('cot-editor-title').textContent = 'Editar cotización';
   if(!clientes.length) loadClientes().then(function(){poblarClientesCot(c.cliente_id||null);});
   else poblarClientesCot(c.cliente_id||null);
   if(!contactos.length) loadContactos();
@@ -206,10 +203,15 @@ async function editarCotizacion(id){
   cotVersionFlag = false;
   var condSel = (c.condiciones && Array.isArray(c.condiciones)) ? c.condiciones : COT_CONDICIONES_DEFAULT;
   renderCondicionesCot(condSel);
-  // BUG-04: z-index explícito para superar el detail panel (z-index:500)
-  var _cotM2 = document.getElementById('cot-modal');
-  _cotM2.style.zIndex = '700';
-  _cotM2.style.display = 'flex';
+  mostrarCotEditor();
+}
+
+// ── Toggle entre lista/kanban de cotizaciones y el editor de página completa ──
+function mostrarCotEditor(){
+  var browse = document.getElementById('cot-browse-view');
+  var editor = document.getElementById('cot-editor-view');
+  if(browse) browse.style.display = 'none';
+  if(editor) editor.style.display = 'block';
 }
 
 function cerrarCotModal(){
@@ -231,7 +233,10 @@ function cerrarCotModal(){
   cotVersionFlag = false;
   var btnNVClose = document.getElementById('btn-nueva-version-cot');
   if (btnNVClose) btnNVClose.style.display = 'none';
-  document.getElementById('cot-modal').style.display = 'none';
+  var browse = document.getElementById('cot-browse-view');
+  var editor = document.getElementById('cot-editor-view');
+  if(editor) editor.style.display = 'none';
+  if(browse) browse.style.display = 'block';
 }
 
 // ── Items ─────────────────────────────────────────────────
@@ -257,13 +262,17 @@ function eliminarCotItem(tempId){
 }
 
 function renderCotItemsForm(){
-  var el = document.getElementById('cot-items-list');
+  var el = document.getElementById('cot-items-tbody');
+  if(!el) return;
   el.innerHTML = '';
   if(!cotItemsTemp.length){
-    var msg = document.createElement('div');
-    msg.style.cssText = 'color:var(--text-3);font-size:12px;padding:12px 0;text-align:center;';
-    msg.textContent = 'Sin items. Agrega uno abajo.';
-    el.appendChild(msg);
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.colSpan = 9;
+    td.className = 'cot-item-empty';
+    td.textContent = 'Sin items. Agrega uno arriba (Maquinado, Servicio o Producto).';
+    tr.appendChild(td);
+    el.appendChild(tr);
     return;
   }
   var frag = document.createDocumentFragment();

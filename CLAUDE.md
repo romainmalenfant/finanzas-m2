@@ -233,16 +233,16 @@ var EMPRESA_CONFIG = {
 --text-1       /* primario */
 --text-2       /* secundario */
 --text-3       /* labels, subtítulos */
---text-4       /* muy tenue */
+--text-4       /* tenue — también es el borde estándar de campos editables, ver abajo */
 
 /* Fondos */
---bg-main      /* fondo de la app */
---bg-card      /* tarjetas */
---bg-card-2    /* tarjetas secundarias */
---bg-input     /* inputs */
+--bg-app       /* fondo de la app/página (OJO: no "--bg-main", ese token no existe) */
+--bg-card      /* tarjetas y modales */
+--bg-card-2    /* tarjetas secundarias — en modo claro es casi idéntico a --bg-app, no lo uses para elementos que necesiten contraste contra la página */
+--bg-input     /* fondo de campo dentro de un modal (--bg-card blanco de fondo) — NO usar en página completa, ver estándar abajo */
 
 /* Otros */
---border       /* bordes */
+--border       /* bordes decorativos/separadores sutiles — no usar en campos editables */
 --shadow       /* sombras */
 
 /* Marca */
@@ -250,6 +250,43 @@ var EMPRESA_CONFIG = {
 --brand-gray: #6B6B6B
 --brand-carbon: #333333
 ```
+
+---
+
+## Estándar de contraste — elementos editables/clickables
+
+**Regla**: cualquier elemento con el que el usuario interactúa (inputs, selects, textareas, botones `.btn-sm`) debe resaltar claramente contra el fondo que tenga detrás. Nunca debe verse "plano" o del mismo tono que la página.
+
+**Por qué es delicado**: un campo puede aparecer sobre dos fondos distintos según el contexto:
+- Dentro de un **modal** (`.modal-box`, fondo `--bg-card` blanco/tarjeta)
+- Directo sobre la **página completa** (fondo `--bg-app`, gris cálido)
+
+Un solo color de fondo para inputs no puede contrastar bien contra ambos a la vez (`--bg-input` es ~4 unidades de diferencia contra `--bg-app` — invisible). El bug real detectado (2026-07): el editor de cotización se convirtió de modal a página completa pero sus campos heredaron el estilo `.modal-body input` pensado para modal, y quedaron casi invisibles sobre el fondo gris de la página.
+
+**Solución adoptada — el borde es el mecanismo de contraste, no el fondo**:
+```css
+/* Todos los inputs/selects/textareas — global */
+input[type="text"], select, textarea /* ... */ {
+  border: 1px solid var(--text-4);   /* NO var(--border), es demasiado tenue */
+}
+```
+- El fondo puede quedar como `--bg-input` (dentro de modal) o subir a `--bg-card` (directo sobre página, ej. `#cot-editor-view`) — pero el **borde `--text-4` siempre se aplica** y es lo que garantiza que se vea el campo sin importar qué haya detrás.
+- Si agregas un editor de página completa nuevo (ver estándar siguiente), agrega un override específico por `id` para subir el fondo a `--bg-card`, como se hizo para `#cot-editor-view` en `css/styles.css`.
+- `.btn-sm` (botones secundarios tipo "Cancelar", "+ Agregar") tenían `background:none` — ahora llevan `background:var(--bg-card)` de base, no solo en hover.
+
+---
+
+## Estándar de UI — página completa, no modal, para formularios grandes
+
+**Regla**: crear/editar una entidad con varios campos (cotizaciones, facturas, proyectos...) va en una **vista de página completa** dentro de su tab, no en un modal chico. Los modales se reservan para confirmaciones cortas y capturas rápidas (1-3 campos).
+
+**Por qué**: un modal de ancho fijo (ej. 700px) obliga a apilar todo verticalmente — con listas de items (servicios/productos) se vuelve un scroll interminable. Además es el patrón que ya se usa en otros proyectos del Workspace (ej. `3-SaaS-Agencia`, que usa rutas dedicadas `/nueva` y `/[id]/editar` para cada entidad en vez de modales).
+
+**Patrón aplicado** (`js/cot-form.js`, `index.html` — editor de cotizaciones):
+- Dos contenedores hermanos dentro del tab: `#cot-browse-view` (lista/kanban) y `#cot-editor-view` (formulario), alternados con `display:none`/`block` — nunca ambos visibles a la vez.
+- Header del editor con `position:sticky;top:0` — botón "← Volver" + título a la izquierda, acciones (Guardar/Cancelar) a la derecha, siempre visibles sin scroll.
+- Listas de items repetitivos (servicios, productos) van en tabla tipo spreadsheet (`<table>`, una fila por item, inputs inline en cada `<td>`) — no tarjetas apiladas de varias filas cada una.
+- El editor **no** es un modal — no debe agregarse a la lista de ESC-modals de `search.js`, para evitar que ESC descarte accidentalmente un formulario largo a medio llenar.
 
 ---
 

@@ -411,39 +411,17 @@ function renderCotItemRow(item){
   var isMaq = item.tipo==='maquinado';
   var isSvc = item.tipo==='servicio';
 
-  var wrap = document.createElement('div');
-  wrap.id = 'cot-item-'+tid;
-  wrap.style.cssText = 'background:var(--bg-card-2);border-radius:8px;padding:12px;margin-bottom:8px;border:0.5px solid var(--border);';
+  var tr = document.createElement('tr');
+  tr.id = 'cot-item-'+tid;
 
-  // Header: type label + delete button
-  var hdr = document.createElement('div');
-  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
-  var typeLabel = document.createElement('span');
-  typeLabel.style.cssText = 'font-size:10px;font-weight:600;color:var(--brand-red);text-transform:uppercase;';
-  typeLabel.textContent = isMaq?'🔩 Maquinado':isSvc?'⚙️ Servicio':'📦 Producto';
-  var delBtn = document.createElement('button');
-  delBtn.style.cssText = 'background:none;border:none;color:#f87171;cursor:pointer;font-size:14px;';
-  delBtn.textContent = '×';
-  delBtn.addEventListener('click', function(){ eliminarCotItem(tid); });
-  hdr.appendChild(typeLabel);
-  hdr.appendChild(delBtn);
-  wrap.appendChild(hdr);
-
-  // Helper to create a form-group with label + input
-  function makeField(labelText, inputEl, flex){
-    var fg = document.createElement('div');
-    fg.className = 'form-group';
-    if(flex) fg.style.flex = flex;
-    var lbl = document.createElement('label');
-    lbl.textContent = labelText;
-    fg.appendChild(lbl);
-    fg.appendChild(inputEl);
-    return fg;
+  function td(cls){
+    var cell = document.createElement('td');
+    if(cls) cell.className = cls;
+    return cell;
   }
-
   function textInput(val, placeholder, field){
     var inp = document.createElement('input');
-    inp.type = 'text'; inp.value = val; inp.placeholder = placeholder;
+    inp.type = 'text'; inp.value = val; inp.placeholder = placeholder||'';
     inp.addEventListener('input', function(){ updateCotItem(tid, field, this.value); });
     return inp;
   }
@@ -455,37 +433,53 @@ function renderCotItemRow(item){
     return inp;
   }
 
-  // Row 1: descripcion + material (if maquinado)
-  var row1 = document.createElement('div');
-  row1.className = 'form-row';
+  // Tipo
+  var tdTipo = td('cot-item-type');
+  tdTipo.textContent = isMaq?'🔩 Maquinado':isSvc?'⚙️ Servicio':'📦 Producto';
+  tr.appendChild(tdTipo);
+
+  // Descripción
   var descPlaceholder = isMaq?'Nombre de pieza':isSvc?'Tipo de servicio':'Descripción';
-  row1.appendChild(makeField('Descripción *', textInput(item.descripcion||'', descPlaceholder, 'descripcion'), '2'));
-  if(isMaq) row1.appendChild(makeField('Material', textInput(item.material||'', 'Acero, aluminio...', 'material')));
-  wrap.appendChild(row1);
+  var tdDesc = td(); tdDesc.appendChild(textInput(item.descripcion||'', descPlaceholder, 'descripcion'));
+  tr.appendChild(tdDesc);
 
-  // Row 2: cantidad, unidad, precio, subtotal
-  var row2 = document.createElement('div');
-  row2.className = 'form-row';
-  row2.appendChild(makeField(isSvc?'Horas':'Cantidad', numInput(item.cantidad||1, 'cantidad')));
-  row2.appendChild(makeField('Unidad', textInput(item.unidad||'pzas', '', 'unidad')));
-  row2.appendChild(makeField('Precio unitario ($)', numInput(item.precio_unitario||0, 'precio_unitario')));
-  var subDisplay = document.createElement('div');
-  subDisplay.id = 'sub-'+tid;
-  subDisplay.style.cssText = 'padding:8px 10px;background:var(--bg-card);border-radius:8px;font-size:14px;font-weight:600;color:#34d399;';
-  subDisplay.textContent = fmt((item.cantidad||0)*(item.precio_unitario||0));
-  row2.appendChild(makeField('Subtotal', subDisplay));
-  wrap.appendChild(row2);
+  // Material
+  var tdMat = td(); tdMat.appendChild(textInput(item.material||'', isMaq?'Acero, aluminio...':'—', 'material'));
+  tr.appendChild(tdMat);
 
-  // Row 3: notas
-  var row3 = document.createElement('div');
-  row3.className = 'form-group';
-  var notasLbl = document.createElement('label');
-  notasLbl.textContent = 'Notas del item';
-  row3.appendChild(notasLbl);
-  row3.appendChild(textInput(item.notas||'', 'Especificaciones adicionales...', 'notas'));
-  wrap.appendChild(row3);
+  // Cantidad
+  var tdCant = td(); tdCant.appendChild(numInput(item.cantidad||1, 'cantidad'));
+  tr.appendChild(tdCant);
 
-  return wrap;
+  // Unidad
+  var tdUni = td(); tdUni.appendChild(textInput(item.unidad||(isSvc?'hrs':'pzas'), '', 'unidad'));
+  tr.appendChild(tdUni);
+
+  // Precio unitario
+  var tdPrecio = td(); tdPrecio.appendChild(numInput(item.precio_unitario||0, 'precio_unitario'));
+  tr.appendChild(tdPrecio);
+
+  // Subtotal
+  var tdSub = td('cot-item-sub');
+  tdSub.id = 'sub-'+tid;
+  tdSub.textContent = fmt((item.cantidad||0)*(item.precio_unitario||0));
+  tr.appendChild(tdSub);
+
+  // Notas
+  var tdNotas = td(); tdNotas.appendChild(textInput(item.notas||'', 'Especificaciones...', 'notas'));
+  tr.appendChild(tdNotas);
+
+  // Eliminar
+  var tdDel = td();
+  var delBtn = document.createElement('button');
+  delBtn.className = 'cot-item-del';
+  delBtn.textContent = '×';
+  delBtn.title = 'Eliminar item';
+  delBtn.addEventListener('click', function(){ eliminarCotItem(tid); });
+  tdDel.appendChild(delBtn);
+  tr.appendChild(tdDel);
+
+  return tr;
 }
 
 function renderCotizacionesList(list, historial){
@@ -658,11 +652,9 @@ async function kanbanDrop(e, newEstatus){
   _dragId=null;
 }
 
-// ESC closes cotizacion modal
+// ESC closes conversión modal (el editor de cotización ya no es modal — ver mostrarCotEditor/cerrarCotModal)
 document.addEventListener('keydown', function(e){
   if(e.key==='Escape'){
-    var m=document.getElementById('cot-modal');
-    if(m&&m.style.display==='block'){cerrarCotModal();return;}
     var m2=document.getElementById('conv-modal');
     if(m2&&m2.style.display==='block'){m2.style.display='none';return;}
   }

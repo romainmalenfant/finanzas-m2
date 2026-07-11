@@ -112,8 +112,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .dot-live{width:6px;height:6px;border-radius:50%;background:#22c55e;display:inline-block;}
 .dot-sync{width:6px;height:6px;border-radius:50%;background:#f59e0b;display:inline-block;}
 .user-badge{font-size:11px;padding:3px 10px;border:0.5px solid var(--border);border-radius:20px;color:var(--text-3);background:var(--bg-card-2);}
-.btn-sm{font-size:11px;padding:4px 10px;border:0.5px solid var(--border);border-radius:7px;background:none;cursor:pointer;color:var(--text-3);font-family:inherit;transition:background .15s,color .15s,border-color .15s;}
-.btn-sm:hover{background:var(--bg-card-2);color:var(--text-2);}
+.btn-sm{font-size:11px;padding:4px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-card);cursor:pointer;color:var(--text-2);font-family:inherit;transition:background .15s,color .15s,border-color .15s;box-shadow:0 1px 2px var(--shadow);}
+.btn-sm:hover{background:var(--bg-hover);color:var(--text-1);border-color:var(--text-3);}
 .btn-sm.active{background:var(--brand-red);border-color:var(--brand-red);color:#fff;font-weight:600;}
 .btn-sm.active:hover{background:#c0111e;border-color:#c0111e;color:#fff;}
 .btn-pill-filter.active{background:var(--bg-card-2);border-color:var(--text-2);color:var(--text-1);font-weight:600;}
@@ -262,6 +262,36 @@ select option{background:var(--bg-card);color:var(--text-1);}
 .data-table .td-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:500;}
 .data-table .td-stars{color:#d97706;letter-spacing:-2px;}
 .data-table .td-name{font-weight:500;color:var(--text-1);}
+
+/* ── Editor de cotización — página completa ── */
+.cot-editor-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:0.5px solid var(--border);margin-bottom:1.25rem;position:sticky;top:0;background:var(--bg-app);z-index:10;}
+.cot-items-table-wrap{width:100%;overflow-x:auto;border:0.5px solid var(--border);border-radius:8px;}
+.cot-items-table{width:100%;min-width:900px;border-collapse:collapse;font-size:12px;}
+.cot-items-table th{padding:7px 8px;text-align:left;font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.04em;border-bottom:0.5px solid var(--border);white-space:nowrap;background:var(--bg-card-2);}
+.cot-items-table td{padding:3px 4px;border-bottom:0.5px solid var(--border-light);vertical-align:middle;}
+.cot-items-table tr:last-child td{border-bottom:none;}
+.cot-items-table input{border-radius:5px;padding:7px 8px;font-size:12px;font-family:inherit;width:100%;transition:background .15s,border-color .15s;}
+.modal-body .cot-items-table input[type="text"],
+.modal-body .cot-items-table input[type="number"]{background:var(--bg-card);border:1px solid var(--text-4);color:var(--text-1);}
+.modal-body .cot-items-table input[type="text"]:hover,
+.modal-body .cot-items-table input[type="number"]:hover{background:var(--bg-hover);border-color:var(--text-3);}
+.modal-body .cot-items-table input[type="text"]:focus,
+.modal-body .cot-items-table input[type="number"]:focus{outline:none;background:var(--bg-hover);border-color:var(--brand-red);}
+
+/* El editor de cotización ya no vive dentro de un .modal-box blanco —
+   está directo sobre el fondo gris de la página, así que sus campos
+   necesitan el mismo tratamiento "página" (fondo claro) que .cot-items-table,
+   no el tratamiento "modal" (fondo bg-input) que hereda de .modal-body. */
+#cot-editor-view .modal-body input[type="text"],
+#cot-editor-view .modal-body input[type="number"],
+#cot-editor-view .modal-body input[type="date"],
+#cot-editor-view .modal-body select,
+#cot-editor-view .modal-body textarea{background:var(--bg-card);}
+.cot-items-table .cot-item-type{font-size:11px;font-weight:600;color:var(--brand-red);white-space:nowrap;padding:7px 8px;}
+.cot-items-table .cot-item-sub{font-weight:600;color:#34d399;padding:7px 8px;font-size:12px;}
+.cot-items-table .cot-item-del{background:none;border:none;color:#f87171;cursor:pointer;font-size:15px;padding:4px;line-height:1;}
+.cot-items-table .cot-item-del:hover{color:#dc2626;}
+.cot-items-table .cot-item-empty{padding:20px;text-align:center;color:var(--text-3);font-size:12px;}
 .kbar-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--kbar-bg);z-index:9000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;}
 .kbar-box{background:var(--bg-card);border:0.5px solid var(--border);border-radius:14px;width:100%;max-width:580px;overflow:hidden;box-shadow:0 24px 64px var(--shadow);}
 .kbar-input-wrap{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:0.5px solid var(--border);}
@@ -384,9 +414,13 @@ select option{background:var(--bg-card);color:var(--text-1);}
 [data-theme="dark"] span[style*="#fef3c7"]{background:#2a1a0d!important;}
 
 /* ── Global input/select styles ── */
+/* Estándar: campos editables/rellenables siempre llevan borde visible
+   (--text-4, no --border) — el fondo puede quedar casi igual al de la
+   página detrás (blanco sobre modal, gris sobre página completa), pero
+   el borde es el único mecanismo de contraste confiable en ambos casos. */
 input[type="text"],input[type="number"],input[type="date"],input[type="email"],
 input[type="tel"],input[type="password"],select,textarea{
-  background:var(--bg-input);color:var(--text-1);border:0.5px solid var(--border);
+  background:var(--bg-card);color:var(--text-1);border:1px solid var(--text-4);
   border-radius:8px;font-family:inherit;font-size:13px;padding:8px 10px;width:100%;
   box-sizing:border-box;transition:border-color .15s;}
 input[type="text"]:focus,input[type="number"]:focus,input[type="date"]:focus,
@@ -407,7 +441,7 @@ input[type="checkbox"],input[type="radio"]{width:auto;accent-color:var(--brand-r
 .modal-body select,
 .modal-body textarea{
   background:var(--bg-input);
-  border:0.5px solid var(--border);
+  border:1px solid var(--text-4);
   color:var(--text-1);
   border-radius:8px;
   padding:9px 12px;

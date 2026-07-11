@@ -105,6 +105,29 @@
       <span class="s-label">Rentabilidad</span>
     </button>
 
+    <div class="s-divider"><span class="s-divider-label">Catálogos</span></div>
+    <button class="s-item" id="sb-contactos" onclick="switchTab('contactos',this)" title="Contactos">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="s-label">Contactos</span>
+    </button>
+    <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Empresas">
+      <svg viewBox="0 0 24 24"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
+      <span class="s-label">Empresas</span>
+    </button>
+    <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
+      <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
+      <span class="s-badge s-badge-red" id="badge-proveedores" style="display:none;"></span>
+      <span class="s-label">Proveedores</span>
+    </button>
+    <button class="s-item" id="sb-empleados" onclick="switchTab('empleados',this)" title="Empleados">
+      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      <span class="s-label">Empleados</span>
+    </button>
+    <button class="s-item" id="sb-documentos" onclick="switchTab('documentos',this)" title="Documentos">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      <span class="s-label">Documentos</span>
+    </button>
+
     <div class="s-divider"><span class="s-divider-label">Finanzas</span></div>
     <button class="s-item" id="sb-finanzas" onclick="switchTab('finanzas',this)" title="Flujo de Caja">
       <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
@@ -119,30 +142,6 @@
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
       <span class="s-label">Banco</span>
-    </button>
-
-    <div class="s-divider"><span class="s-divider-label">Catálogos</span></div>
-    <button class="s-item" id="sb-documentos" onclick="switchTab('documentos',this)" title="Documentos">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-      <span class="s-label">Documentos</span>
-    </button>
-
-    <button class="s-item" id="sb-clientes" onclick="switchTab('clientes',this)" title="Empresas">
-      <svg viewBox="0 0 24 24"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01M9 14h.01M15 14h.01"/></svg>
-      <span class="s-label">Empresas</span>
-    </button>
-    <button class="s-item" id="sb-proveedores" onclick="switchTab('proveedores',this)" title="Proveedores">
-      <svg viewBox="0 0 24 24"><path d="M3 3h18l-2 9H5L3 3z"/><circle cx="9" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M5 12h14"/></svg>
-      <span class="s-badge s-badge-red" id="badge-proveedores" style="display:none;"></span>
-      <span class="s-label">Proveedores</span>
-    </button>
-    <button class="s-item" id="sb-contactos" onclick="switchTab('contactos',this)" title="Contactos">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span class="s-label">Contactos</span>
-    </button>
-    <button class="s-item" id="sb-empleados" onclick="switchTab('empleados',this)" title="Empleados">
-      <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-      <span class="s-label">Empleados</span>
     </button>
   </nav>
 
@@ -1449,6 +1448,7 @@
   <!-- Tab SAT & Banco -->
   <!-- ── Cotizaciones Tab ──────────────────────────────── -->
   <div id="tab-cotizaciones" style="display:none;">
+   <div id="cot-browse-view">
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1rem;">
       <div class="mcard"><div class="mlabel">Total</div><div class="mvalue c-blue" id="cot-k-total">0</div></div>
@@ -1501,17 +1501,24 @@
       <div id="cotizaciones-list"><div class="empty-state">Sin cotizaciones</div></div>
     </div>
     <div id="cot-kanban-wrap" style="display:none;"></div>
-  </div>
+   </div>
 
-  <!-- ── Modal cotización (crear/editar) ───────────────── -->
-  <div class="modal-overlay" id="cot-modal" style="z-index:300;padding:1rem;align-items:center;justify-content:center;overflow-y:auto;">
-    <div class="modal-box" style="max-width:700px;">
-      <div class="modal-hdr">
-        <div class="modal-title" id="cot-modal-title">Nueva cotización</div>
-        <button class="modal-close" onclick="cerrarCotModal()">×</button>
+  <!-- ── Editor de cotización (página completa, crear/editar) ─────────── -->
+  <div id="cot-editor-view" style="display:none;">
+    <div class="cot-editor-hdr">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="btn-sm" onclick="cerrarCotModal()" style="padding:7px 12px;font-size:13px;">← Volver</button>
+        <div class="modal-title" id="cot-editor-title" style="font-size:16px;">Nueva cotización</div>
       </div>
-      <div class="modal-body" style="max-height:80vh;">
+      <div style="display:flex;gap:8px;">
+        <button id="btn-nueva-version-cot" class="btn-sm" style="display:none;padding:8px 14px;" onclick="cotVersionFlag=true;guardarCotizacion()">+ Nueva versión</button>
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarCotModal()">Cancelar</button>
+        <button class="btn-primary" id="btn-save-cot" onclick="guardarCotizacion()">Guardar</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:1.25rem 0;">
         <input type="hidden" id="cot-id-edit">
+        <div class="form-row">
         <!-- Cliente -->
         <div class="form-group">
           <label>Cliente *</label>
@@ -1526,6 +1533,8 @@
           <label>Título <span style="font-size:10px;color:var(--text-3);">(objeto general)</span></label>
           <input type="text" id="cot-titulo" placeholder="Ej: Maquinado de componentes para proyecto XYZ">
         </div>
+        </div>
+        <div class="form-row">
         <!-- Contacto vinculado -->
         <div class="form-group">
           <label>Contacto <span style="font-size:10px;color:var(--text-3);">(opcional)</span></label>
@@ -1567,10 +1576,11 @@
                      flex-shrink:0;margin-top:1px;">×</button>
           </div>
         </div>
+        </div>
         <!-- Proyecto vinculado — hidden, kept for guardarCotizacion compatibility -->
         <input type="hidden" id="cot-proj-search">
         <input type="hidden" id="cot-proj-id">
-        <div class="form-row">
+        <div class="form-row" style="max-width:360px;">
           <div class="form-group">
             <label>Fecha</label>
             <input type="date" id="cot-fecha">
@@ -1590,10 +1600,27 @@
               <button class="btn-sm" onclick="agregarCotItem('producto')" style="padding:8px 16px;font-size:13px;">+ 📦 Producto</button>
             </div>
           </div>
-          <div id="cot-items-list"></div>
+          <div class="cot-items-table-wrap">
+            <table class="cot-items-table">
+              <thead>
+                <tr>
+                  <th style="width:100px;">Tipo</th>
+                  <th>Descripción</th>
+                  <th style="width:160px;">Material</th>
+                  <th style="width:80px;">Cant.</th>
+                  <th style="width:80px;">Unidad</th>
+                  <th style="width:130px;">Precio unit.</th>
+                  <th style="width:130px;">Subtotal</th>
+                  <th style="width:200px;">Notas</th>
+                  <th style="width:32px;"></th>
+                </tr>
+              </thead>
+              <tbody id="cot-items-tbody"></tbody>
+            </table>
+          </div>
         </div>
         <!-- Totals -->
-        <div style="background:var(--bg-input);border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+        <div style="background:var(--bg-input);border-radius:8px;padding:12px 16px;margin-bottom:12px;max-width:360px;margin-left:auto;">
           <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-3);margin-bottom:6px;">
             <span>Subtotal</span><span id="cot-subtotal">$0</span>
           </div>
@@ -1604,24 +1631,20 @@
             <span>Total</span><span id="cot-total" style="color:#34d399;">$0</span>
           </div>
         </div>
-        <div class="form-group">
-          <label>Número de requisición <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
-          <input type="text" id="cot-requisicion" placeholder="REQ-2026-001">
-        </div>
-        <div class="form-group">
-          <label>Notas</label>
-          <textarea id="cot-notas" placeholder="Condiciones, observaciones..." style="min-height:60px;"></textarea>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Número de requisición <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
+            <input type="text" id="cot-requisicion" placeholder="REQ-2026-001">
+          </div>
+          <div class="form-group">
+            <label>Notas</label>
+            <textarea id="cot-notas" placeholder="Condiciones, observaciones..." style="min-height:44px;"></textarea>
+          </div>
         </div>
         <div class="form-group" style="margin-top:8px;">
           <label>Condiciones <span style="color:var(--text-3);font-weight:400;font-size:11px;">(marca las que aplican)</span></label>
-          <div id="cot-condiciones-list" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;"></div>
+          <div id="cot-condiciones-list" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button id="btn-nueva-version-cot" class="btn-sm" style="display:none;margin-right:auto;padding:8px 14px;" onclick="cotVersionFlag=true;guardarCotizacion()">+ Nueva versión</button>
-        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarCotModal()">Cancelar</button>
-        <button class="btn-primary" id="btn-save-cot" onclick="guardarCotizacion()">Guardar</button>
-      </div>
     </div>
   </div>
 

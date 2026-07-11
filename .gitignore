@@ -1,0 +1,11 @@
+# Datos reales del negocio (facturas, bancos, cotizaciones) — no van en git
+Datos Reales Grupo M2/
+
+# Assets de diseño locales (logos) — no van en git
+data/
+
+# Config local de Claude Code
+.claude/
+
+# Archivos temporales de Office
+~$*

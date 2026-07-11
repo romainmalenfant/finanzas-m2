@@ -1,0 +1,29 @@
+#!/bin/sh
+# Bloquea el commit si algún .js en staging tiene un error de sintaxis.
+# Motivo: un SyntaxError en cualquier parte de un archivo JS tumba TODO
+# ese módulo en silencio en el browser (ver CLAUDE.md — lección aprendida).
+# node --check parsea sin ejecutar, así que detecta esto antes de subirlo.
+
+files=$(git diff --cached --name-only --diff-filter=ACM -- '*.js')
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+error=0
+for f in $files; do
+  out=$(node --check "$f" 2>&1)
+  if [ $? -ne 0 ]; then
+    echo "✗ SyntaxError en $f:"
+    echo "$out" | sed 's/^/  /'
+    echo ""
+    error=1
+  fi
+done
+
+if [ "$error" -eq 1 ]; then
+  echo "Commit bloqueado: corrige los errores de sintaxis de arriba antes de commitear."
+  exit 1
+fi
+
+exit 0

@@ -495,6 +495,25 @@ git show <hash>:js/archivo.js > temp.js
 
 ---
 
+## Pre-commit hook — bloquea SyntaxErrors antes de commitear
+
+Existe un hook en `.githooks/pre-commit` que corre `node --check` sobre cada
+`.js` en staging y **bloquea el commit** si hay un error de sintaxis. Esto
+ataca directamente el error #1 documentado arriba (un SyntaxError en
+cualquier parte de un archivo tumba todo ese módulo en silencio en el
+browser, sin aviso).
+
+**Cada clon nuevo del repo debe activarlo una vez** (es config local de git,
+no se versiona):
+```bash
+git config core.hooksPath .githooks
+```
+
+Si un commit se bloquea, el hook imprime el archivo y la línea exacta del
+error — corrígelo y vuelve a commitear.
+
+---
+
 ## Testing en producción
 
 No hay suite de tests. El flujo de QA es:

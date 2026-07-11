@@ -344,6 +344,8 @@ async function loadCxP(){
 // [T7] dbChart → M2State alias en config.js
 
 async function loadDashboard(){
+  renderDashboardComercialKPIs();
+
   var año=new Date().getFullYear();
   var mesActual=new Date().getMonth()+1;
   var mesAnterior=mesActual===1?12:mesActual-1;

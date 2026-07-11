@@ -1,5 +1,40 @@
 // ── Cotizaciones ──────────────────────────────────────────
 var cotizaciones = [], allCotizaciones = [];
+
+// ── KPIs comerciales para el Dashboard (landing) ──────────
+// Fetch independiente — no toca `cotizaciones`/`allCotizaciones` para no
+// interferir con el estado de la pestaña Cotizaciones cuando se visite.
+async function renderDashboardComercialKPIs(){
+  try{
+    var rows = await DB.cotizaciones.list();
+    var abiertas = rows.filter(function(c){return c.estatus==='borrador'||c.estatus==='enviada'||c.estatus==='en_negociacion';});
+    var cerradas = rows.filter(function(c){return c.estatus==='cerrada';});
+    var perdidas = rows.filter(function(c){return c.estatus==='perdida';});
+    var pipeline = abiertas.reduce(function(a,c){return a+(parseFloat(c.total)||0);},0);
+    var disputadas = cerradas.length + perdidas.length;
+    var winRate = disputadas > 0 ? Math.round((cerradas.length / disputadas) * 100) : null;
+
+    var hoy = new Date();
+    var mesActual = hoy.getMonth(), añoActual = hoy.getFullYear();
+    var cerradasMes = cerradas.filter(function(c){
+      if(!c.fecha_cierre) return false;
+      var d = new Date(c.fecha_cierre);
+      return d.getMonth()===mesActual && d.getFullYear()===añoActual;
+    }).length;
+
+    var enRiesgo = abiertas.filter(function(c){
+      return (hoy-new Date(c.created_at||c.fecha||''))/864e5 > 30;
+    }).length;
+
+    var el = function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    el('db-com-abiertas', abiertas.length);
+    el('db-com-pipeline', 'Pipeline: '+fmt(pipeline));
+    el('db-com-winrate', winRate!==null ? winRate+'%' : '—');
+    el('db-com-cerradas-mes', cerradasMes);
+    var elRiesgo = document.getElementById('db-com-riesgo');
+    if(elRiesgo){ elRiesgo.textContent = enRiesgo; elRiesgo.className = 'mvalue '+(enRiesgo>0?'c-amber':'c-green'); }
+  }catch(e){console.error('Dashboard comercial KPIs:',e);}
+}
 // [F7] Sort state
 var cotSort = { col: 'fecha', dir: 'desc' };
 

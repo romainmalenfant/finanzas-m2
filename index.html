@@ -87,6 +87,25 @@
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span class="s-label">Dashboard</span>
     </button>
+
+    <div class="s-divider"><span class="s-divider-label">Comercial</span></div>
+    <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+      <span class="s-label">Cotizaciones</span>
+    </button>
+
+    <div class="s-divider"><span class="s-divider-label">Operación</span></div>
+    <button class="s-item" id="sb-proyectos" onclick="switchTab('proyectos',this)" title="Proyectos">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span class="s-badge s-badge-amber" id="badge-proyectos" style="display:none;"></span>
+      <span class="s-label">Proyectos</span>
+    </button>
+    <button class="s-item" id="sb-rentabilidad" onclick="switchTab('rentabilidad',this)" title="Rentabilidad">
+      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>
+      <span class="s-label">Rentabilidad</span>
+    </button>
+
+    <div class="s-divider"><span class="s-divider-label">Finanzas</span></div>
     <button class="s-item" id="sb-finanzas" onclick="switchTab('finanzas',this)" title="Flujo de Caja">
       <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="15" r="1"/><path d="M11 15h6"/></svg>
       <span class="s-label">Flujo</span>
@@ -101,22 +120,8 @@
       <span class="s-badge s-badge-red" id="badge-sat" style="display:none;"></span>
       <span class="s-label">Banco</span>
     </button>
-    
-    <button class="s-item" id="sb-cotizaciones" onclick="switchTab('cotizaciones',this)" title="Cotizaciones">
-      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
-      <span class="s-label">Cotizaciones</span>
-    </button>
-    <button class="s-item" id="sb-proyectos" onclick="switchTab('proyectos',this)" title="Proyectos">
-      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
-      <span class="s-badge s-badge-amber" id="badge-proyectos" style="display:none;"></span>
-      <span class="s-label">Proyectos</span>
-    </button>
-    
-    <button class="s-item" id="sb-rentabilidad" onclick="switchTab('rentabilidad',this)" title="Rentabilidad">
-      <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>
-      <span class="s-label">Rentabilidad</span>
-    </button>
 
+    <div class="s-divider"><span class="s-divider-label">Catálogos</span></div>
     <button class="s-item" id="sb-documentos" onclick="switchTab('documentos',this)" title="Documentos">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
       <span class="s-label">Documentos</span>
@@ -751,6 +756,30 @@
 
   <!-- Tab Dashboard -->
   <div id="tab-dashboard">
+
+    <!-- Resumen comercial — SIEMPRE ARRIBA, antes de finanzas -->
+    <div class="sec-title" style="margin-bottom:8px;">Comercial</div>
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem;">
+      <div class="mcard-hero">
+        <div class="mlabel">Cotizaciones abiertas</div>
+        <div class="mvalue-hero c-blue" id="db-com-abiertas">0</div>
+        <div class="mtrend" id="db-com-pipeline" style="font-size:11px;color:var(--text-3);margin-top:4px;">Pipeline: $0</div>
+      </div>
+      <div class="mcard">
+        <div class="mlabel">Tasa de cierre</div>
+        <div class="mvalue" id="db-com-winrate">—</div>
+        <div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Cerradas vs perdidas</div>
+      </div>
+      <div class="mcard">
+        <div class="mlabel">Cerradas este mes</div>
+        <div class="mvalue c-green" id="db-com-cerradas-mes">0</div>
+      </div>
+      <div class="mcard">
+        <div class="mlabel">En riesgo</div>
+        <div class="mvalue" id="db-com-riesgo">0</div>
+        <div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">+30 días sin mover</div>
+      </div>
+    </div>
 
     <!-- Consulta NL — SIEMPRE ARRIBA -->
     <div class="input-card" style="margin-bottom:1.5rem;">

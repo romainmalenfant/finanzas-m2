@@ -1211,6 +1211,7 @@
 
   <!-- Tab Proyectos -->
   <div id="tab-proyectos" style="display:none;">
+   <div id="proj-browse-view">
     <!-- KPIs proyectos -->
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.5rem;" id="proj-kpis">
       <div class="mcard"><div class="mlabel">Abiertos</div><div class="mvalue c-blue" id="proj-k-abiertos">0</div></div>
@@ -1236,7 +1237,7 @@
           <button id="btn-vista-proyectos" class="btn-sm active" onclick="toggleVistaProyectos('proyectos')">Proyectos · <span id="vista-proj-count">—</span></button>
           <button id="btn-vista-entregas"  class="btn-sm"        onclick="toggleVistaProyectos('entregas')">Entregas · <span id="vista-ent-count">—</span></button>
         </div>
-        <select id="proj-year-filter" onchange="filtrarProyectos(document.getElementById('proj-search').value)"
+        <select id="proj-year-filter" onchange="loadProyectos().then(function(){filtrarProyectos(document.getElementById('proj-search').value)})"
           style="width:auto;padding:5px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;"></select>
       </div>
 
@@ -1296,6 +1297,96 @@
         </div>
       </div>
     </div>
+   </div>
+
+   <!-- ── Editor de proyecto (página completa, crear/editar) ─────────── -->
+   <div id="proj-editor-view" style="display:none;">
+    <div class="cot-editor-hdr">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button class="btn-sm" onclick="cerrarProyecto()" style="padding:7px 12px;font-size:13px;">← Volver</button>
+        <div class="modal-title" id="proj-editor-title" style="font-size:16px;">Nuevo proyecto</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-sm" style="padding:8px 16px;" onclick="cerrarProyecto()">Cancelar</button>
+        <button class="btn-primary" id="btn-save-proj" onclick="guardarProyecto()">Guardar proyecto</button>
+      </div>
+    </div>
+    <div class="modal-body" style="padding:1.25rem 0;">
+        <input type="hidden" id="proj-id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cliente *</label>
+            <div class="ac-wrap">
+              <input type="text" id="proj-cliente-search" placeholder="Buscar cliente..." autocomplete="off">
+              <input type="hidden" id="proj-cliente-sel">
+              <input type="hidden" id="proj-cliente">
+              <div class="ac-dropdown" id="proj-cliente-dd"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Nombre / No. de pedido *</label>
+            <input type="text" id="proj-pedido" placeholder="PED-2026-001">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tipo de piezas</label>
+            <input type="text" id="proj-tipo-pieza" placeholder="Ej: Brida bridante, Engrane recto, Eje escalonado...">
+          </div>
+          <div class="form-group" style="max-width:180px;">
+            <label>Total de piezas</label>
+            <input type="number" id="proj-total-piezas" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha de pedido</label>
+            <input type="date" id="proj-fecha-pedido">
+          </div>
+          <div class="form-group">
+            <label>Fecha de entrega final</label>
+            <input type="date" id="proj-fecha-entrega">
+          </div>
+          <div class="form-group">
+            <label>Monto total del proyecto ($MXN)</label>
+            <input type="number" id="proj-monto" inputmode="decimal" placeholder="0" min="0">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contacto de compras <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
+            <div class="ac-wrap">
+              <input type="text" id="proj-contacto-search" placeholder="Buscar contacto..." autocomplete="off">
+              <input type="hidden" id="proj-contacto-sel">
+              <div class="ac-dropdown" id="proj-contacto-dd"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:3px;">Quien nos contactó</div>
+          </div>
+          <div class="form-group">
+            <label>Usuario <span style="color:var(--text-3);font-weight:400;">(opcional)</span></label>
+            <div class="ac-wrap">
+              <input type="text" id="proj-usuario-search" placeholder="Buscar contacto..." autocomplete="off">
+              <input type="hidden" id="proj-usuario-sel">
+              <div class="ac-dropdown" id="proj-usuario-dd"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text-3);margin-top:3px;">Quien solicitó el servicio</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notas adicionales</label>
+          <textarea id="proj-notas" style="min-height:60px;margin-bottom:0;" placeholder="Observaciones, materiales, especificaciones..."></textarea>
+        </div>
+        <!-- Facturas SAT vinculadas — solo en edición -->
+        <div id="proj-facturas-section" style="display:none;margin-top:16px;">
+          <div style="font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Facturas SAT vinculadas</div>
+          <div id="proj-facturas-linked" style="margin-bottom:8px;"></div>
+          <div id="proj-facturas-available-wrap" style="display:none;">
+            <div style="font-size:11px;color:var(--text-3);margin-bottom:6px;">Disponibles para vincular:</div>
+            <div id="proj-facturas-available"></div>
+          </div>
+        </div>
+    </div>
+   </div>
   </div>
 
   <!-- Tab Clientes -->
@@ -1646,6 +1737,7 @@
           <div id="cot-condiciones-list" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:5px;"></div>
         </div>
     </div>
+   </div>
   </div>
 
   <!-- ── Modal conversión cotización → proyecto ─────────── -->

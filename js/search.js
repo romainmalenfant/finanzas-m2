@@ -230,7 +230,7 @@ document.addEventListener('keydown',function(e){
     var vp=document.getElementById('version-picker-overlay');
     if(vp){vp.remove();return;}
     // Close any open modal (flex = open)
-    var modals=['conv-modal','form-mvmt-modal','proj-modal',
+    var modals=['conv-modal','form-mvmt-modal',
                 'cliente-modal','prov-modal','contacto-modal','empleado-modal',
                 'entrega-modal','sat-preview-modal','fact-modal'];
     for(var i=0;i<modals.length;i++){

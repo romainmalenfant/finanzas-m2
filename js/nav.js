@@ -42,32 +42,11 @@ async function deleteRow(id){
 
 // ── Proyectos DB ─────────────────────────────────────────
 // [T7] entregasByProyecto → M2State alias en config.js
-
-// ── Clientes DB ──────────────────────────────────────────
-async function loadClientes(){
-  try{
-    clientes=await DB.clientes.list();
-    renderClientes();
-  }catch(e){console.error('Clientes error:',e);}
-}
-
-async function upsertCliente(c){ await DB.clientes.save(c); }
-
-async function deleteCliente(id){ await DB.clientes.softDelete(id); }
-
-
-
-async function upsertProyecto(proj){ await DB.proyectos.save(proj); }
-
-async function deleteProyecto(id){
-  await DB.proyectos.softDelete(id);
-  await DB.entregas.softDeleteByProyecto(id);
-}
-
-async function insertEntrega(entrega){ await DB.entregas.insert(entrega); }
+// loadClientes/upsertCliente/deleteCliente/upsertProyecto/deleteProyecto/
+// insertEntrega viven en empresas.js — no dupliques aquí, ver CLAUDE.md
+// "Lecciones aprendidas" sobre funciones declaradas 2 veces.
 
 // ── Navigation ───────────────────────────────────────────
-function handleKey(e){if(e.ctrlKey&&e.key==='Enter')processMovement();}
 
 // Inicializa los selectores de período del tab Flujo
 function initFlujoSelectors(){

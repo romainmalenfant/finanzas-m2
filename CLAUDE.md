@@ -380,6 +380,65 @@ cotVersionFlag        // true = guardar como nueva versión
 
 ## Lecciones aprendidas — errores y soluciones
 
+### 🔴 Funciones declaradas 2 veces — la segunda gana en silencio, sin error
+**Problema real** (2026-07): el botón "+ Nuevo proyecto" no hacía nada. Causa: `js/proyectos.js` tenía **dos** `function abrirNuevoProyecto(){...}` — la segunda declaración pisa la primera sin avisar (JS lo permite, no es un `SyntaxError`, así que el pre-commit hook `node --check` **no lo detecta**). La versión que sobrevivía tenía una llamada a un elemento (`proj-modal`) que ya no existía tras un refactor previo → excepción silenciosa → el resto de la función nunca corría → el botón parecía muerto.
+
+Al buscar este bug aparecieron **7 funciones más duplicadas** en el proyecto (`loadClientes`, `upsertProyecto`, `upsertCliente`, `insertEntrega`, `deleteProyecto`, `deleteCliente`, `filtrarProyectos`) — casi todas entre `nav.js` y `empresas.js`/`proyectos.js` (código viejo que quedó de una reorganización y nunca se borró). Una de ellas (`filtrarProyectos` en `contactos.js` vs `proyectos.js`) tenía comportamiento **distinto**: la versión muerta sí filtraba por año, la viva no — bug funcional silencioso (el selector de año en Proyectos no hacía nada).
+
+**Diagnóstico rápido** — correr esto antes de dar por buena una sesión de cambios grandes:
+```bash
+grep -ohE '^(async )?function [A-Za-z0-9_]+' js/*.js | sed 's/^async function/function/' | sort | uniq -c | sort -rn | awk '$1>1'
+```
+Cualquier función que aparezca 2+ veces: revisar cuál gana (la del `<script>` que carga **último** en `index.html`) y si la muerta tiene comportamiento que la viva no tiene.
+
+**Por qué pasa**: arquitectura de funciones globales sin módulos — no hay ningún error de build ni de linter que detecte una redeclaración. Es la otra cara de la simplicidad del stack (ver "Por qué vanilla JS sin build tool" arriba).
+
+**Estado (2026-07)**: limpiado. Se eliminaron las duplicadas y de paso 3 clusters de código muerto sin relación directa con el bug pero con el mismo patrón (nunca se llaman desde ningún botón): `processMovement`/`handleKey`/`detectarGasto` (movimientos.js/nav.js — quedaron de antes del modal `movimiento_form.js`), `saveApiKey`/`initApiKeyBanner`/`getApiKey` (utils.js — feature de API key borrada del HTML), `buscarClienteCot`/`selClienteCot` (cot-form.js — autocomplete viejo, reemplazado por `makeAutocomplete`).
+
+---
+
+### 🔴 `<div>` sin cerrar en index.html — anida pestañas enteras en silencio
+**Problema real** (2026-07): al convertir el modal de cotizaciones a página completa (`#cot-editor-view`), faltó un `</div>` de cierre para `#tab-cotizaciones`. HTML no tira error por esto — el browser simplemente sigue anidando todo lo que viene después (`#tab-documentos`, `#tab-sat`, modales) **dentro** de `#tab-cotizaciones`. Efecto: cada vez que `switchTab` ponía `#tab-cotizaciones` en `display:none` (o sea, siempre que el usuario no estuviera en Cotizaciones), Documentos y Banco quedaban invisibles aunque su propio `display` dijera `block` — porque un ancestro oculto gana.
+
+**Por qué es peligroso**: no truena, no aparece en consola, no lo agarra `node --check` (es HTML, no JS). Solo se nota abriendo la pestaña afectada y viendo que no aparece nada.
+
+**Diagnóstico** — correr en consola del browser después de cualquier cambio de estructura en `index.html`:
+```javascript
+var ids = ['tab-facturas','tab-dashboard','tab-contactos','tab-empleados','tab-finanzas',
+  'tab-rentabilidad','tab-proyectos','tab-clientes','tab-proveedores','tab-cotizaciones',
+  'tab-documentos','tab-sat']; // agregar cualquier tab-* nuevo
+var els = ids.map(id => document.getElementById(id));
+els.forEach((a,i) => els.forEach((b,j) => {
+  if(i!==j && a && b && a.contains(b)) console.warn(ids[i]+' contiene '+ids[j]+' — probablemente falta un </div>');
+}));
+```
+**Regla al convertir un modal a página completa**: el nuevo `#xxx-editor-view` debe quedar **dentro** de `#tab-xxx` como hermano de `#xxx-browse-view` (para que `switchTab` lo oculte solo al salir del tab) — y `#tab-xxx` necesita **un `</div>` extra** al final para cerrar el que ya tenía, más los de `browse-view` y `editor-view`. Fácil de perder la cuenta; correr el diagnóstico de arriba después de cada cambio así.
+
+---
+
+### 🟡 Metodología de auditoría — 3 chequeos baratos antes de dar por cerrada una sesión grande
+Ninguno de estos requiere agentes ni herramientas externas, son minutos:
+
+1. **Funciones duplicadas** (ver lección de arriba).
+2. **`<div>` mal anidados en `index.html`** (ver lección de arriba).
+3. **Referencias a elementos que no existen** — cruza cada `getElementById('literal')` de `js/*.js` contra los `id="..."` de `index.html` (estáticos + creados por `innerHTML`/`.id=` en JS):
+```bash
+node -e "
+const fs = require('fs');
+const html = fs.readFileSync('index.html', 'utf8');
+let jsAll = fs.readdirSync('js').filter(f=>f.endsWith('.js')).map(f=>fs.readFileSync('js/'+f,'utf8')).join('\n');
+const htmlIds = new Set(); const idRe = /\bid=[\"']([^\"']+)[\"']/g; let m;
+while ((m = idRe.exec(html))) htmlIds.add(m[1]);
+while ((m = idRe.exec(jsAll))) htmlIds.add(m[1]);
+const gebRe = /getElementById\(\s*['\"]([^'\"]+)['\"]\s*\)/g; const used = new Set();
+while ((m = gebRe.exec(jsAll))) used.add(m[1]);
+[...used].filter(id => !htmlIds.has(id)).sort().forEach(id => console.log(id));
+"
+```
+La mayoría de los resultados van a estar protegidos con `if(el)` (falsos positivos inofensivos) — pero cualquiera SIN guardia, en una función que sí se llama desde algún `onclick`, es un crash esperando a pasar.
+
+---
+
 ### 🔴 [3+ iteraciones] Encoding UTF-8 con PowerShell en Windows
 **Problema**: PowerShell interpreta la salida de `git show` usando la codepage CP437 del sistema. Los bytes UTF-8 de `ñ` (`C3 B1`) se convierten en caracteres box-drawing (`├▒` → `E2 94 9C E2 96 92`). Los identifiers JS como `var años` se corrompen → `SyntaxError: Invalid or unexpected token` → **todo el archivo deja de ejecutarse**.
 

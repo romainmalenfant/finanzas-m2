@@ -301,51 +301,8 @@ function recalcCotTotal(){
   el('cot-total', fmt(total));
 }
 
-// ── Cliente autocomplete in cot form ─────────────────────
-function buscarClienteCot(q){
-  var dd = document.getElementById('cot-cliente-dropdown');
-  if(!q.trim()){dd.style.display='none';return;}
-  var ql = q.toLowerCase();
-  var matches = clientes.filter(function(c){
-    return (c.nombre||'').toLowerCase().includes(ql)||(c.rfc||'').toLowerCase().includes(ql);
-  }).slice(0,6);
-  if(!matches.length){dd.style.display='none';return;}
-  dd.style.display = 'block';
-  dd.innerHTML = '';
-  var frag = document.createDocumentFragment();
-  matches.forEach(function(c){
-    var item = document.createElement('div');
-    item.style.cssText = 'padding:9px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid var(--border);color:var(--text-1);';
-    var nameSpan = document.createElement('span');
-    nameSpan.style.fontWeight = '500';
-    nameSpan.textContent = c.nombre;
-    item.appendChild(nameSpan);
-    if(c.rfc){
-      var rfcSpan = document.createElement('span');
-      rfcSpan.style.cssText = 'color:var(--text-3);font-size:11px;margin-left:6px;';
-      rfcSpan.textContent = c.rfc;
-      item.appendChild(rfcSpan);
-    }
-    item.addEventListener('mouseenter', function(){ this.style.background='var(--bg-hover)'; });
-    item.addEventListener('mouseleave', function(){ this.style.background=''; });
-    item.addEventListener('mousedown', function(){ selClienteCot(c.id, c.nombre); });
-    frag.appendChild(item);
-  });
-  dd.appendChild(frag);
-}
-
-function selClienteCot(id, nombre){
-  document.getElementById('cot-cliente-id').value = id;
-  document.getElementById('cot-cliente-search').value = nombre;
-  document.getElementById('cot-cliente-selected').textContent = '✓ '+nombre;
-  document.getElementById('cot-cliente-selected').style.display = 'block';
-  document.getElementById('cot-cliente-dropdown').style.display = 'none';
-}
 
 document.addEventListener('click',function(e){
-  // Cerrar dropdown de cliente
-  var ddCli=document.getElementById('cot-cliente-dropdown');
-  if(ddCli&&!ddCli.contains(e.target)&&e.target.id!=='cot-cliente-search') ddCli.style.display='none';
   // Cerrar dropdown de contacto al hacer clic fuera
   var ddCont=document.getElementById('cot-contacto-dd');
   if(ddCont&&ddCont.style.display!=='none'){
@@ -508,7 +465,7 @@ async function guardarCotizacion(){
   var contactoId = (document.getElementById('cot-contacto-id')||{}).value||null;
   var usuarioClienteId = (document.getElementById('cot-usuario-id')||{}).value||null;
   var proyectoId = (document.getElementById('cot-proj-id')||{}).value||null;
-  var sel = document.getElementById('cot-cliente-sel');
+  var sel = document.getElementById('cot-cliente-search');
   var tituloVal = (document.getElementById('cot-titulo')||{}).value||'';
   var clienteNombre = clienteId && clientes.find(function(c){return c.id===clienteId;}) ?
     clientes.find(function(c){return c.id===clienteId;}).nombre :

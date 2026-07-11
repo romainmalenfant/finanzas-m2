@@ -50,20 +50,6 @@ function fmt(n){if(!n&&n!==0)n=0;var neg=n<0;var a=Math.abs(n);var s=a.toFixed(2
 function fmtDate(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');var hoy=new Date();var base=d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()];return d.getFullYear()===hoy.getFullYear()?base:base+' '+d.getFullYear();}
 function fmtDateFull(iso){if(!iso)return'—';var d=new Date(iso+'T12:00');return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]+' '+d.getFullYear();}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function getApiKey(){return localStorage.getItem('m2_anthropic_key')||'';}
-function saveApiKey(){
-  var k=document.getElementById('apikey-input').value.trim();
-  if(k){
-    localStorage.setItem('m2_anthropic_key',k);
-    document.getElementById('apikey-banner').style.display='none';
-    showStatus('✓ API key guardada');
-  }
-}
-function initApiKeyBanner(){
-  var banner=document.getElementById('apikey-banner');
-  if(!banner)return;
-  if(getApiKey()){banner.style.display='none';}
-}
 function getUserName(){
   // Use logged-in user email (before @) as name
   var session=null;

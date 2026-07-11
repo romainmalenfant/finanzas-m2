@@ -286,7 +286,12 @@ select option{background:var(--bg-card);color:var(--text-1);}
 #cot-editor-view .modal-body input[type="number"],
 #cot-editor-view .modal-body input[type="date"],
 #cot-editor-view .modal-body select,
-#cot-editor-view .modal-body textarea{background:var(--bg-card);}
+#cot-editor-view .modal-body textarea,
+#proj-editor-view .modal-body input[type="text"],
+#proj-editor-view .modal-body input[type="number"],
+#proj-editor-view .modal-body input[type="date"],
+#proj-editor-view .modal-body select,
+#proj-editor-view .modal-body textarea{background:var(--bg-card);}
 .cot-items-table .cot-item-type{font-size:11px;font-weight:600;color:var(--brand-red);white-space:nowrap;padding:7px 8px;}
 .cot-items-table .cot-item-sub{font-weight:600;color:#34d399;padding:7px 8px;font-size:12px;}
 .cot-items-table .cot-item-del{background:none;border:none;color:#f87171;cursor:pointer;font-size:15px;padding:4px;line-height:1;}

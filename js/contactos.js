@@ -483,26 +483,6 @@ async function eliminarContacto(id){
   catch(e){showError('Error: '+e.message);}
 }
 
-function filtrarProyectos(q){
-  var ql=(q||'').toLowerCase();
-  var año=document.getElementById('proj-year-filter').value;
-  var status=document.getElementById('proj-status-filter').value;
-  var filtered=(allProyectos||proyectos).filter(function(p){
-    if(año&&p.year&&String(p.year)!==String(año))return false;
-    if(status){
-      var ents=entregasByProyecto[p.id]||[];
-      var entregadas=ents.reduce(function(a,e){return a+Number(e.piezas||0);},0);
-      var est=estadoProyecto(p,entregadas);
-      if((est.lbl||est)!==status)return false;
-    }
-    if(!ql)return true;
-    return (p.nombre_cliente||'').toLowerCase().includes(ql)||
-           (p.nombre_pedido||'').toLowerCase().includes(ql)||
-           (p.tipo_pieza||'').toLowerCase().includes(ql);
-  });
-  document.getElementById('proj-count').textContent=filtered.length+' proyecto'+(filtered.length!==1?'s':'');
-  proyectos=filtered;
-  renderProyectos();
-  proyectos=allProyectos; // restore after render
-}
+// filtrarProyectos() vive en proyectos.js — no dupliques aquí, ver
+// CLAUDE.md "Lecciones aprendidas" sobre funciones declaradas 2 veces.
 

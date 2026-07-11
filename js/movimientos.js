@@ -1,32 +1,6 @@
 // ── Etiqueta de gasto ────────────────────────────────────
 var etiquetaSeleccionada='';
 var ventasMes = []; // P1-a: ventas del mes cargadas desde facturas
-function detectarGasto(texto){
-  var t=texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  var esGasto=t.match(/pag[ao]|nomin|compr[ao]|gast|egres|proveedor|renta|servicio|material|herramienta|combustible|luz\b|agua\b|telefon|internet|manten|reparac|flete|envio|seguro|impuest|iva|isr|sueldo|mutuo|utilidad/);
-  var row=document.getElementById('etiqueta-row');
-  if(esGasto){
-    row.style.display='block';
-    // Auto-sugerir etiqueta
-    if(!etiquetaSeleccionada){
-      var sugerida='';
-      if(t.match(/nomin|sueldo/))sugerida='Nómina';
-      else if(t.match(/renta/))sugerida='Renta';
-      else if(t.match(/material/))sugerida='Material';
-      else if(t.match(/herramienta/))sugerida='Herramienta';
-      else if(t.match(/manten/))sugerida='Mantenimiento';
-      else if(t.match(/flete|envio|transport/))sugerida='Transporte';
-      else if(t.match(/impuest|iva|isr/))sugerida='Impuestos';
-      else if(t.match(/mutuo/))sugerida='Mutuo';
-      else if(t.match(/luz|agua|telefon|internet|utilidad/))sugerida='Utilidades';
-      if(sugerida)selEtiqueta(null,sugerida);
-    }
-  } else {
-    row.style.display='none';
-    etiquetaSeleccionada='';
-    document.querySelectorAll('.etiq-btn').forEach(function(b){b.classList.remove('active');});
-  }
-}
 function selEtiqueta(btn,etiq){
   etiquetaSeleccionada=etiq;
   document.querySelectorAll('.etiq-btn').forEach(function(b){b.classList.remove('active');});
@@ -102,76 +76,8 @@ function clasificar(texto){
   var desc=texto.charAt(0).toUpperCase()+texto.slice(1);
   return{amount:monto,category:cat,description:desc,counterpart:contra,fecha:fecha,year:mvYear,month:mvMonth};
 }
-
-async function processMovement(){
-  var inp=document.getElementById('mvmt-input');
-  var text=inp.value.trim();
-  if(!text)return;
-
-  var userName=getUserName();
-  if(!userName){
-    var n=prompt('¿Cuál es tu nombre? (se mostrará en los movimientos)');
-    if(!n||!n.trim()){showStatus('Escribe tu nombre para continuar.');return;}
-    saveName(n.trim());
-    document.getElementById('user-name-input').value=n.trim();
-    userName=n.trim();
-  }
-
-  var btn=document.getElementById('btn-submit');
-  btn.disabled=true;
-  showStatus('Procesando...',0);
-
-  try{
-    var p=clasificar(text);
-    // ── Verificar duplicado ──────────────────────────────
-    var dup=findDuplicate(p.amount,p.fecha,p.category);
-    if(dup){
-      var confirmar=confirm(
-        '⚠️ Posible duplicado detectado:\n\n'+
-        '"'+dup.descripcion.slice(0,60)+'"\n'+
-        'Monto: $'+Math.round(dup.monto).toLocaleString('es-MX')+
-        ' · Fecha: '+fmtDate(dup.fecha)+
-        ' · Registrado por: '+(dup.usuario||'desconocido')+
-        '\n\n¿Es un movimiento diferente y quieres registrarlo de todas formas?'
-      );
-      if(!confirmar){
-        showStatus('Movimiento no registrado (posible duplicado).',3000);
-        btn.disabled=false;
-        return;
-      }
-    }
-    var mv={
-      id:Date.now().toString()+Math.random().toString(36).slice(2,7),
-      fecha:p.fecha,
-      raw_text:text,
-      descripcion:p.description||text.slice(0,50),
-      contraparte:p.counterpart||'',
-      monto:Math.abs(p.amount||0),
-      categoria:p.category,
-      year:p.year,
-      month:p.month,
-      usuario:userName,
-      etiqueta:(p.category==='gasto'&&etiquetaSeleccionada)?etiquetaSeleccionada:null,
-      origen:'manual'
-    };
-    await insertMovement(mv);
-    var mesDistinto=(p.year!==curYear||p.month!==curMonth+1);
-    var msgMes=mesDistinto?' (guardado en '+['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][p.month-1]+')':'';
-    inp.value='';
-    etiquetaSeleccionada='';
-    document.getElementById('etiqueta-row').style.display='none';
-    document.querySelectorAll('.etiq-btn').forEach(function(b){b.classList.remove('active');});
-    showStatus('✓ '+CAT_LABELS[mv.categoria]+(mv.etiqueta?' · '+mv.etiqueta:'')+' · $'+Math.round(mv.monto).toLocaleString('es-MX')+msgMes);
-    await loadMovements();
-  }catch(e){
-    console.error(e);
-    showError('Error al guardar: '+e.message);
-    var _sm=document.getElementById('status-msg');if(_sm)_sm.textContent='';
-  }finally{
-    btn.disabled=false;
-  }
-}
-
+// processMovement()/handleKey() se eliminaron (2026-07) — código muerto,
+// reemplazado por el modal de movimiento_form.js. Ver CLAUDE.md.
 
 // ── Metrics ──────────────────────────────────────────────
 function computeMetrics(){

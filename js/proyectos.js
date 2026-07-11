@@ -131,7 +131,7 @@ function poblarClientesEnProyecto(valorActual){
   var hid=document.getElementById('proj-cliente-sel');
   if(!inp)return;
   // Find nombre for current value
-  var c=clientes.find(function(x){return x.nombre===valorActual||x.id===valorActual;});
+  var c=(clientes||[]).find(function(x){return x.nombre===valorActual||x.id===valorActual;});
   inp.value=c?c.nombre:(valorActual||'');
   if(hid) hid.value=c?c.id:'';
   document.getElementById('proj-cliente').value=valorActual||'';
@@ -173,24 +173,39 @@ function poblarContactosEnProyecto(valorActual, clienteId){
     function(){ return items; }, null);
 }
 
+// ── Toggle entre lista de proyectos y el editor de página completa ──
+function mostrarProjEditor(){
+  var browse = document.getElementById('proj-browse-view');
+  var editor = document.getElementById('proj-editor-view');
+  if(browse) browse.style.display = 'none';
+  if(editor) editor.style.display = 'block';
+}
+
 function abrirNuevoProyecto(){
-  if(!clientes.length)loadClientes();
+  if(!clientes.length) loadClientes();
   document.getElementById('proj-id').value='';
-  document.getElementById('proj-modal-title').textContent='Nuevo proyecto';
-  ['pedido','tipo-pieza','notas'].forEach(function(f){document.getElementById('proj-'+f).value='';});
-  ['total-piezas','monto'].forEach(function(f){document.getElementById('proj-'+f).value='';});
-  document.getElementById('proj-fecha-pedido').value=new Date().toISOString().split('T')[0];
-  document.getElementById('proj-fecha-entrega').value='';
+  document.getElementById('proj-editor-title').textContent='Nuevo proyecto';
   poblarClientesEnProyecto('');
   poblarContactosEnProyecto('');
-  document.getElementById('proj-modal').style.display='flex';
+  document.getElementById('proj-pedido').value='';
+  document.getElementById('proj-tipo-pieza').value='';
+  document.getElementById('proj-total-piezas').value=0;
+  document.getElementById('proj-fecha-pedido').value=new Date().toISOString().split('T')[0];
+  document.getElementById('proj-fecha-entrega').value='';
+  document.getElementById('proj-monto').value=0;
+  document.getElementById('proj-notas').value='';
+  document.getElementById('proj-facturas-section').style.display='none';
+  var ui=document.getElementById('proj-usuario-search'); if(ui) ui.value='';
+  var uh=document.getElementById('proj-usuario-sel');    if(uh) uh.value='';
+  mostrarProjEditor();
 }
 
 function editarProyecto(id){
   var p=proyectos.find(function(x){return x.id===id;});
   if(!p)return;
+  if(!clientes.length) loadClientes();
   document.getElementById('proj-id').value=p.id;
-  document.getElementById('proj-modal-title').textContent='Editar proyecto';
+  document.getElementById('proj-editor-title').textContent='Editar proyecto';
   poblarClientesEnProyecto(p.nombre_cliente||'');
   poblarContactosEnProyecto(p.contacto_id||'', p.cliente_id||'');
   // Usuario cliente
@@ -209,28 +224,10 @@ function editarProyecto(id){
   document.getElementById('proj-fecha-entrega').value=p.fecha_entrega||'';
   document.getElementById('proj-monto').value=p.monto_total||0;
   document.getElementById('proj-notas').value=p.notas||'';
-  document.getElementById('proj-modal').style.display='flex';
+  mostrarProjEditor();
   // Show and load invoices section
   document.getElementById('proj-facturas-section').style.display='block';
   cargarFacturasEnModal(id, p.cliente_id||null, p.nombre_cliente||null);
-}
-
-function abrirNuevoProyecto(){
-  document.getElementById('proj-id').value='';
-  document.getElementById('proj-modal-title').textContent='Nuevo proyecto';
-  poblarClientesEnProyecto('');
-  poblarContactosEnProyecto('');
-  document.getElementById('proj-pedido').value='';
-  document.getElementById('proj-tipo-pieza').value='';
-  document.getElementById('proj-total-piezas').value=0;
-  document.getElementById('proj-fecha-pedido').value=new Date().toISOString().split('T')[0];
-  document.getElementById('proj-fecha-entrega').value='';
-  document.getElementById('proj-monto').value=0;
-  document.getElementById('proj-notas').value='';
-  document.getElementById('proj-facturas-section').style.display='none';
-  var ui=document.getElementById('proj-usuario-search'); if(ui) ui.value='';
-  var uh=document.getElementById('proj-usuario-sel');    if(uh) uh.value='';
-  document.getElementById('proj-modal').style.display='flex';
 }
 
 async function cargarFacturasEnModal(proyId, clienteId, nombreCliente){
@@ -303,7 +300,12 @@ async function desvincularFactModalProyecto(factId, proyId){
   }catch(e){showError('Error: '+e.message);}
 }
 
-function cerrarProyecto(){document.getElementById('proj-modal').style.display='none';}
+function cerrarProyecto(){
+  var browse = document.getElementById('proj-browse-view');
+  var editor = document.getElementById('proj-editor-view');
+  if(editor) editor.style.display = 'none';
+  if(browse) browse.style.display = 'block';
+}
 
 async function guardarProyecto(){
   var cliente=document.getElementById('proj-cliente').value.trim()||document.getElementById('proj-cliente-search').value.trim();

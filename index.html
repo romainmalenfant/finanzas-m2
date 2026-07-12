@@ -767,10 +767,10 @@
       <div class="mcard">
         <div class="mlabel">Tasa de cierre</div>
         <div class="mvalue" id="db-com-winrate">—</div>
-        <div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Cerradas vs perdidas</div>
+        <div class="mtrend" style="font-size:10px;color:var(--text-3);margin-top:3px;">Ganadas vs perdidas</div>
       </div>
       <div class="mcard">
-        <div class="mlabel">Cerradas este mes</div>
+        <div class="mlabel">Ganadas este mes</div>
         <div class="mvalue c-green" id="db-com-cerradas-mes">0</div>
       </div>
       <div class="mcard">
@@ -1544,7 +1544,7 @@
     <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1rem;">
       <div class="mcard"><div class="mlabel">Total</div><div class="mvalue c-blue" id="cot-k-total">0</div></div>
       <div class="mcard"><div class="mlabel">Abiertas</div><div class="mvalue" style="color:#fbbf24;" id="cot-k-abiertas">0</div></div>
-      <div class="mcard"><div class="mlabel">Cerradas</div><div class="mvalue c-green" id="cot-k-cerradas">0</div><div class="msub" id="cot-k-cerradas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
+      <div class="mcard"><div class="mlabel">Ganadas</div><div class="mvalue c-green" id="cot-k-cerradas">0</div><div class="msub" id="cot-k-cerradas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
       <div class="mcard"><div class="mlabel">Perdidas</div><div class="mvalue c-red" id="cot-k-perdidas">0</div><div class="msub" id="cot-k-perdidas-monto" style="font-size:11px;color:var(--text-3);margin-top:2px;">$0</div></div>
       <div class="mcard"><div class="mlabel">Pipeline</div><div class="mvalue" style="color:#a78bfa;" id="cot-k-pipeline">$0</div></div>
       <div class="mcard"><div class="mlabel">Win Rate</div><div class="mvalue c-green" id="cot-k-winrate">—</div></div>
@@ -1568,16 +1568,16 @@
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
       <input type="text" id="cotizaciones-search" placeholder="Buscar por número o cliente..."
         oninput="filtrarCotizaciones(this.value)"
-        style="flex:1;padding:8px 12px;border:0.5px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-input);color:var(--text-1);">
+        style="flex:1;padding:8px 12px;border:1px solid var(--text-4);border-radius:8px;font-family:inherit;font-size:13px;background:var(--bg-card);color:var(--text-1);">
       <select id="cot-year-filter" onchange="cotYearFilter=parseInt(this.value);filtrarCotizaciones(document.getElementById('cotizaciones-search').value);"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-1);font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:1px solid var(--text-4);border-radius:7px;background:var(--bg-card);color:var(--text-1);font-family:inherit;font-size:12px;">
       </select>
       <select id="cot-estatus-filter" onchange="filtrarCotizaciones(document.getElementById('cotizaciones-search').value)"
-        style="padding:6px 10px;border:0.5px solid var(--border);border-radius:7px;background:var(--bg-input);color:var(--text-2);font-family:inherit;font-size:12px;">
+        style="padding:6px 10px;border:1px solid var(--text-4);border-radius:7px;background:var(--bg-card);color:var(--text-2);font-family:inherit;font-size:12px;">
         <option value="">Todos los estados</option>
         <option value="borrador">Borrador</option>
         <option value="enviada">Enviada</option>
-        <option value="cerrada">Cerrada</option>
+        <option value="cerrada">Ganada</option>
         <option value="perdida">Perdida</option>
       </select>
       <span style="font-size:11px;color:var(--text-3);white-space:nowrap;" id="cot-count">0 cotizaciones</span>

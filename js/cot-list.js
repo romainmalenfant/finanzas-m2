@@ -256,7 +256,7 @@ function filtrarCotizaciones(q){
   renderCotizacionesList(applyCotSort(activas), applyCotSort(historial));
 }
 
-var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociación', cerrada:'Cerrada ✓', perdida:'Perdida'};
+var EST_LABELS = {borrador:'Borrador', enviada:'Enviada', en_negociacion:'En negociación', cerrada:'Ganada ✓', perdida:'Perdida'};
 var EST_COLORS = {borrador:'#64748b', enviada:'#60a5fa', en_negociacion:'#a78bfa', cerrada:'#34d399', perdida:'#f87171'};
 
 // -- T6: Pure render functions --
@@ -523,7 +523,7 @@ var KANBAN_COLS = [
   {key:'borrador',     label:'Borrador',         icon:'📝'},
   {key:'enviada',      label:'Enviada',           icon:'📤'},
   {key:'en_negociacion',label:'En negociación',   icon:'💬'},
-  {key:'cerrada',      label:'Cerrada ✓',         icon:'✅', limit90:true},
+  {key:'cerrada',      label:'Ganada ✓',          icon:'✅', limit90:true},
   {key:'perdida',      label:'Perdida',           icon:'❌', limit90:true}
 ];
 

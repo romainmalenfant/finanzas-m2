@@ -441,7 +441,7 @@ async function verDetalleProyecto(id){
     // F3: Cotizaciones vinculadas a este proyecto/cliente
     var cots=await DB.cotizaciones.byCliente(p.cliente_id, p.nombre_cliente);
     var EST_COLORS_LOCAL={borrador:'#64748b',enviada:'#60a5fa',en_negociacion:'#a78bfa',cerrada:'#34d399',perdida:'#f87171'};
-    var EST_LABELS_LOCAL={borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Cerrada ✓',perdida:'Perdida'};
+    var EST_LABELS_LOCAL={borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Ganada ✓',perdida:'Perdida'};
     body+=
       '<div class="detail-section"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+
         '<div class="detail-section-title" style="margin-bottom:0;">Cotizaciones</div>'+

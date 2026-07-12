@@ -593,7 +593,7 @@ function mostrarPickerVersiones(versiones, currentId){
   var sorted = versiones.slice().sort(function(a,b){ return (b.version||1)-(a.version||1); });
   var last4 = sorted.slice(0,4);
   var fmt2 = function(n){ return n!=null ? '$'+parseFloat(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—'; };
-  var fmtEst = function(e){ return {borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Cerrada',perdida:'Perdida'}[e]||e; };
+  var fmtEst = function(e){ return {borrador:'Borrador',enviada:'Enviada',en_negociacion:'En negociación',cerrada:'Ganada',perdida:'Perdida'}[e]||e; };
 
   var existing = document.getElementById('version-picker-overlay');
   if(existing) existing.remove();
@@ -855,7 +855,7 @@ async function verDetalleCotizacion(id){
         '<div style="display:flex;gap:8px;flex-wrap:wrap;">'+
           (c.estatus==='borrador'?'<button class="btn-primary" onclick="cambiarEstatusCot(\''+id+'\',\'enviada\')">Marcar enviada</button>':'')+
           (c.estatus==='enviada'?'<button class="btn-sm" onclick="cambiarEstatusCot(\''+id+'\',\'en_negociacion\')" style="color:#a78bfa;border-color:#a78bfa;">💬 En negociación</button>':'')+
-          '<button class="btn-primary" style="background:#34d399;color:#0b0e17;" onclick="cambiarEstatusCot(\''+id+'\',\'cerrada\')">✓ Cerrar (ganada)</button>'+
+          '<button class="btn-primary" style="background:#34d399;color:#0b0e17;" onclick="cambiarEstatusCot(\''+id+'\',\'cerrada\')">✓ Marcar ganada</button>'+
           '<button class="btn-sm" style="color:#f87171;" onclick="marcarPerdida(\''+id+'\')">Marcar perdida</button>'+
           '<button class="btn-sm" onclick="generarPDFCotizacion(\''+id+'\')">📄 PDF</button>'+
         '</div>';
